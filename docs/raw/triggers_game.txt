@@ -1,0 +1,2294 @@
+T69 pl=[17] ef=4
+  A Deaths(CurrentPlayer,Marine) = 421137684
+T74 pl=[0, 1, 2, 3] ef=c0e2e008
+  C Deaths(EUD0xE1B431D4) == 53
+  A Text[영웅: 헌터 킬러
+\n등장 확률: 5%
+\n효과: 노멀 등급 저그 유닛(히드라리스크)이 나올 때마다 20미네랄 획득]
+  A Countdown 31 0
+T79 pl=[0, 1, 2, 3] ef=98d4a008
+  C Deaths(EUD0x5A1ED4) == 79
+  C Deaths(CurrentPlayer,Tassadar) == 0
+  A Mute(loc0,txt376,wav0,tm0,p0,num0,u1998,mod196,fl4)
+  A Deaths(CurrentPlayer,Tassadar) = 1
+T84 pl=[0, 1, 2, 3] ef=e0a15008
+  C Deaths(EUD0x5A1ED4) == 1680689732 [DIS]
+  C Deaths(CurrentPlayer,Duke(S)) == 0
+  A Text[영웅: 에드먼드 듀크
+\n등장 확률: 5%
+\n특성: 공격 가능. 테란 유닛 공업 적용 받음.
+\n효과: 히든 등급 테란 유닛(시즈 탱크) 4기 보유 시 시즈 탱크 2기 추가 획득.]
+  A Deaths(CurrentPlayer,Duke(S)) = 1
+  A Deaths(EUD0x59CC10) 100 0
+  A Score(pl1162517621,t19372) 156 0 [DIS]
+  A Deaths(EUD0x598DE8) 84 1509827070
+  A Invinc(loc0,txt0,wav0,tm1673300297,p0,num0,u39550,mod180,fl0)
+T89 pl=[0, 1, 2, 3] ef=b5df4008
+  C Deaths(EUD0x5A1ED4) >= 28
+  C Deaths(CurrentPlayer,Mengsk) == 1
+  A Deaths(CurrentPlayer,Mengsk) = 1661201327
+T90 pl=[0, 1, 2, 3] ef=a58c4008
+  C Deaths(EUD0xE1B443A4) >= 52 [DIS]
+  C Deaths(CurrentPlayer,InfKerrigan) == 1
+  A Deaths(CurrentPlayer,InfKerrigan) = 0
+T95 pl=[0, 1, 2, 3] ef=d496f008
+  C Deaths(EUD0x5A1ED4) >= 60
+  C Deaths(CurrentPlayer,u59) == 1
+  A UnpauseTimer(loc0,txt0,wav0,tm0,p13,num0,u33820,mod105,fl20)
+T96 pl=[0, 1, 2, 3] ef=80b66008
+  C Deaths(EUD0x5A1ED4) >= 99
+  C Deaths(CurrentPlayer,Raszagal) == 1
+  A Deaths(CurrentPlayer,Raszagal) = 0
+T97 pl=[0, 1, 2, 3] ef=c0ce9008
+  A Deaths(EUD0xC20CD3C4) = 3322402650
+T98 pl=[0, 1, 2, 3] ef=ba737008
+  C Deaths(EUD0x5A1ED4) >= 26
+  A Deaths(CurrentPlayer,Duke(S)) = 0
+T103 pl=[0, 1, 2, 3] ef=d19f4008
+  C Deaths(EUD0x5A1ED4) <= 77
+  C Deaths(CurrentPlayer,Fenix(D)) == 1
+  A Deaths(CurrentPlayer,Fenix(D)) = 0
+T108 pl=[0, 1, 2, 3] ef=865b6008
+  C Deaths(EUD0x5A1ED4) <= 142
+  A Deaths(CurrentPlayer,u143) = 0
+T113 pl=[0, 1, 2, 3] ef=91d1d008
+  C Deaths(EUD0xE1B41554) >= 103
+  C Deaths(EUD0xA497B47C) == 1
+  A Deaths(CurrentPlayer,DuGalle) = 0
+T118 pl=[0, 1, 2, 3] ef=8c0d8008
+  C Deaths(EUD0xE1B418E4) <= 47
+  A UnpauseTimer(loc0,txt0,wav3357184338,tm1675906136,p13,num0,u33810,mod105,fl20)
+T123 pl=[0, 1, 2, 3] ef=df3ee008
+  C Deaths(EUD0x5A1ED4) <= 87
+  C Deaths(CurrentPlayer,Artanis) == 1
+  A Deaths(CurrentPlayer,Artanis) = 0
+T128 pl=[0, 1, 2, 3] ef=afa2b008
+  C Bring(Force1,u15,loc1680689848) >= 1
+  C Deaths(CurrentPlayer,u17) >= 1
+  C Bring(pl1661201344,u15,loc6) == 0
+  C Bring(Force1,u15,loc8) == 0
+  A Text[3배속으로 설정되었습니다!]
+  A Countdown 31 0
+  A Deaths(P5,u17) = 0
+T129 pl=[0, 1, 2, 3] ef=8
+  C Bring(Force1,u15,loc7) == 0
+  C Bring(Force1,u15,loc8) >= 1
+  C Deaths(CurrentPlayer,u17) == 0
+  A Text[4배속으로 설정되었습니다!]
+  A Deaths(P5,u17) = 2
+  A Deaths(CurrentPlayer,u17) = 2
+  A Deaths(EUD0xF9AC0414) = 12
+T130 pl=[0, 1, 2, 3] ef=8
+  C Bring(Force1,u15,loc6) >= 1
+  C Deaths(CurrentPlayer,u17) == 0
+  C Bring(Force1,u15,loc7) == 0
+  A Text[2배속으로 설정되었습니다!]
+  A Deaths(CurrentPlayer,u17) = 1
+  A Deaths(P5,u17) = 1
+  A Deaths(EUD0xF9AC0414) = 29
+T132 pl=[2] ef=d4997008
+  C Bring(pl1680689855,u15,loc9) == 0
+  C Command(P1,u195) == 0
+  C Command(P2,u195) == 0
+  A CreateProps(CurrentPlayer,u15 x1 @loc7,props0)
+  A Text[※ 참고 사항
+\n파랑 플레이어가 없으므로 배속 선택권이 넘겨졌습니다!
+\n ]
+T134 pl=[3] ef=89699008
+  A CreateProps(CurrentPlayer,u15 x1 @loc7,props1661201327)
+T136 pl=[0] ef=d259f008
+  C Deaths(CurrentPlayer,u198) >= 51000
+  C Deaths(CurrentPlayer,u198) <= 55999
+  C Deaths(EUD0xBE507EDC) == 0
+  C Switch#0 set
+  A CreateProps(CurrentPlayer,Fenix(Z) x1 @loc57,props1661201330)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc0,txt2570819499,wav438,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav438,tm0,p0,num0,u0,mod0,fl173)
+  A CenterView(loc57,txt0,wav0,tm0,p0,num0,u0,mod0,fl73)
+  A Text[<str1863606867?>]
+T137 pl=[0] ef=b593a008
+  A PauseTimer(loc59,txt0,wav0,tm3351812260,p13,num0,u33839,mod99,fl20)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc0,txt0,wav438,tm4167093164,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc1285499296,txt0,wav438,tm0,p0,num0,u0,mod0,fl4)
+  A CenterView(loc59,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A Text[<str1863606871?>]
+  A Deaths(P5,Vulture) += 1
+T139 pl=[0] ef=8af96008
+  C Deaths(CurrentPlayer,u198) >= 78500
+  A CreateProps(CurrentPlayer,Raszagal x1 @loc1680409745,props1661201331)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc3481288576,txt0,wav181,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc1285499300,txt0,wav181,tm0,p696907911,num0,u0,mod0,fl164)
+  A CenterView(loc3229169389,txt1888577282,wav1049383045,tm199875325,p0,num0,u0,mod0,fl4)
+  A Text[2.5%의 랜덤 확률로 영웅 유닛 라자갈이 나왔습니다!]
+  A Deaths(P5,Vulture) += 3925095234
+T140 pl=[0] ef=ab78a008
+  C Deaths(CurrentPlayer,u198) >= 78500
+  C Deaths(CurrentPlayer,u198) <= 1679946942
+  C Deaths(CurrentPlayer,u194) == 0
+  A CreateProps(pl1670688849,Raszagal x1 @loc59,props0)
+  A Deaths(EUD0xE171FAAC) = 1
+  A PlayWAV(loc3481288583,txt0,wav181,tm4167093156,p2238796664,num4105218822,u0,mod0,fl241)
+  A PlayWAV(loc1285499287,txt0,wav181,tm0,p696907919,num0,u0,mod0,fl4)
+  A CenterView(loc59,txt0,wav0,tm0,p0,num0,u0,mod0,fl81)
+  A Text[2.5%의 랜덤 확률로 영웅 유닛 라자갈이 나왔습니다!]
+T142 pl=[1] ef=84535008
+  C Deaths(EUD0xE1B2CB4C) >= 2000 [DIS]
+  A CreateProps(CurrentPlayer,InfKerrigan x1 @loc60,props0)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc0,txt0,wav2778343895,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav172,tm2011883857,p696907912,num0,u0,mod0,fl4)
+  A CenterView(loc3229169396,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A Text[2.5%의 랜덤 확률로 영웅 유닛 인페스티드 케리건이 나왔습니다!]
+  A Deaths(P5,Ghost) += 1
+T144 pl=[1] ef=d01f5008
+  A CreateProps(CurrentPlayer,Zeratul x1 @loc58,props0)
+  A Countdown 31 0
+  A PlayWAV(loc0,txt0,wav168,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav168,tm4023767702,p0,num0,u0,mod0,fl4)
+  A CenterView(loc58,txt1888577283,wav0,tm0,p0,num0,u0,mod0,fl4)
+T146 pl=[1] ef=ae31d008
+  C Bring(pl1680689837,u15,loc1680689855) == 0
+  C Deaths(CurrentPlayer,u198) >= 81000
+  C Deaths(CurrentPlayer,u198) <= 1644938796
+  C Deaths(CurrentPlayer,u194) == 0
+  C Switch#162 set
+  A PauseTimer(loc60,txt0,wav0,tm0,p13,num0,u33928,mod99,fl20)
+  A Deaths(CurrentPlayer,u194) = 1
+T148 pl=[2] ef=bdaeb008
+  C Deaths(CurrentPlayer,u198) >= 1680689700
+  C Deaths(CurrentPlayer,u198) <= 1999
+  C Deaths(CurrentPlayer,u194) == 1644856289
+  C Switch#1 set
+  A PauseTimer(loc61,txt0,wav0,tm0,p13,num0,u33882,mod99,fl20)
+  A Countdown 31 0
+  A PlayWAV(loc0,txt2570819498,wav149,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav149,tm0,p0,num0,u0,mod0,fl165)
+  A CenterView(loc61,txt0,wav1049383054,tm0,p0,num0,u0,mod0,fl4)
+  A Text[<str3727213299?>]
+  A Deaths(P5,Goliath) += 4110031268
+T150 pl=[3] ef=c761d008
+  A CreateProps(CurrentPlayer,u121 x1 @loc67,props0)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc0,txt2570819495,wav1389172023,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav149,tm0,p696907915,num0,u0,mod0,fl4)
+T152 pl=[3] ef=e5048008
+  C Deaths(CurrentPlayer,u198) >= 2000
+  A CreateProps(CurrentPlayer,InfKerrigan x1 @loc67,props0)
+  A Deaths(CurrentPlayer,u194) = 786811220
+  A PlayWAV(loc0,txt0,wav1389172038,tm0,p0,num4105218822,u0,mod0,fl4)
+  A PlayWAV(loc0,txt4170666666,wav172,tm0,p0,num0,u0,mod0,fl4)
+  A CenterView(loc67,txt0,wav2098766098,tm199875312,p0,num444938839,u0,mod0,fl4)
+T154 pl=[3] ef=9dc6a008
+  C Deaths(CurrentPlayer,u198) >= 1680708212
+  A CreateProps(CurrentPlayer,Mengsk x1 @loc67,props0)
+T156 pl=[3] ef=c4867008
+  C Deaths(EUD0xE1B2F60C) >= 63500 [DIS]
+  C Deaths(CurrentPlayer,u198) <= 65999
+  C Deaths(CurrentPlayer,u194) == 0
+  C Switch#87 set
+  A CreateProps(CurrentPlayer,InfDuran x1 @loc67,props0)
+  A Deaths(CurrentPlayer,u194) = 786811224
+  A PlayWAV(loc0,txt0,wav267,tm0,p0,num0,u0,mod0,fl4)
+T158 pl=[3] ef=ade2d008
+  C Bring(P4,u15,loc9) == 0
+  C Deaths(CurrentPlayer,u198) >= 82500
+  C Deaths(CurrentPlayer,u198) <= 87499
+  C Deaths(CurrentPlayer,u194) == 0
+  C Switch#1 set
+  A CreateProps(pl3341377672,Duke(S) x1 @loc62,props0)
+  A Deaths(CurrentPlayer,u194) = 1
+  A PlayWAV(loc3481288583,txt0,wav157,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav157,tm2011883849,p696907911,num3531718984,u0,mod0,fl4)
+  A CenterView(loc62,txt0,wav0,tm0,p3069516456,num0,u0,mod0,fl4)
+  A Text[5%의 랜덤 확률로 영웅 유닛 에드먼드 듀크가 나왔습니다!]
+T160 pl=[4] ef=e0b08008
+  C Deaths(P5,u197) == 50 [DIS]
+  C Deaths(P5,u194) == 2
+  A CreateProps(P5,Valkyrie x1 @loc86,props1661201323)
+  A CreateProps(P5,Overlord x1 @loc1575273669,props0)
+  A CreateProps(P5,Guardian x1 @loc87,props0)
+  A CreateProps(pl696907919,HighTemplar x1 @loc1285499379,props0)
+T165 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 1
+  C Score(CurrentPlayer,t6) <= 99
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) -= 1
+  A Res(CurrentPlayer,t0) += 1
+  A Deaths(CurrentPlayer,u196) -= 1
+T170 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 100
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Deaths(CurrentPlayer,u196) -= 1
+T171 pl=[0, 1, 2, 3] ef=a06c9008
+  C Score(CurrentPlayer,t6) == 101
+  C Command(CurrentPlayer,Kerrigan) == 0
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 51
+  A Deaths(CurrentPlayer,u196) -= 2
+T172 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 102
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 52
+  A Deaths(CurrentPlayer,u196) -= 3
+T173 pl=[0, 1, 2, 3] ef=be00f008
+  C Score(CurrentPlayer,t6) == 103
+  C Command(CurrentPlayer,Kerrigan) == 0
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(pl2238796665,t0) += 53
+  A Deaths(EUD0xFBDE35B4) -= 4
+T174 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 104
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 54
+  A Deaths(CurrentPlayer,u196) -= 5
+T175 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 105
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 55
+  A Deaths(CurrentPlayer,u196) -= 6
+T176 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 106
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 56
+  A Deaths(CurrentPlayer,u196) -= 7
+T177 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 107
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 57
+  A Deaths(CurrentPlayer,u196) -= 8
+T178 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 108
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 58
+  A Deaths(CurrentPlayer,u196) -= 9
+T179 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 109
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 59
+  A Deaths(CurrentPlayer,u196) -= 10
+T180 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 110
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 60
+  A Deaths(CurrentPlayer,u196) -= 11
+T181 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 111
+  C Command(CurrentPlayer,Kerrigan) == 0
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 61
+  A Deaths(CurrentPlayer,u196) -= 12
+T182 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 1
+  C Score(CurrentPlayer,t6) <= 99
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) -= 1
+  A Res(CurrentPlayer,t0) += 3
+  A Text[+2 Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 1
+T183 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 1
+  C Score(CurrentPlayer,t6) <= 99
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#1 set
+  A Score(CurrentPlayer,t6) -= 1
+  A Res(CurrentPlayer,t0) += 3
+  A Text[+2 Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 1
+T184 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 1
+  C Score(CurrentPlayer,t6) <= 99
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#1 set
+  A Score(CurrentPlayer,t6) -= 1
+  A Deaths(CurrentPlayer,u196) -= 1
+T185 pl=[0, 1, 2, 3] ef=dfe42008
+  C Score(CurrentPlayer,t6) == 100
+  A LBGoalPts(loc0,txt0,wav1678592169,tm1675906137,p13,num0,u33775,mod105,fl4)
+T186 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 101
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 151
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 2
+T187 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 102
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 152
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 3
+T188 pl=[0, 1, 2, 3] ef=a5c95008
+  C Score(CurrentPlayer,t6) == 103
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 153
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 4
+  A Switch#0 100(p=0,num=0)
+  A CreateProps(pl1285499295,u51858 x100 @loc0,props0)
+T189 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 104
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 154
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 5
+T190 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 105
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 155
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 6
+T191 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 106
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 156
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 7
+T192 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 100
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 6999
+  C Switch#1 set
+  A Score(CurrentPlayer,t6) = 0
+  A Res(CurrentPlayer,t0) += 100
+  A Text[+100Mineral Bonus]
+  A Deaths(CurrentPlayer,u196) -= 1
+T193 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 1
+  C Score(CurrentPlayer,t6) <= 99
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) -= 1
+  A Res(CurrentPlayer,t0) += 1
+  A Deaths(CurrentPlayer,u196) -= 1
+T194 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 100
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Deaths(CurrentPlayer,u196) -= 1
+T195 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 101
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 51
+  A Deaths(CurrentPlayer,u196) -= 2
+T196 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 102
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 52
+  A Deaths(CurrentPlayer,u196) -= 3
+T197 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 103
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 53
+  A Deaths(CurrentPlayer,u196) -= 4
+T198 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 104
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 54
+  A Deaths(CurrentPlayer,u196) -= 5
+T199 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 105
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 55
+  A Deaths(CurrentPlayer,u196) -= 6
+T200 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 106
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 56
+  A Deaths(CurrentPlayer,u196) -= 7
+T201 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 107
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 57
+  A Deaths(CurrentPlayer,u196) -= 8
+T202 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 108
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 58
+  A Deaths(CurrentPlayer,u196) -= 9
+T203 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 109
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 59
+  A Deaths(CurrentPlayer,u196) -= 10
+T204 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) == 110
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 60
+  A Deaths(CurrentPlayer,u196) -= 11
+T205 pl=[0, 1, 2, 3] ef=8
+  C Score(CurrentPlayer,t6) >= 111
+  C Command(CurrentPlayer,Kerrigan) == 1
+  C Deaths(CurrentPlayer,u198) >= 7000
+  C Switch#0 set
+  A Score(CurrentPlayer,t6) = 0
+  A Text[보스를 잡아서 50미네랄을 얻었습니다!]
+  A Res(CurrentPlayer,t0) += 61
+  A Deaths(CurrentPlayer,u196) -= 12
+T207 pl=[5] ef=a8de4008
+  C Countdown == 1680689711
+  A Countdown = 181
+  A Deaths(P5,u197) += 1
+  A Ping(loc0,txt2570819499,wav0,tm0,p18,num1,u13718,mod72,fl20)
+  A Deaths(P5,u194) = 0
+T209 pl=[5] ef=ab903008
+  C Bring(P1,u15,loc9) == 0 [DIS]
+  C Deaths(P5,u197) == 1
+  A CreateProps(P6,u129 x1 @loc15,props0) [DIS]
+  A CreateProps(P6,u129 x1 @loc23,props0)
+  A Score(P6,t13658) 65 0
+T211 pl=[5] ef=f839a008
+  C Bring(P1,u15,loc9) == 0
+  A PauseTimer(loc15,txt0,wav3357184352,tm0,p1670688833,num0,u33799,mod99,fl20)
+  A CreateProps(P6,Medic x1 @loc23,props0)
+  A CreateProps(P6,Medic x1 @loc31,props0)
+  A CreateProps(P6,Medic x1 @loc39,props3531718989)
+  A Deaths(Force1,u196) += 444938839
+T213 pl=[5] ef=9835f008
+  C Bring(pl1680689837,u15,loc9) == 1680689707
+  C Deaths(P5,u197) == 30
+  C Deaths(P5,u194) <= 2400
+  C Deaths(EUD0xE179B258) == 1270346245
+  C Switch#0 set
+  A CreateProps(P6,Nexus x1 @loc15,props0)
+  A CreateProps(P6,Nexus x1 @loc23,props0)
+  A Score(pl2238796669,t13676) 65 0
+  A CreateProps(P6,Nexus x1 @loc39,props1765859499)
+  A Deaths(Force1,u196) += 444938827
+  A Deaths(EUD0x59CC10) 100 1680689837
+T215 pl=[5] ef=d894d008
+  C Bring(P1,u15,loc1680689858) == 0
+  C Deaths(P5,u197) == 1679865967
+  C Deaths(P5,u194) <= 2400
+  C Deaths(P6,u197) == 1270346234
+  C Switch#0 set
+  A CreateProps(P6,u149 x1 @loc15,props0)
+  A CreateProps(P6,u149 x1 @loc23,props0)
+  A CreateProps(pl2238796669,u149 x1 @loc31,props4105218822)
+  A CreateProps(P6,u149 x1 @loc39,props0)
+T217 pl=[5] ef=94ee5008
+  C Bring(P1,u15,loc9) == 0 [DIS]
+  C Deaths(P5,u197) == 33
+  C Deaths(P5,u194) <= 2400
+  C Deaths(P6,u197) == 1
+  C Switch#0 set
+  A CreateProps(P6,u150 x1 @loc15,props0)
+  A Switch#5 25(p=5,num=0)
+  A Score(P6,t13676) 65 0
+  A CreateProps(P6,u150 x1 @loc39,props0)
+  A Deaths(Force1,u196) += 444938840
+T219 pl=[5] ef=821f6008
+  C Bring(P1,u15,loc1680689854) == 0
+  A CreateProps(pl1670688833,u163 x1 @loc15,props0)
+  A CreateProps(P6,u163 x1 @loc23,props0)
+  A Score(P6,t13697) 65 0
+  A CreateProps(P6,u163 x1 @loc39,props0)
+  A Deaths(Force1,u196) += 444938828
+T220 pl=[5] ef=c5303008
+  C Bring(P1,u15,loc9) == 0
+  C Deaths(P5,u197) == 42
+  C Deaths(P5,u194) <= 2400
+  A CreateProps(P6,u164 x1 @loc15,props0)
+  A Switch#0 25(p=2136927928,num=0)
+  A CreateProps(pl2238796669,u164 x1 @loc31,props4105218819)
+  A CreateProps(pl696907924,u164 x1 @loc39,props0)
+  A Deaths(Force1,u196) += 444938827
+T222 pl=[5] ef=966f2008
+  C Bring(P1,u15,loc9) == 1680689707
+  C Deaths(P5,u197) == 48
+  C Deaths(P5,u194) <= 2400
+  A CreateProps(P6,u96 x1 @loc15,props0)
+  A Switch#0 25(p=1068463960,num=0)
+  A CreateProps(P6,u96 x1 @loc31,props0)
+  A CreateProps(P6,u96 x1 @loc39,props0)
+  A Deaths(Force1,u196) += 1
+T223 pl=[5] ef=d740c008
+  C Bring(P1,u15,loc9) == 0
+  C Deaths(P5,u197) == 49
+  C Deaths(P5,u194) <= 1644858689
+  C Deaths(P6,u197) == 1270346233
+  A PauseTimer(loc15,txt0,wav0,tm0,p1670688845,num0,u33855,mod99,fl20)
+  A CreateProps(P6,u94 x1 @loc23,props0)
+  A Score(P6,t13619) 65 4105218815
+  A CreateProps(P6,u94 x1 @loc39,props0)
+  A Deaths(EUD0xC987CED4) += 1
+T225 pl=[5] ef=9bd4b008
+  C Bring(pl1680689841,u15,loc9) == 0
+  C Deaths(P5,u197) == 9
+  A CreateProps(P6,u218 x1 @loc68,props0)
+  A CreateProps(P6,u218 x1 @loc70,props0)
+  A CreateProps(P6,u218 x1 @loc72,props0)
+T227 pl=[5] ef=dfcc5008
+  C Bring(P1,u15,loc9) == 0
+  A CreateProps(P6,u201 x1 @loc68,props0)
+  A Switch#5 25(p=5,num=0)
+  A CreateProps(pl2238796661,u201 x1 @loc3481288659,props0)
+  A CreateProps(pl696907913,u201 x1 @loc74,props0)
+T229 pl=[5] ef=b6aef008
+  C Bring(P1,u15,loc9) == 0 [DIS]
+  C Deaths(P5,u197) == 39
+  A CreateProps(P6,u170 x1 @loc68,props0)
+  A CreateProps(P6,u170 x1 @loc70,props0)
+  A CreateProps(pl2238796664,u170 x1 @loc3481288660,props0)
+  A CreateProps(pl696907912,u170 x1 @loc74,props0)
+  A Deaths(Force1,u196) += 1
+T231 pl=[5] ef=9b627008
+  C Bring(P1,u15,loc9) == 1680689712
+  A CreateProps(P6,u93 x1 @loc68,props0)
+  A Switch#5 25(p=5,num=0)
+  A Score(P6,t13626) 65 0
+  A CreateProps(pl696907916,u93 x1 @loc74,props0)
+  A Deaths(Force1,u196) += 1
+  A Deaths(EUD0x59CC24) 100 0
+T233 pl=[5] ef=907fc008
+  C Bring(P1,u15,loc9) == 0
+  A CreateProps(P6,u189 x1 @loc68,props0)
+  A CreateProps(P6,u189 x1 @loc70,props0)
+  A CreateProps(P6,u189 x1 @loc3481288655,props0)
+  A CreateProps(P6,u189 x1 @loc74,props0)
+  A Deaths(EUD0x92B6C1C4) += 1
+T235 pl=[5] ef=95fcb008
+  C Command(P2,u195) == 0
+  A LBGoalRes(loc2,txt0,wav1678592166,tm1675906129,p1670688845,num0,u33990,mod98,fl20)
+T237 pl=[0] ef=954db008
+  A Deaths(CurrentPlayer,u18) = 0
+T239 pl=[3] ef=d3d5f008
+  C Deaths(CurrentPlayer,u18) == 1680689709
+  C Deaths(CurrentPlayer,u198) >= 33750
+  C Deaths(CurrentPlayer,u198) <= 44999
+  C Command(pl1412250290,InfDuran) == 1
+  A MoveUnit(CurrentPlayer,u15 x0 from loc54 to loc64)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(pl2238796677,Hydralisk x1 @loc80,props0)
+  A PlayWAV(loc0,txt4232816982,wav241,tm0,p696907911,num0,u0,mod0,fl4)
+T241 pl=[3] ef=a75e9008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(EUD0xD2785C8C) >= 60000
+  C Deaths(CurrentPlayer,u198) <= 67499
+  C Command(CurrentPlayer,InfDuran) == 1
+  A MoveUnit(pl1670688840,u15 x0 from loc1680409746 to loc64)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Observer x1 @loc3481288656,props0)
+  A PlayWAV(loc0,txt0,wav1680657282,tm0,p0,num1765859491,u0,mod0,fl4)
+T243 pl=[3] ef=cf758008
+  C Deaths(EUD0xE1B2E4FC) == 1 [DIS]
+  C Deaths(CurrentPlayer,u198) >= 79500
+  C Deaths(CurrentPlayer,u198) <= 83999
+  A MoveUnit(CurrentPlayer,u15 x0 from loc54 to loc64)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Archon x1 @loc80,props0)
+T244 pl=[3] ef=da2de008
+  C Deaths(CurrentPlayer,u18) == 1680689708
+  C Deaths(CurrentPlayer,u198) >= 84000
+  A ModHP(CurrentPlayer,u33785,65% x? @loc54)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(pl2238796676,Shuttle x1 @loc3481288659,props0)
+  A PlayWAV(loc0,txt0,wav241,tm0,p0,num0,u0,mod0,fl4)
+T246 pl=[3] ef=cb98a008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(CurrentPlayer,u198) >= 95000
+  C Deaths(CurrentPlayer,u198) <= 95999
+  C Command(pl1412250294,DuGalle) == 1
+  A MoveUnit(CurrentPlayer,u15 x0 from loc54 to loc64)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Mojo x1 @loc80,props4105218818)
+  A PlayWAV(loc0,txt0,wav149,tm0,p1393815823,num0,u0,mod0,fl4)
+T248 pl=[3] ef=f328d008
+  A MoveUnit(CurrentPlayer,u15 x0 from loc54 to loc64)
+  A Res(CurrentPlayer,t0) -= 786811233
+  A CreateProps(CurrentPlayer,Defiler x1 @loc3481288664,props4105218822)
+  A PlayWAV(loc0,txt0,wav254,tm0,p0,num0,u0,mod0,fl4)
+  A Deaths(EUD0x59CC10) 100 0 [DIS]
+T249 pl=[3] ef=b41c5008
+  C Deaths(CurrentPlayer,u18) == 1
+  A ModHP(CurrentPlayer,u33785,65% x? @loc54)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(pl2238796664,Tank x1 @loc80,props0)
+  A PlayWAV(loc0,txt0,wav153,tm0,p0,num0,u0,mod0,fl4)
+T251 pl=[3] ef=e7025008
+  C Deaths(EUD0xE1B2E4FC) == 1 [DIS]
+  C Deaths(CurrentPlayer,u198) >= 99760
+  C Deaths(CurrentPlayer,u198) <= 99819
+  A MoveUnit(pl1670688849,u15 x0 from loc54 to loc64)
+T253 pl=[3] ef=a67b6008
+  A MoveUnit(CurrentPlayer,u15 x0 from loc54 to loc64)
+T255 pl=[3] ef=bb20d008
+  C Deaths(EUD0xE1B2F33C) == 1
+  C Deaths(CurrentPlayer,u198) >= 99998
+  A ModHP(CurrentPlayer,u33776,65% x? @loc54)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Probe x1 @loc80,props0)
+T257 pl=[2] ef=823d7008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(CurrentPlayer,u198) >= 3359815901
+  A MoveUnit(CurrentPlayer,u15 x0 from loc53 to loc62)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc80,props0)
+  A PlayWAV(loc0,txt4232816975,wav1680657279,tm0,p0,num0,u0,mod0,fl169)
+T259 pl=[2] ef=9b1f4008
+  A MoveUnit(pl1670688848,u15 x0 from loc1680409744 to loc1661201397)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(pl2238796669,Devourer x1 @loc3481288664,props0)
+  A PlayWAV(loc0,txt0,wav149,tm0,p0,num0,u0,mod0,fl4)
+T261 pl=[2] ef=d0ba5008
+  C Deaths(EUD0xC30CFB8C) == 1
+  A MoveUnit(pl1670688853,u15 x0 from loc53 to loc62)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(pl2238796673,HighTemplar x1 @loc80,props4105218815)
+  A PlayWAV(loc0,txt0,wav163,tm0,p696907915,num1765859491,u0,mod0,fl4)
+T263 pl=[2] ef=a6ae8008
+  C Deaths(EUD0xE1B2DA4C) == 1 [DIS]
+  C Deaths(EUD0xA497B98C) >= 99400
+  C Deaths(EUD0xBE50626C) <= 99519
+  A MoveUnit(CurrentPlayer,u15 x0 from loc3360819425 to loc1661201384)
+  A Res(pl1068463969,t0) -= 15
+  A CreateProps(CurrentPlayer,Valkyrie x1 @loc80,props0)
+T265 pl=[2] ef=d2f96008
+  A ModHP(CurrentPlayer,u33785,63% x? @loc53)
+  A Res(pl1068463972,t0) -= 15
+  A CreateProps(CurrentPlayer,Guardian x1 @loc80,props0)
+  A PlayWAV(loc0,txt0,wav170,tm2011883848,p0,num0,u0,mod0,fl4)
+T267 pl=[2] ef=c233e008
+  C Deaths(EUD0xE1B2E4FC) == 1
+  A MoveUnit(CurrentPlayer,u15 x0 from loc53 to loc62)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Arbiter x1 @loc3481288656,props0)
+T269 pl=[1] ef=93fd4008
+  C Deaths(EUD0xE1B2DA4C) == 1
+  A MoveUnit(CurrentPlayer,u15 x0 from loc52 to loc55)
+T270 pl=[1] ef=852d8008
+  A MoveUnit(CurrentPlayer,u15 x0 from loc52 to loc55)
+T272 pl=[1] ef=a659a008
+  A MoveUnit(pl1670688841,u15 x0 from loc52 to loc55)
+T274 pl=[1] ef=d4065008
+  C Deaths(CurrentPlayer,u18) == 1 [DIS]
+  C Deaths(CurrentPlayer,u198) >= 1679933447
+  C Deaths(CurrentPlayer,u198) <= 74999
+  A MoveUnit(CurrentPlayer,u15 x0 from loc52 to loc55)
+  A Res(pl1068463972,t0) -= 15
+  A CreateProps(pl2238796677,Zergling x1 @loc80,props4105218811)
+  A PlayWAV(loc0,txt0,wav241,tm2011883860,p0,num0,u0,mod0,fl4)
+T276 pl=[1] ef=a1b7c008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(EUD0xD2782E3C) >= 1679958943
+  C Deaths(CurrentPlayer,u198) <= 93999
+  A MoveUnit(CurrentPlayer,u15 x0 from loc1680409731 to loc55)
+  A Res(pl2136927935,t0) -= 15
+  A CreateProps(CurrentPlayer,Goliath x1 @loc3481288660,props0)
+  A PlayWAV(loc0,txt0,wav1680657187,tm0,p0,num0,u0,mod0,fl4)
+T278 pl=[1] ef=b16b6008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(CurrentPlayer,u198) >= 99700
+  C Deaths(CurrentPlayer,u198) <= 1644956057
+  C Command(CurrentPlayer,DuGalle) == 0
+  A ModHP(CurrentPlayer,u33785,56% x? @loc52)
+T280 pl=[1] ef=ae536008
+  C Deaths(CurrentPlayer,u18) == 1
+  A MoveUnit(pl1670688845,u15 x0 from loc52 to loc55)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Guardian x1 @loc80,props0)
+T282 pl=[1] ef=ddaae008
+  C Deaths(EUD0xE1B2F6CC) == 1
+  C Deaths(EUD0xD2784E4C) >= 1679965936
+  C Deaths(CurrentPlayer,u198) <= 99995
+  C Command(pl1412250287,DuGalle) == 0
+  A MoveUnit(pl1670688853,u15 x0 from loc1680409740 to loc55)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Drone x1 @loc80,props0)
+  A PlayWAV(loc0,txt0,wav169,tm2011883856,p696907915,num0,u0,mod0,fl4)
+T284 pl=[0] ef=de9c0008
+  C Deaths(CurrentPlayer,u18) == 3361379421
+  C Deaths(EUD0xD278400C) >= 0
+  C Deaths(EUD0xBE5090BC) <= 11249
+  C Command(CurrentPlayer,InfDuran) == 0
+  A MoveUnit(CurrentPlayer,u15 x0 from loc1680409735 to loc1661201389)
+  A Res(CurrentPlayer,t0) -= 15
+  A Score(CurrentPlayer,t13554) 65 0
+  A PlayWAV(loc0,txt0,wav241,tm0,p696907915,num0,u0,mod0,fl165)
+T286 pl=[0] ef=87363008
+  C Deaths(CurrentPlayer,u18) == 1
+  C Deaths(CurrentPlayer,u198) >= 1679963076
+  C Deaths(EUD0x7C4801DC) <= 98499
+  A MoveUnit(pl3341377684,u15 x0 from loc51 to loc3322402703)
+T287 pl=[0] ef=e5f3b008
+  A MoveUnit(CurrentPlayer,u15 x0 from loc51 to loc54)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Goliath x1 @loc3481288667,props0)
+  A PlayWAV(loc0,txt0,wav149,tm2011883860,p0,num0,u0,mod0,fl4)
+T289 pl=[0] ef=b4ee9008
+  C Deaths(EUD0xE1B2F6CC) == 1
+  C Deaths(CurrentPlayer,u198) >= 99880
+  C Deaths(CurrentPlayer,u198) <= 99939
+  C Command(CurrentPlayer,DuGalle) == 0
+  A MoveUnit(CurrentPlayer,u15 x0 from loc51 to loc54)
+  A Res(CurrentPlayer,t0) -= 15
+  A CreateProps(CurrentPlayer,Guardian x1 @loc80,props4105218811)
+  A PlayWAV(loc0,txt4170666666,wav170,tm0,p0,num0,u0,mod0,fl4)
+T291 pl=[6] ef=d4fbb008
+  C Deaths(EUD0xE1B2A7B0) >= 1
+  A MoveUnit(P3,u230 x0 from loc80 to loc2)
+T296 pl=[0, 1, 2, 3] ef=b6cb8008
+  C Kill(CurrentPlayer,u175) >= 1
+  C Switch#0 set
+  A Text[보스 젤나가 템플을 처치하여 에픽 등급 유닛 선택권을 얻으셨습니다!]
+T301 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,Barracks) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 배럭을 처치하여 레어 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc12,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc12,props0)
+T302 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,Hatchery) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 해처리를 처치하여 레어 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc12,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc12,props0)
+T303 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,u160) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 게이트웨이를 처치하여 레어 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc12,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc12,props0)
+T304 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,u113) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 팩토리를 처치하여 유니크 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc13,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc13,props0)
+T305 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,u137) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 하이브를 처치하여 유니크 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc13,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc13,props0)
+T306 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,Nexus) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 넥서스를 처치하여 유니크 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc13,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc13,props0)
+T307 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,u114) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 스타포트를 처치하여 히든 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc14,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc14,props0)
+T308 pl=[0, 1, 2, 3] ef=8
+  C Deaths(P6,u147) >= 4
+  C Switch#1 set
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 오버마인드를 처치하여 히든 등급 유닛 선택권을 얻으셨습니다!]
+  A CenterView(loc14,txt0,wav0,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav148,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,u15 x1 @loc14,props0)
+T309 pl=[0, 1, 2, 3] ef=ce966008
+  C Deaths(P6,u189) >= 3361379427
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[보스 워프 게이트를 처치하여 히든 등급 유닛 선택권을 얻으셨습니다!]
+T310 pl=[0, 1, 2, 3] ef=85d6c008
+  C Deaths(P6,u175) >= 4
+  A Text[보스를 처치하여 50미네랄을 얻으셨습니다!]
+  A Res(CurrentPlayer,t0) += 50
+  A Text[<str2570819836?>]
+T312 pl=[2] ef=993e3008
+  C Bring(CurrentPlayer,u15,loc88) == 1
+  C Deaths(P5,u197) >= 50
+  A KillAt(CurrentPlayer,u15 x0 @loc88)
+  A CreateProps(pl2136927937,HighTemplar x1 @loc3,props0)
+  A Text[에픽 등급 유닛 선택권을 사용하여 하이 템플러를 얻었습니다!]
+  A PlayWAV(loc0,txt4232816978,wav151,tm0,p0,num0,u0,mod0,fl168)
+T314 pl=[0] ef=aa020008
+  C Bring(CurrentPlayer,u15,loc96) == 1 [DIS]
+  A KillAt(pl1670688845,u15 x0 @loc96)
+  A CreateProps(pl1068463969,DarkTemplar x1 @loc1,props0)
+  A Text[히든 등급 유닛 선택권을 사용하여 다크 템플러를 얻었습니다!]
+  A PlayWAV(loc0,txt4232816982,wav150,tm2011883853,p0,num0,u0,mod0,fl4)
+T316 pl=[2] ef=cd70f008
+  A KillAt(CurrentPlayer,u15 x0 @loc91)
+  A CreateProps(CurrentPlayer,Devourer x1 @loc3,props0)
+T318 pl=[3] ef=802a4008
+  C Bring(CurrentPlayer,u15,loc92) == 1 [DIS]
+  A KillAt(CurrentPlayer,u15 x0 @loc92)
+  A CreateProps(CurrentPlayer,Scout x1 @loc4,props0)
+  A Text[유니크 등급 유닛 선택권을 사용하여 스카웃을 얻었습니다!]
+  A PlayWAV(loc0,txt0,wav1680657190,tm0,p0,num0,u0,mod0,fl164)
+T320 pl=[3] ef=ac027008
+  C Deaths(P5,u197) <= 49 [DIS]
+  C Bring(pl1680409704,u15,loc89) == 1679865952
+  A KillAt(CurrentPlayer,u15 x0 @loc1680409780)
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc4,props786811231)
+T325 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,u121) == 0
+  C Command(CurrentPlayer,Raszagal) == 0
+  C Command(Force1,u159) == 0
+  A Text[새로운 라운드가 시작되었습니다!]
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+  A Deaths(CurrentPlayer,u197) = 0
+T330 pl=[0, 1, 2, 3] ef=ad0c9008
+  C Command(P6,u160) >= 1
+  A Text[보스가 등장했습니다! 제한시간 내에 보스를 잡지 못하면 패배합니다!]
+  A PlayWAV(loc0,txt0,wav1412250458,tm0,p0,num0,u0,mod0,fl4)
+T335 pl=[0, 1, 2, 3] ef=a1d9d008
+  C Command(P6,Nexus) >= 1
+  A Text[보스가 등장했습니다! 제한시간 내에 보스를 잡지 못하면 패배합니다!]
+T336 pl=[0, 1, 2, 3] ef=d3f76008
+  C Command(P6,u114) >= 1
+  A Text[보스가 등장했습니다! 제한시간 내에 보스를 잡지 못하면 패배합니다!]
+  A PlayWAV(loc0,txt0,wav1412250466,tm0,p0,num786811218,u0,mod0,fl4)
+T341 pl=[0, 1, 2, 3] ef=9b86e008
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,u121) == 1679865955
+  C Command(pl1661201345,u159) == 1644856297
+  A LBGoalKills(loc0,txt1679865954,wav0,tm1675906136,p13,num1661201335,u33769,mod106,fl4)
+  A Text[새로운 라운드가 시작되었습니다!
+\n미네랄 필드의 효과로 8미네랄을 받았습니다!]
+  A Deaths(EUD0x64120588) = 0
+  A PlayWAV(loc0,txt0,wav180,tm2011883849,p0,num0,u0,mod0,fl4)
+T342 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,u121) == 1
+  C Command(Force1,u159) == 1
+  A Res(CurrentPlayer,t0) += 12
+  A Text[새로운 라운드가 시작되었습니다!
+\n미네랄 필드의 효과로 8미네랄을 받았습니다!
+\n나무의 효과로 4미네랄을 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T343 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,u121) == 1
+  C Command(Force1,u159) == 2
+  A Res(CurrentPlayer,t0) += 16
+  A Text[새로운 라운드가 시작되었습니다!
+\n미네랄 필드의 효과로 8미네랄을 받았습니다!
+\n나무의 효과로 8미네랄을 받았습니다!(2 나무 중첩)]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T344 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,u121) == 1
+  C Command(Force1,u159) == 3
+  A Res(CurrentPlayer,t0) += 20
+  A Text[새로운 라운드가 시작되었습니다!
+\n미네랄 필드의 효과로 8미네랄을 받았습니다!
+\n나무의 효과로 12미네랄을 받았습니다!(3 나무 중첩)]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T345 pl=[1] ef=e2fd5008
+  A Text[새로운 라운드가 시작되었습니다!
+\n라자갈의 효과로 다크 템플러를 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav398,tm4167093153,p0,num3915470328,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav398,tm0,p696907915,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc2,props0)
+T349 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 7999
+  C Switch#1 set
+  C Command(Force1,u159) == 0
+  A Text[새로운 라운드가 시작되었습니다!
+\n라자갈의 효과로 다크 템플러를 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc5,props0)
+T350 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 8000
+  C Command(Force1,u159) == 0
+  A Text[새로운 라운드가 시작되었습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T351 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(Force1,u159) == 1
+  C Command(CurrentPlayer,u121) == 0
+  C Command(CurrentPlayer,Raszagal) == 0
+  A Res(CurrentPlayer,t0) += 4
+  A Text[새로운 라운드가 시작되었습니다!
+\n나무의 효과로 4미네랄을 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T356 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 7999
+  C Switch#1 set
+  C Command(Force1,u159) == 1
+  A Text[새로운 라운드가 시작되었습니다!
+\n라자갈의 효과로 다크 템플러를 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc5,props0)
+  A Res(CurrentPlayer,t0) += 4
+  A Text[나무의 효과로 4미네랄을 받았습니다!]
+T357 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 8000
+  C Command(Force1,u159) == 1
+  A Res(CurrentPlayer,t0) += 4
+  A Text[새로운 라운드가 시작되었습니다!
+\n나무의 효과로 4미네랄을 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T362 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 7999
+  C Switch#1 set
+  C Command(Force1,u159) == 2
+  A Text[새로운 라운드가 시작되었습니다!
+\n라자갈의 효과로 다크 템플러를 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc5,props0)
+  A Res(CurrentPlayer,t0) += 8
+  A Text[나무의 효과로 8미네랄을 받았습니다!(2 나무 중첩)]
+T363 pl=[0, 1, 2, 3] ef=e79af008
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 1644864298
+  C Command(pl1412250287,u159) == 2
+  A LBGoalKills(loc0,txt0,wav0,tm0,p13,num8,u33770,mod106,fl4)
+  A Text[<str1509827270?>]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt4232816975,wav180,tm2011883857,p0,num0,u0,mod0,fl4)
+T368 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 7999
+  C Switch#1 set
+  C Command(Force1,u159) == 3
+  A Text[새로운 라운드가 시작되었습니다!
+\n라자갈의 효과로 다크 템플러를 받았습니다!]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav398,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc5,props0)
+  A Res(CurrentPlayer,t0) += 12
+  A Text[나무의 효과로 12미네랄을 받았습니다!(3 나무 중첩)]
+T369 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(CurrentPlayer,Raszagal) == 1
+  C Deaths(CurrentPlayer,u198) >= 8000
+  C Command(Force1,u159) == 3
+  A Res(CurrentPlayer,t0) += 12
+  A Text[새로운 라운드가 시작되었습니다!
+\n나무의 효과로 12미네랄을 받았습니다!(3 나무 중첩)]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T370 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(Force1,u159) == 2
+  C Command(CurrentPlayer,u121) == 0
+  C Command(CurrentPlayer,Raszagal) == 0
+  A Res(CurrentPlayer,t0) += 8
+  A Text[새로운 라운드가 시작되었습니다!
+\n나무의 효과로 8미네랄을 받았습니다!(2 나무 중첩)]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T371 pl=[0, 1, 2, 3] ef=8
+  C Deaths(CurrentPlayer,u197) == 1
+  C Command(Force1,u159) == 3
+  C Command(CurrentPlayer,u121) == 0
+  C Command(CurrentPlayer,Raszagal) == 0
+  A Res(CurrentPlayer,t0) += 12
+  A Text[새로운 라운드가 시작되었습니다!
+\n나무의 효과로 12미네랄을 받았습니다!(3 나무 중첩)]
+  A Deaths(CurrentPlayer,u197) = 0
+  A PlayWAV(loc0,txt0,wav180,tm0,p0,num0,u0,mod0,fl4)
+T380 pl=[17] ef=8
+  C Bring(Force1,SCV,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav242,tm0,p0,num0,u0,mod0,fl4)
+T381 pl=[17] ef=8
+  C Bring(Force1,Drone,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav242,tm0,p0,num0,u0,mod0,fl4)
+T382 pl=[17] ef=8
+  C Bring(Force1,Arbiter,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav242,tm0,p0,num0,u0,mod0,fl4)
+T383 pl=[17] ef=8
+  C Bring(Force1,Probe,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav242,tm0,p0,num0,u0,mod0,fl4)
+T384 pl=[17] ef=8
+  C Bring(Force1,Corsair,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav243,tm0,p0,num0,u0,mod0,fl4)
+T385 pl=[17] ef=f98bf008
+  C Bring(Force1,Battlecruiser,loc80) >= 1
+  A Portrait(loc0,txt0,wav243,tm1675906137,p0,num0,u2002,mod196,fl4)
+T386 pl=[17] ef=8
+  C Bring(Force1,Ultralisk,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav243,tm0,p0,num0,u0,mod0,fl4)
+T387 pl=[17] ef=d2e21008
+  C Bring(pl1680689850,Carrier,loc80) >= 1
+  A PlayWAV(loc3360819359,txt0,wav243,tm0,p0,num1661201334,u0,mod0,fl4)
+T388 pl=[17] ef=8
+  C Bring(Force1,DarkTemplar,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav150,tm0,p0,num0,u0,mod0,fl4)
+T389 pl=[17] ef=8
+  C Bring(Force1,Defiler,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav150,tm0,p0,num0,u0,mod0,fl4)
+T390 pl=[17] ef=8
+  C Bring(Force1,Tank,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav150,tm0,p0,num0,u0,mod0,fl4)
+T391 pl=[17] ef=8
+  C Bring(Force1,DT(Hero),loc80) >= 1
+  A PlayWAV(loc0,txt0,wav150,tm0,p0,num0,u0,mod0,fl4)
+T392 pl=[17] ef=8
+  C Bring(Force1,Guardian,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav151,tm0,p0,num0,u0,mod0,fl4)
+T393 pl=[17] ef=8
+  C Bring(Force1,Valkyrie,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav151,tm0,p0,num0,u0,mod0,fl4)
+T394 pl=[17] ef=8
+  C Bring(Force1,Overlord,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav151,tm0,p0,num0,u0,mod0,fl4)
+T395 pl=[17] ef=8
+  C Bring(Force1,HighTemplar,loc80) >= 1
+  A PlayWAV(loc0,txt0,wav151,tm0,p0,num0,u0,mod0,fl4)
+T396 pl=[3] ef=91122008
+  C Bring(P6,u229,loc4) >= 100
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A Text[몹수가 100이 되어 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(pl3069516456,u195 x0)
+  A KillAt(pl2114612676,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+T400 pl=[0, 1, 2, 3] ef=8
+  C Command(P6,u229) >= 200
+  C Switch#1 set
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[몹수가 200이 되어 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T404 pl=[0, 1, 2, 3] ef=e1840008
+  A LBGoalCtl(loc4,txt0,wav0,tm0,p1670688852,num1661201327,u33999,mod98,fl20)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc1285499300,txt0,wav258,tm0,p696907907,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+T405 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,Hatchery,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T406 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u160,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T407 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u113,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T408 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u137,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T409 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,Nexus,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T410 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u114,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T411 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u147,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T412 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u189,loc5) >= 1
+  C Countdown == 1
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T413 pl=[0, 1, 2, 3] ef=8
+  C Bring(P6,u230,loc5) >= 1
+  C Countdown == 1
+  C Deaths(P5,u197) == 50
+  A KillAt(CurrentPlayer,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[카운트다운 타이머가 1이 되었는데도 보스를 못 잡아서 패배하였습니다!]
+  A PlayWAV(loc0,txt0,wav258,tm0,p0,num0,u0,mod0,fl4)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc54)
+  A KillAt(CurrentPlayer,u229 x0 @loc65)
+  A KillAt(CurrentPlayer,u229 x0 @loc1)
+  A KillAt(CurrentPlayer,u229 x0 @loc2)
+  A KillAt(CurrentPlayer,u229 x0 @loc3)
+  A KillAt(CurrentPlayer,u229 x0 @loc5)
+  A KillAt(CurrentPlayer,u229 x0 @loc59)
+  A KillAt(CurrentPlayer,u229 x0 @loc60)
+  A KillAt(CurrentPlayer,u229 x0 @loc61)
+  A KillAt(CurrentPlayer,u229 x0 @loc57)
+  A KillAt(CurrentPlayer,u229 x0 @loc58)
+  A KillAt(CurrentPlayer,u229 x0 @loc66)
+  A KillAt(CurrentPlayer,u229 x0 @loc67)
+  A KillAt(CurrentPlayer,u229 x0 @loc51)
+  A KillAt(CurrentPlayer,u229 x0 @loc55)
+  A KillAt(CurrentPlayer,u229 x0 @loc52)
+  A KillAt(CurrentPlayer,u229 x0 @loc56)
+  A KillAt(CurrentPlayer,u229 x0 @loc53)
+  A KillAt(CurrentPlayer,u229 x0 @loc63)
+T415 pl=[0] ef=f63bb008
+  C Bring(P6,u113,loc1680689851) >= 1 [DIS]
+  C Countdown == 1
+  A KillAt(pl1670688840,u229 x0 @loc4)
+  A KillAt(CurrentPlayer,u229 x0 @loc62)
+  A Text[<str2570819769?>]
+  A PlayWAV(loc0,txt0,wav258,tm2011883853,p0,num0,u0,mod0,fl173)
+  A Remove(CurrentPlayer,u195 x0)
+  A KillAt(CurrentPlayer,u229 x0 @loc3949599497)
+  A KillAt(CurrentPlayer,u229 x0 @loc2785118761)
+T417 pl=[7] ef=a3dad008
+  A Deaths(EUD0x83C0A058) = 50
+T419 pl=[2] ef=e1f47008
+  A Text[<str1679866244?>]
+  A MoveUnit(CurrentPlayer,Battlecruiser x0 from loc1575273637 to loc2)
+T421 pl=[2] ef=89fe0008
+  A LBGoalCtl(loc49,txt1679865946,wav0,tm0,p13,num1661201322,u33811,mod101,fl20)
+  A CreateProps(CurrentPlayer,Ultralisk x1 @loc1575273578,props0)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 729
+T423 pl=[3] ef=afa05008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Guardian,loc79) >= 3
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 24999
+  A KillAt(CurrentPlayer,Guardian x3 @loc79)
+  A CreateProps(CurrentPlayer,Corsair x1 @loc79,props0)
+T424 pl=[3] ef=c21c0008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Valkyrie,loc1680611668) >= 3
+  A LBGoalCtl(loc79,txt0,wav0,tm0,p13,num1661201334,u33827,mod101,fl192)
+  A CreateProps(pl1068463980,Corsair x1 @loc79,props786811219)
+  A Text[<str2570819804?>]
+  A Score(CurrentPlayer,t1) -= 1765860219
+T426 pl=[3] ef=c1f6d008
+  C Deaths(CurrentPlayer,u227) == 3361379412
+  C Bring(CurrentPlayer,HighTemplar,loc79) >= 1679865958
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 24999
+  A KillAt(CurrentPlayer,HighTemplar x3 @loc79)
+  A Switch#13 25(p=13,num=0)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+T428 pl=[2] ef=ca97f008
+  C Deaths(EUD0xC30CFED0) == 1680689699
+  C Bring(pl1680409705,Valkyrie,loc1680611662) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,Valkyrie x3 @loc1680409769)
+  A Create(CurrentPlayer,Carrier x1 @loc77)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907932,t1) -= 729
+  A Deaths(EUD0x59CBF0) 100 3361379681
+T430 pl=[2] ef=aebe2008
+  A LBGoalCtl(loc77,txt0,wav3357184346,tm0,p13,num0,u33836,mod101,fl20)
+  A Create(CurrentPlayer,Carrier x1 @loc77)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+T432 pl=[1] ef=ef57d008
+  C Deaths(CurrentPlayer,u227) == 1680689712
+  A KillAt(CurrentPlayer,Guardian x3 @loc78)
+  A Switch#13 25(p=13,num=786811222)
+  A Text[<str2570819792?>]
+  A Score(CurrentPlayer,t1) -= 729
+T434 pl=[1] ef=db162008
+  C Deaths(CurrentPlayer,u227) == 1680689703
+  C Bring(pl3360819396,HighTemplar,loc78) >= 3
+  C Deaths(EUD0xBE5070AC) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,HighTemplar x3 @loc3360819461)
+  A Create(CurrentPlayer,Carrier x1 @loc78)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+T436 pl=[0] ef=a6576008
+  A LBGoalCtl(loc76,txt1679865947,wav0,tm0,p1670688853,num0,u33833,mod101,fl20)
+  A CreateProps(CurrentPlayer,Ultralisk x1 @loc76,props786811222)
+T438 pl=[0] ef=f9107008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409705,HighTemplar,loc76) >= 3
+  A KillAt(pl1670688848,HighTemplar x3 @loc1680409768)
+  A Create(CurrentPlayer,Carrier x1 @loc76)
+  A Text[[에픽] 등급 유닛을 조합하여 [레전더리] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 729
+T440 pl=[0] ef=f35b9008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Tank x3 @loc1680409730)
+  A CreateProps(CurrentPlayer,Valkyrie x1 @loc1575273581,props0)
+  A Text[[히든] 등급 유닛을 조합하여 [에픽] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 243
+T442 pl=[1] ef=e5395008
+  C Deaths(EUD0xE1B2CBC0) == 0
+  C Bring(CurrentPlayer,Defiler,loc48) >= 3
+  C Deaths(CurrentPlayer,u198) >= 25000
+  C Deaths(EUD0xE179C42C) <= 49999
+  A KillAt(CurrentPlayer,Defiler x3 @loc48)
+T444 pl=[2] ef=cb7de008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Tank x3 @loc1680409740)
+  A Switch#13 25(p=13,num=0)
+  A Text[[히든] 등급 유닛을 조합하여 [에픽] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 243
+T446 pl=[3] ef=8f2e6008
+  C Deaths(EUD0xE1B2FA10) == 0
+  C Bring(CurrentPlayer,DT(Hero),loc79) >= 1679865957
+  A KillAt(CurrentPlayer,DT(Hero) x3 @loc79)
+  A CreateProps(CurrentPlayer,Valkyrie x1 @loc79,props786811219)
+T448 pl=[2] ef=a9aef008
+  C Deaths(CurrentPlayer,u227) == 1680689704
+  A KillAt(CurrentPlayer,DT(Hero) x3 @loc77)
+  A CreateProps(CurrentPlayer,Valkyrie x1 @loc77,props0)
+  A Text[<str2570819797?>]
+  A Score(CurrentPlayer,t1) -= 1765859734
+T449 pl=[2] ef=f5b8d008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,DarkTemplar,loc77) >= 1679865950
+  C Deaths(CurrentPlayer,u198) >= 50000
+  A KillAt(pl1670688852,DarkTemplar x3 @loc77)
+  A CreateProps(pl1068463968,Overlord x1 @loc77,props786811219)
+  A Text[[히든] 등급 유닛을 조합하여 [에픽] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 243
+T451 pl=[1] ef=ee46c008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,DT(Hero),loc78) >= 3
+  A KillAt(CurrentPlayer,DT(Hero) x3 @loc78)
+  A CreateProps(CurrentPlayer,Guardian x1 @loc78,props0)
+T453 pl=[0] ef=f7787008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409693,Tank,loc76) >= 1679865945
+  C Deaths(CurrentPlayer,u198) >= 1644906302
+  C Deaths(CurrentPlayer,u198) <= 74999
+  A LBGoalCtl(loc1680409756,txt1679865942,wav0,tm1675906137,p13,num0,u33779,mod101,fl20)
+  A CreateProps(CurrentPlayer,Overlord x1 @loc76,props0)
+  A Text[[히든] 등급 유닛을 조합하여 [에픽] 등급 유닛을 랜덤으로 얻었습니다!]
+T455 pl=[0] ef=d5d9d008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  A LBGoalCtl(loc76,txt0,wav1678592169,tm0,p13,num0,u33771,mod101,fl20)
+  A CreateProps(pl1068463968,HighTemplar x1 @loc1575273659,props0)
+  A Text[<str2570819790?>]
+T457 pl=[0] ef=abbd2008
+  C Deaths(CurrentPlayer,u227) == 1680689703
+  C Bring(CurrentPlayer,Devourer,loc1680611640) >= 1679865949
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 1270371231
+  A KillAt(CurrentPlayer,Devourer x3 @loc47)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc1,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 81
+  A Deaths(EUD0xE1B3D450) 100 0
+  A CenterView(loc0,txt0,wav0,tm1863606438,p0,num4124664118,u28091,mod126,fl254) [DIS]
+  A Deaths(EUD0x59CE18) 100 0
+T459 pl=[0] ef=cf186008
+  C Deaths(CurrentPlayer,u227) == 1680689704
+  C Bring(CurrentPlayer,Mojo,loc47) >= 3
+  C Deaths(EUD0xBE50827C) >= 1644931301
+  C Deaths(CurrentPlayer,u198) <= 99999 [DIS]
+  A LBGoalCtl(loc47,txt0,wav0,tm0,p3341377677,num1661201331,u33853,mod101,fl20)
+  A CreateProps(CurrentPlayer,DT(Hero) x1 @loc1,props1573622442)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 81
+  A Deaths(EUD0x59CC04) 100 0
+  A NextScen(loc0,txt0,wav0,tm0,p0,num0,u24704,mod199,fl179) [DIS]
+  A CenterView(loc0,txt1673300300,wav0,tm0,p0,num0,u28096,mod126,fl242) [DIS]
+  A Switch#0 78(p=0,num=0)
+T461 pl=[3] ef=a9fbb008
+  A KillAt(CurrentPlayer,Scout x3 @loc50)
+  A CreateProps(CurrentPlayer,Defiler x1 @loc4,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 1765859576
+T463 pl=[3] ef=a5649008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409700,Scout,loc50) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,Scout x3 @loc1680409737)
+  A CreateProps(CurrentPlayer,DT(Hero) x1 @loc4,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 81
+T465 pl=[3] ef=f3386008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Mojo,loc79) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  A KillAt(pl1670688845,Mojo x3 @loc79)
+  A CreateProps(pl1068463977,DT(Hero) x1 @loc79,props786811219)
+  A Text[<str2570819788?>]
+  A Score(CurrentPlayer,t1) -= 81
+T467 pl=[2] ef=de2cd008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Goliath,loc77) >= 3
+  C Deaths(CurrentPlayer,u198) >= 1644931302
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A LBGoalCtl(loc77,txt0,wav0,tm0,p13,num0,u33777,mod101,fl20)
+  A CreateProps(CurrentPlayer,DT(Hero) x1 @loc1575273660,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 81
+T469 pl=[1] ef=b871a008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Mojo,loc78) >= 3
+  C Deaths(CurrentPlayer,u198) >= 1644931301
+  C Deaths(EUD0xE179B25C) <= 2540792471
+  A LBGoalCtl(loc78,txt0,wav0,tm0,p13,num0,u33853,mod101,fl20)
+  A CreateProps(CurrentPlayer,DT(Hero) x1 @loc78,props786811223)
+  A Text[<str2570819795?>]
+  A Score(CurrentPlayer,t1) -= 81
+  A Deaths(EUD0x598DE8) 84 0
+  A CreateProps(pl1285499300,u51861 x100 @loc0,props0)
+T471 pl=[0] ef=dea24008
+  C Deaths(EUD0xE1B2FA10) == 0
+  A KillAt(CurrentPlayer,Devourer x3 @loc76)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc76,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907924,t1) -= 81
+T472 pl=[0] ef=84078008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Scout x3 @loc76)
+  A CreateProps(CurrentPlayer,DarkTemplar x1 @loc76,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907921,t1) -= 81
+T474 pl=[0] ef=fa3c4008
+  C Deaths(EUD0xE1B2EBD0) == 1680689699
+  C Bring(pl3360819388,Goliath,loc76) >= 1679865950
+  A KillAt(CurrentPlayer,Goliath x3 @loc3360819451)
+  A CreateProps(CurrentPlayer,Tank x1 @loc1575273652,props0)
+  A Text[[유니크] 등급 유닛을 조합하여 [히든] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 81
+T476 pl=[1] ef=922c7008
+  C Deaths(EUD0xE1B2E840) == 0 [DIS]
+  C Bring(CurrentPlayer,Mutalisk,loc48) >= 3
+  C Deaths(EUD0xBE5090BC) >= 1644881294
+  C Deaths(CurrentPlayer,u198) <= 1270396235
+  A LBGoalCtl(loc48,txt0,wav0,tm0,p13,num1661201335,u33809,mod101,fl20)
+  A CreateProps(CurrentPlayer,Devourer x1 @loc2,props0)
+  A Text[[레어] 등급 유닛을 조합하여 [유니크] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 27
+T478 pl=[1] ef=c736d008
+  A KillAt(CurrentPlayer,Mutalisk x3 @loc48)
+  A CreateProps(CurrentPlayer,Scout x1 @loc2,props0)
+  A Text[[레어] 등급 유닛을 조합하여 [유니크] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3531719020
+  A Switch#0 78(p=1162517633,num=0)
+  A Switch#0 100(p=0,num=0)
+T480 pl=[2] ef=b502d008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Shuttle,loc77) >= 3
+  C Deaths(CurrentPlayer,u198) >= 50000
+  C Deaths(CurrentPlayer,u198) <= 1270421235
+  A KillAt(CurrentPlayer,Shuttle x3 @loc77)
+  A CreateProps(CurrentPlayer,Scout x1 @loc77,props0)
+T482 pl=[2] ef=8347e008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Ghost,loc77) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(pl1670688840,Ghost x3 @loc77)
+  A Switch#13 25(p=13,num=0)
+  A Text[[레어] 등급 유닛을 조합하여 [유니크] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 27
+T484 pl=[1] ef=e77aa008
+  C Deaths(EUD0xC30CD410) == 3361379412
+  C Bring(CurrentPlayer,Shuttle,loc1680611666) >= 1679865958
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,Shuttle x3 @loc78)
+  A CreateProps(CurrentPlayer,Mojo x1 @loc78,props0)
+  A Text[<str2570819771?>]
+  A Score(CurrentPlayer,t1) -= 27
+T486 pl=[0] ef=953b8008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Archon,loc76) >= 3
+  C Deaths(EUD0xBE50743C) >= 25000
+  C Deaths(CurrentPlayer,u198) <= 49999
+  A KillAt(pl1670688840,Archon x3 @loc76)
+  A CreateProps(CurrentPlayer,Devourer x1 @loc1575273655,props786811226)
+  A Text[[레어] 등급 유닛을 조합하여 [유니크] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3531719021
+T488 pl=[0] ef=b36b7008
+  C Deaths(EUD0xE1B2DD90) == 1680689699
+  A KillAt(pl1670688845,Mutalisk x3 @loc76)
+  A CreateProps(pl1068463980,Scout x1 @loc76,props0)
+  A Text[<str2570819779?>]
+  A Score(pl696907924,t1) -= 27
+  A Deaths(EUD0x59CBF0) 100 1680689837
+T489 pl=[0] ef=c395b008
+  C Deaths(EUD0xE1B2EBD0) == 0
+  C Bring(pl1680409705,Archon,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 50000
+  C Deaths(CurrentPlayer,u198) <= 74999 [DIS]
+  A KillAt(CurrentPlayer,Archon x3 @loc1680409768)
+  A Switch#13 25(p=13,num=1573622456)
+  A Text[[레어] 등급 유닛을 조합하여 [유니크] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907925,t1) -= 27
+T491 pl=[0] ef=b25f4008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Dragoon,loc1680611627) >= 3
+  C Deaths(CurrentPlayer,u198) >= 50000
+  C Deaths(CurrentPlayer,u198) <= 74999
+  A KillAt(CurrentPlayer,Dragoon x3 @loc47)
+  A CreateProps(CurrentPlayer,Mutalisk x1 @loc1,props786811219)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T493 pl=[0] ef=c02a1008
+  C Deaths(EUD0xE1B2CBC0) == 0
+  A KillAt(CurrentPlayer,Hydralisk x3 @loc47)
+  A CreateProps(CurrentPlayer,Mutalisk x1 @loc1,props0)
+T495 pl=[0] ef=80f7d008
+  C Deaths(CurrentPlayer,u227) == 1680689700
+  C Bring(CurrentPlayer,Vulture,loc47) >= 3
+  A KillAt(CurrentPlayer,Vulture x3 @loc47)
+  A CreateProps(pl1068463973,Archon x1 @loc1575273576,props0)
+  A Text[<str2570819773?>]
+  A Score(CurrentPlayer,t1) -= 9
+T497 pl=[2] ef=8f655008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Vulture x3 @loc49)
+  A CreateProps(CurrentPlayer,Ghost x1 @loc3,props0)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T499 pl=[2] ef=cc13f008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409697,Hydralisk,loc49) >= 3
+  C Deaths(EUD0xBE507EEC) >= 25000
+  C Deaths(CurrentPlayer,u198) <= 49999
+  A KillAt(CurrentPlayer,Hydralisk x3 @loc1680409733)
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc3,props786811218)
+  A Text[<str2570819782?>]
+T501 pl=[2] ef=f57f0008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Marine,loc49) >= 1679865949
+  A LBGoalCtl(loc49,txt1679865946,wav0,tm0,p13,num0,u33762,mod101,fl196)
+  A CreateProps(CurrentPlayer,Archon x1 @loc3,props0)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907933,t1) -= 1002611210
+T503 pl=[3] ef=a8cb0008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Hydralisk,loc50) >= 3
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 24999
+  A KillAt(CurrentPlayer,Hydralisk x3 @loc50)
+  A CreateProps(CurrentPlayer,Ghost x1 @loc1575273588,props0)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T505 pl=[3] ef=e6ee9008
+  A KillAt(CurrentPlayer,Dragoon x3 @loc79)
+  A Switch#13 25(p=13,num=0)
+T507 pl=[2] ef=81ab1008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Vulture,loc77) >= 3
+  A KillAt(CurrentPlayer,Vulture x3 @loc77)
+  A Switch#0 25(p=1068463969,num=0)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T509 pl=[1] ef=ec5aa008
+  C Deaths(EUD0xE1B2F680) == 0
+  C Bring(CurrentPlayer,Dragoon,loc78) >= 3
+  A KillAt(pl1670688852,Dragoon x3 @loc78)
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc1575273657,props1573622446)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T511 pl=[1] ef=cef6e008
+  C Deaths(EUD0xE1B2DA00) == 0
+  C Bring(CurrentPlayer,Marine,loc78) >= 1679865946
+  C Deaths(CurrentPlayer,u198) >= 75000
+  A KillAt(CurrentPlayer,Marine x3 @loc78)
+  A CreateProps(pl2136927928,Archon x1 @loc1575273658,props0)
+T513 pl=[0] ef=98939008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl3360819384,Marine,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 24999
+  A KillAt(CurrentPlayer,Marine x3 @loc3360819447)
+  A CreateProps(CurrentPlayer,Ghost x1 @loc76,props0)
+  A Text[[노멀] 등급 유닛을 조합하여 [레어] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 9
+T515 pl=[0] ef=9bc99008
+  A KillAt(CurrentPlayer,Dragoon x3 @loc76)
+  A Switch#0 25(p=1068463976,num=0)
+T516 pl=[0] ef=82566008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409696,Marine,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 50000
+  C Deaths(CurrentPlayer,u198) <= 74999
+  A KillAt(CurrentPlayer,Marine x3 @loc1680409759)
+  A CreateProps(CurrentPlayer,Mutalisk x1 @loc1575273660,props786811222)
+  A Text[<str2570819770?>]
+  A Score(CurrentPlayer,t1) -= 9
+T518 pl=[0] ef=a2bce008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Command(CurrentPlayer,DarkArchon) >= 1679865947
+  C Bring(CurrentPlayer,Devourer,loc47) >= 1644856303
+  C Bring(CurrentPlayer,Scout,loc47) >= 1
+  A LBGoalCtl(loc47,txt1679865946,wav0,tm1675906128,p13,num0,u33836,mod99,fl20)
+  A KillAt(CurrentPlayer,Scout x1 @loc47)
+  A CreateProps(CurrentPlayer,Mojo x1 @loc1,props0)
+  A Text[<str4232817421?>]
+  A Score(CurrentPlayer,t1) -= 54
+T520 pl=[0] ef=e37a6008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Command(CurrentPlayer,DarkArchon) >= 1
+  C Bring(CurrentPlayer,Dragoon,loc47) >= 1
+  C Bring(CurrentPlayer,Hydralisk,loc47) >= 1270346233
+  A KillAt(CurrentPlayer,Dragoon x1 @loc47)
+T522 pl=[0] ef=ff427008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Command(CurrentPlayer,DarkArchon) >= 1
+  A LBGoalCtl(loc76,txt0,wav0,tm0,p1670688845,num0,u33805,mod99,fl185)
+  A KillAt(CurrentPlayer,Archon x1 @loc76)
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc1,props4105218814)
+  A Text[<str4232817378?>]
+  A Score(CurrentPlayer,t1) -= 18
+T524 pl=[1] ef=d8de9008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Command(CurrentPlayer,DarkArchon) >= 1
+  C Bring(CurrentPlayer,Mutalisk,loc1670688887) >= 1
+  C Bring(pl1412250287,Archon,loc48) >= 1
+  A KillAt(pl1670688852,Mutalisk x1 @loc48)
+  A KillAt(CurrentPlayer,Archon x1 @loc48)
+  A CreateProps(CurrentPlayer,Shuttle x1 @loc3481288581,props4105218822)
+  A Text[<str4232817378?>]
+  A Score(CurrentPlayer,t1) -= 18
+T526 pl=[3] ef=ee492008
+  C Deaths(EUD0xE1B2CBC0) == 0
+  A LBGoalCtl(loc50,txt0,wav3357184331,tm0,p13,num0,u33831,mod99,fl20)
+  A KillAt(CurrentPlayer,Defiler x1 @loc50)
+  A CreateProps(CurrentPlayer,DT(Hero) x1 @loc4,props0)
+T527 pl=[3] ef=854dd008
+  C Deaths(EUD0xE1B2FA10) == 0
+  C Command(CurrentPlayer,DarkArchon) >= 1
+  C Bring(CurrentPlayer,Devourer,loc50) >= 1
+  C Bring(CurrentPlayer,Scout,loc1509827132) >= 1
+  A KillAt(CurrentPlayer,Devourer x1 @loc50)
+T529 pl=[0] ef=92e9a008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409696,Zealot,loc1680611631) >= 3
+  A KillAt(CurrentPlayer,Zealot x3 @loc1680409730)
+  A CreateProps(CurrentPlayer,Vulture x1 @loc3150547169,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T531 pl=[0] ef=9d5ba008
+  C Deaths(CurrentPlayer,u227) == 0 [DIS]
+  C Bring(CurrentPlayer,Firebat,loc47) >= 3
+  A KillAt(CurrentPlayer,Firebat x3 @loc47)
+  A Res(pl1068463969,t0) += 786811243
+  A Text[헌터 킬러의 효과로 20미네랄 획득]
+  A CreateProps(CurrentPlayer,Hydralisk x1 @loc1,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T533 pl=[0] ef=f5a94008
+  A CreateProps(pl1670688849,u2035 x199 @loc47,props0)
+  A CreateProps(CurrentPlayer,Marine x1 @loc1,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T535 pl=[0] ef=88936008
+  C Deaths(EUD0xC30CED00) == 0
+  C Bring(pl1680409705,Observer,loc1680611669) >= 3
+  C Deaths(CurrentPlayer,u198) >= 1644906298
+  C Deaths(CurrentPlayer,u198) <= 74999
+  C Command(CurrentPlayer,HunterKiller) == 1
+  A LBGoalCtl(loc1680409768,txt0,wav0,tm0,p13,num0,u33854,mod101,fl20)
+  A Res(CurrentPlayer,t0) += 20
+  A Text[헌터 킬러의 효과로 20미네랄 획득]
+  A CreateProps(CurrentPlayer,Hydralisk x1 @loc76,props0)
+T536 pl=[0] ef=c6e92008
+  C Deaths(CurrentPlayer,u227) == 1680689700
+  C Bring(CurrentPlayer,Zergling,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 50000
+  C Deaths(CurrentPlayer,u198) <= 74999
+  C Command(pl4174559334,HunterKiller) == 0
+  A KillAt(pl1670688849,Zergling x3 @loc76)
+  A CreateProps(CurrentPlayer,Hydralisk x1 @loc76,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T538 pl=[0] ef=ea3a4008
+  C Deaths(EUD0xE1B2E840) == 1680689704
+  C Bring(CurrentPlayer,Firebat,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  A KillAt(CurrentPlayer,Firebat x3 @loc76)
+  A CreateProps(pl1068463968,Dragoon x1 @loc76,props0)
+T540 pl=[0] ef=da87d008
+  C Deaths(EUD0xC30CD080) == 0
+  C Bring(CurrentPlayer,Firebat,loc76) >= 3
+  C Deaths(CurrentPlayer,u198) >= 0
+  C Deaths(CurrentPlayer,u198) <= 1270371236
+  A KillAt(CurrentPlayer,Firebat x3 @loc76)
+  A Switch#13 25(p=13,num=0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T542 pl=[1] ef=abc14008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409696,Firebat,loc78) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,Firebat x3 @loc1680409761)
+  A CreateProps(CurrentPlayer,Dragoon x1 @loc78,props786811230) [DIS]
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+T543 pl=[1] ef=8cd0c008
+  A KillAt(CurrentPlayer,Zergling x3 @loc78)
+  A Switch#13 25(p=13,num=0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(pl696907932,t1) -= 3
+T545 pl=[2] ef=ca2ae008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Firebat,loc1680611661) >= 3
+  C Deaths(CurrentPlayer,u198) >= 75000
+  C Deaths(CurrentPlayer,u198) <= 99999
+  A KillAt(CurrentPlayer,Firebat x3 @loc77)
+  A CreateProps(CurrentPlayer,Dragoon x1 @loc77,props0)
+  A Text[<str2570819768?>]
+  A Score(CurrentPlayer,t1) -= 1765859494
+T547 pl=[3] ef=96f44008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Observer x3 @loc79)
+T549 pl=[3] ef=911ce008
+  A KillAt(CurrentPlayer,Firebat x3 @loc1680409766)
+  A CreateProps(CurrentPlayer,Vulture x1 @loc79,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T551 pl=[2] ef=a649c008
+  C Deaths(CurrentPlayer,u227) == 0
+  A KillAt(CurrentPlayer,Zealot x3 @loc49)
+  A CreateProps(pl1068463977,Vulture x1 @loc3,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T553 pl=[2] ef=ca7b6008
+  A KillAt(CurrentPlayer,Zergling x3 @loc49)
+  A CreateProps(CurrentPlayer,Dragoon x1 @loc3,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+T555 pl=[1] ef=f71db008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(CurrentPlayer,Observer,loc48) >= 3
+  C Deaths(CurrentPlayer,u198) >= 0
+  A KillAt(CurrentPlayer,Observer x3 @loc48)
+  A CreateProps(pl1068463980,Marine x1 @loc2,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+  A Score(CurrentPlayer,t1) -= 3
+T557 pl=[1] ef=ff9cf008
+  A KillAt(CurrentPlayer,Zealot x3 @loc48)
+  A CreateProps(CurrentPlayer,Dragoon x1 @loc2,props0)
+  A Text[[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!]
+T559 pl=[4] ef=e2515008
+  A RemoveAt(AllPlayers,u215 x0 @loc1680409789)
+T560 pl=[4] ef=ae6f8008
+  C Bring(pl1680689850,u215,loc102) >= 1
+  A RemoveAt(AllPlayers,u215 x0 @loc102)
+T565 pl=[0, 1, 2, 3] ef=ab9b3008
+  C Command(CurrentPlayer,Raynor(M)) >= 1
+  C Command(CurrentPlayer,Marine) >= 12
+  A LBControl(loc0,txt0,wav308,tm0,p0,num0,u33761,mod98,fl4)
+  A PlayWAV(loc0,txt1509827082,wav308,tm0,p0,num786811226,u0,mod0,fl4)
+T570 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,Torrasque) >= 1
+  C Command(CurrentPlayer,Ultralisk) >= 1
+  C Switch#1 set
+  A PlayWAV(loc0,txt0,wav171,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav171,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav171,tm0,p0,num0,u0,mod0,fl4)
+  A Text[토라스크의 효과로 울트라리스크를 보유하여 울트라리스크를 추가로 획득하셨습니다!]
+  A CreateProps(CurrentPlayer,Ultralisk x1 @loc5,props0)
+T572 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,Duke(S)) >= 1
+  C Command(CurrentPlayer,Tank) >= 4
+  C Switch#1 set
+  A PlayWAV(loc0,txt0,wav278,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav278,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav278,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,Tank x2 @loc5,props0)
+  A Text[에드먼드 듀크의 효과로 시즈 탱크 4기를 모아서 시즈 탱크 2기를 획득하셨습니다!]
+T577 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,Zeratul) >= 1
+  C Command(CurrentPlayer,DarkTemplar) >= 4
+  C Switch#1 set
+  A PlayWAV(loc0,txt0,wav312,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav312,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav312,tm0,p0,num0,u0,mod0,fl4)
+  A CreateProps(CurrentPlayer,DarkTemplar x2 @loc5,props0)
+  A Text[제라툴의 효과로 다크 템플러 4기를 모아서 다크 템플러 2기를 획득하셨습니다!]
+T582 pl=[0, 1, 2, 3] ef=ccbe0008
+  C Switch#111 set [DIS]
+  C Command(CurrentPlayer,Fenix(D)) == 1
+  C Bring(CurrentPlayer,Zealot,loc5) >= 1
+  A RemoveAt(CurrentPlayer,Zealot x1 @loc5)
+  A CreateProps(CurrentPlayer,Dragoon x1 @loc5,props0)
+  A Text[<str2570819690?>]
+T587 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Observer) >= 1
+  C Command(CurrentPlayer,Zergling) >= 1
+  C Command(CurrentPlayer,Zealot) >= 1
+  C Command(CurrentPlayer,Firebat) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [커먼] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T588 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Dragoon) >= 1
+  C Command(CurrentPlayer,Hydralisk) >= 1
+  C Command(CurrentPlayer,Marine) >= 1
+  C Command(CurrentPlayer,Vulture) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [노멀] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T589 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Ghost) >= 1
+  C Command(CurrentPlayer,Shuttle) >= 1
+  C Command(CurrentPlayer,Mutalisk) >= 1
+  C Command(CurrentPlayer,Archon) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [레어] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T590 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Goliath) >= 1
+  C Command(CurrentPlayer,Devourer) >= 1
+  C Command(CurrentPlayer,Scout) >= 1
+  C Command(CurrentPlayer,Mojo) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [유니크] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T591 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,DarkTemplar) >= 1
+  C Command(CurrentPlayer,Defiler) >= 1
+  C Command(CurrentPlayer,Tank) >= 1
+  C Command(CurrentPlayer,DT(Hero)) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [히든] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T592 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Guardian) >= 1
+  C Command(CurrentPlayer,Valkyrie) >= 1
+  C Command(CurrentPlayer,Overlord) >= 1
+  C Command(CurrentPlayer,HighTemplar) >= 1
+  C Bring(AllPlayers,u215,loc100) == 0
+  C Bring(AllPlayers,u215,loc101) == 0
+  C Bring(AllPlayers,u215,loc102) == 0
+  C Bring(AllPlayers,u215,loc103) == 0
+  C Bring(AllPlayers,u215,loc51) == 0
+  C Bring(AllPlayers,u215,loc52) == 0
+  C Bring(AllPlayers,u215,loc53) == 0
+  C Bring(AllPlayers,u215,loc54) == 0
+  A Text[플래그의 효과로 [에픽] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T593 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,Corsair) >= 1
+  C Command(CurrentPlayer,Battlecruiser) >= 1
+  C Command(CurrentPlayer,Ultralisk) >= 1
+  C Command(CurrentPlayer,Carrier) >= 1
+  A Text[플래그의 효과로 [레전더리] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T594 pl=[0, 1, 2, 3] ef=8
+  C Command(CurrentPlayer,u215) == 1
+  C Command(CurrentPlayer,SCV) >= 1
+  C Command(CurrentPlayer,Drone) >= 1
+  C Command(CurrentPlayer,Arbiter) >= 1
+  C Command(CurrentPlayer,Probe) >= 1
+  A Text[플래그의 효과로 [패런츠] 등급 유닛을 다 모아서 70미네랄을 얻었습니다.]
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A PlayWAV(loc0,txt0,wav436,tm0,p0,num0,u0,mod0,fl4)
+  A Res(CurrentPlayer,t0) += 70
+T599 pl=[0, 1, 2, 3] ef=9c595008
+  C Deaths(CurrentPlayer,u227) == 0
+  C Bring(pl1680409700,u15,loc109) == 1
+  A Text[유닛 조합 기능을 껐습니다! 다시 왼쪽으로 가면 유닛을 조합할 수 있습니다.]
+  A Countdown 31 1270346245
+T607 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 1
+  A Text[                     
+\n                      
+\n                
+\n===================
+\n                        
+\n챕터 1. 테란 바이오닉의 침투
+]
+T608 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 6
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T609 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 11
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T610 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 16
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T611 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 21
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T612 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 26
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T613 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 31
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T614 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 36
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T615 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 41
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T616 pl=[17] ef=8
+  C Deaths(P5,u194) >= 2
+  C Deaths(P5,u197) >= 46
+  A Text[                                  
+\n                     
+\n                            
+\n===================
+\n                        ]
+T621 pl=[0, 1, 2, 3] ef=a736e008
+  C Deaths(EUD0xE1B2FA08) >= 1680689807
+  A UnpauseTimer(loc0,txt0,wav0,tm0,p13,num0,u33990,mod105,fl20)
+T626 pl=[0, 1, 2, 3] ef=8
+  C Switch#1 set
+  C Deaths(CurrentPlayer,u225) == 1
+  C Command(P6,u230) >= 190
+  C Command(P6,u230) <= 199
+  A Text[적 유닛 수가 190기 이상입니다!]
+  A PlayWAV(loc0,txt0,wav405,tm0,p0,num0,u0,mod0,fl4)
+T627 pl=[0, 1, 2, 3] ef=8
+  C Switch#0 set
+  C Deaths(CurrentPlayer,u225) == 1
+  C Deaths(CurrentPlayer,u196) >= 90
+  C Deaths(CurrentPlayer,u196) <= 99
+  A Text[적 유닛 수가 90기 이상입니다!]
+  A PlayWAV(loc0,txt0,wav405,tm0,p0,num0,u0,mod0,fl4)

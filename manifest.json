@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "말랑 운빨 디펜스",
+  "short_name": "말랑디펜스",
+  "description": "말랑한 캐릭터를 뽑고 합성해서 몰려오는 몹을 막는 운빨 디펜스",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "ko",
+  "background_color": "#ffd98a",
+  "theme_color": "#ffd98a",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
