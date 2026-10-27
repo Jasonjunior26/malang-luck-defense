@@ -14,7 +14,7 @@ const gbadge = (g) => `<span class="gb" style="background:${g === 7 ? "linear-gr
 // ---------- 효과음 + BGM (WebAudio 합성, 파일 없음) ----------
 // [튜닝 위치] 이 섹션 맨 위의 AUD 상수(볼륨/동시발음/템포), _gap(스로틀 ms), SFX 표(이벤트별 소리), BGM 패턴(BG_*) 을 고치면 됩니다.
 // 구조: 발음 -> sfxBus/bgmBus -> master(Gain) -> DynamicsCompressor -> destination
-const AUD = { master: 0.9, sfx: 0.9, bgm: 0.55, maxVoices: 14, bpmBase: 0, bpmRoundMax: 24, bpmDangerMax: 14 }; // bpmBase: 곡별 BGM.*.bpm 에 더하는 보정값(기본 0)
+const AUD = { master: 0.9, sfx: 0.9, bgm: 0.85, maxVoices: 14, bpmBase: 0, bpmRoundMax: 24, bpmDangerMax: 14 }; // bpmBase: 곡별 BGM.*.bpm 에 더하는 보정값(기본 0)
 let AC = null, MUTED = false, SND_MODE = 0; // SND_MODE: 0=효과음+BGM 1=효과음만 2=끔 (MUTED 는 모드 2 일 때 true)
 { const m = lsGet("malang-snd"); SND_MODE = m === "1" ? 1 : m === "2" ? 2 : m === "0" ? 0 : (lsGet("malang-mute") === "1" ? 2 : 0); MUTED = SND_MODE === 2; }
 let MB = null, SB = null, BB = null, _noiseBuf = null, _vo = [];
@@ -483,7 +483,8 @@ function updateHud() {
   setText("heroChip", hs || "");
   setHtml("clanChips", CLANS.map((c, i) => {
     const up = S.up[i], can = up.bought < CONST.UP_MAX && S.minerals >= upgradeCost(up.bought);
-    return `<div class="cc${can ? " buy" : ""}${S.upTickets > 0 ? " ut" : ""}" data-c="${i}" style="--cc:${c.color}">${c.ico}<b>${clanLevel(S, i)}</b></div>`;
+    let cnt = 0; for (const sl of S.slots) if (sl && !sl.hero && CHARS[sl.ch].clan === i) cnt += sl.n;
+    return `<div class="cc${can ? " buy" : ""}${S.upTickets > 0 ? " ut" : ""}" data-c="${i}" style="--cc:${c.color}" title="${c.name} 유닛 ${cnt}기 · 공업 Lv${clanLevel(S, i)}">${c.ico}<b>${cnt}</b><small>공업${clanLevel(S, i)}</small></div>`;
   }).join(""));
   const tk = {}; (S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
   setHtml("tickets", Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="--tc:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join("") + (S.upTickets > 0 ? `<span class="tk" data-up="1" style="--tc:#ffb703">⬆공업 x${S.upTickets}</span>` : ""));
@@ -511,7 +512,8 @@ function drawHeroCard() {
   try { hc.save(); hc.translate(19, 21); hc.scale(0.85, 0.85); drawHero(hc, S.hero.id, 0, 0, S.time || 0, {}); hc.restore(); } catch {}
   setText("heroName", S.hero.name); setText("heroDesc", S.hero.rule);
 }
-function setCards() { for (const k of ["heroName", "heroDesc"]) delete _txt[k]; drawHeroCard(); }
+function setCards() {
+  setTimeout(fitCanvas, 0); for (const k of ["heroName", "heroDesc"]) delete _txt[k]; drawHeroCard(); }
 
 // ---------- 확률표 ----------
 function paintPortraits(root, px) {
@@ -585,11 +587,6 @@ const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Conten
 const GAME_VER = "2";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
-function seasonStart(now = new Date()) {
-  const base = new Date(2026, 0, 5), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const k = Math.floor(Math.round((t0 - base) / 864e5) / 28);
-  return new Date(2026, 0, 5 + k * 28);
-}
 function scoreParts(res) {
   const R = res.round != null ? res.round : S.round, kills = res.kills != null ? res.kills : S.kills;
   const win = res.win != null ? !!res.win : !!S.win;
@@ -598,8 +595,15 @@ function scoreParts(res) {
   const score = res.score != null ? res.score : calcScore(R, kills, U, win, left);
   return { R, kills, win, left, U, score, uPts: Math.floor(Math.min(U, CONST.SCORE.UNIT_CAP) * CONST.SCORE.UNIT_MUL) };
 }
-// ---- 랭킹 제출: Edge Function(서버가 입력 로그를 재생해 점수 검증). 실패/오프라인이면 큐에 보관했다가 재전송 ----
+// ---- 닉네임 / 서버 통신: 닉네임은 처음에 한 번 정하면 기기(device_id)에 붙어 계속 쓰인다. 서버가 중복·변경 횟수를 강제한다 ----
 const DEV_KEY = "malang-device", QUEUE_KEY = "malang-queue", QUEUE_MAX = 20;
+const NAME_KEY = "malang-name", NAME_OK = "malang-name-ok", CHG_KEY = "malang-name-chg"; // NAME_OK="1": 서버 등록 확인됨, CHG_KEY: 오프라인 모드에서 마지막으로 바꾼 KST 날짜
+const BTNR = 'style="flex-direction:row;padding:9px"';
+const nf = (n) => Number(n).toLocaleString("en-US");
+const myName = () => lsGet(NAME_KEY, "");
+const NAME_ERR_MSG = { len: "2~10자로 정해 주세요", chars: "한글·영문·숫자·공백(_ . - 포함)만 쓸 수 있어요", bad: "쓸 수 없는 단어가 들어 있어요" };
+const SRV_ERR_MSG = { name_taken: "이미 쓰는 사람이 있는 닉네임이에요 😢", bad_name_len: NAME_ERR_MSG.len, bad_name_chars: NAME_ERR_MSG.chars, bad_name: NAME_ERR_MSG.bad,
+  rate_limited: "너무 빨라요! 잠시 뒤에 다시 해 주세요", server_error: "서버가 잠깐 아파요. 다시 해 주세요", rename_cooldown: "오늘은 이미 바꿨어요. 내일 0시(한국 시간) 이후에 바꿀 수 있어요" };
 function deviceId() {
   let id = lsGet(DEV_KEY, "");
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
@@ -611,93 +615,271 @@ function deviceId() {
 }
 const qGet = () => { try { const q = JSON.parse(lsGet(QUEUE_KEY, "[]")); return Array.isArray(q) ? q : []; } catch { return []; } };
 const qSet = (q) => lsSet(QUEUE_KEY, JSON.stringify(q.slice(-QUEUE_MAX)));
+// Edge Function 호출. 반환 {st: HTTP 상태(네트워크 실패=0), d: 응답 JSON}
+async function api(action, body = {}) {
+  try {
+    const r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/submit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, device_id: deviceId(), ...body }) });
+    let d = {}; try { d = await r.json(); } catch {}
+    return { st: r.status, d };
+  } catch { return { st: 0, d: {} }; }
+}
+// 서버에 닉네임 등록(이미 있으면 서버 값으로 동기화). 반환: ok | taken | bad | offline | noname
+async function ensureRegistered() {
+  const n = myName(); if (!n) return "noname";
+  const r = await api("register", { name: n });
+  if (r.st === 200) { lsSet(NAME_OK, "1"); if (r.d.name && r.d.name !== n) lsSet(NAME_KEY, r.d.name); return "ok"; }
+  if (r.st === 409) return "taken";
+  if (r.st === 400) return "bad";
+  return "offline";
+}
 let FLUSHING = false;
-// 반환: "ok"(저장/이미 더 높은 기록) | "drop"(서버가 거부: 재전송해도 소용없음) | "retry"(네트워크/서버 오류, 큐 유지)
+// 반환 st: "ok"(저장/이미 더 높은 기록) | "drop"(서버가 거부: 재전송해도 소용없음) | "retry"(네트워크/서버 오류, 큐 유지)
 async function postScore(payload) {
-  let r;
-  try { r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/submit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); }
-  catch { return "retry"; }
-  if (r.ok) return "ok";
-  if (r.status === 429 || r.status === 408 || r.status >= 500) return "retry";
-  return "drop";
+  const r = await api("submit", payload);
+  if (r.st === 0 || r.st === 429 || r.st === 408 || r.st >= 500) return { st: "retry", d: r.d };
+  return { st: r.st === 200 ? "ok" : "drop", d: r.d };
 }
 async function flushQueue() {
   if (FLUSHING || !remote() || !qGet().length) return;
   FLUSHING = true;
   try {
     for (const item of qGet()) {
-      const st = await postScore(item);
-      if (st === "retry") break;
+      let r = await postScore(item);
+      if (r.st === "drop" && r.d.error === "no_player" && (await ensureRegistered()) === "ok") r = await postScore(item);
+      if (r.st === "retry") break;
       qSet(qGet().filter((x) => x.qid !== item.qid));
     }
   } finally { FLUSHING = false; }
 }
 if (typeof window !== "undefined") { window.addEventListener("online", flushQueue); setTimeout(flushQueue, 2500); }
-async function submitScore(name, P) {
-  const row = { name: name.slice(0, 10) || "익명", score: P.score, wave: P.R, hero: S.hero.id, rule: S.mode, mode: S.mode, seed: S.seed, win: P.win, units: P.U, ver: GAME_VER };
-  LAST = { name: row.name, score: row.score };
-  if (S.mode !== "daily") return "local"; // 연습 모드는 서버에 보내지 않는다 (이 기기 최고점만 uiGameOver 에서 저장)
-  if (remote()) {
-    const item = { qid: Date.now() + "-" + Math.random().toString(36).slice(2, 8), name: row.name, mode: "daily", seed: S.seed, ver: GAME_VER, inputs: S.inputs, claimedScore: P.score, claimedRound: P.R, win: !!P.win, device_id: deviceId() };
-    const st = await postScore(item);
-    if (st === "retry") { qSet([...qGet(), item]); return "queued"; }
-    flushQueue(); // 이전에 밀린 기록도 이어서 전송
-    return st;
-  }
-  const l = JSON.parse(lsGet(LS_KEY, "[]"));
-  l.push({ ...row, played_at: new Date().toISOString() });
-  lsSet(LS_KEY, JSON.stringify(l));
-  return "local";
-}
-function seasonBoard(rows) {
+
+// ---- 시즌 ----
+const phaseNow = () => seasonPhase(kstDate());
+const dailyOpen = () => phaseNow().phase === "live";
+const seasonLeft = (s) => dayDiff(kstDate(), s.end); // 종료일까지 남은 날 (마지막 날 = 0)
+const md = (d) => d.slice(5).replace("-", "/");
+function localRows() { try { const l = JSON.parse(lsGet(LS_KEY, "[]")); return Array.isArray(l) ? l : []; } catch { return []; } }
+function localBoard(s) { // 서버 미설정/오프라인: 시즌 내 이름별 최고점 1건, 동점은 먼저 달성한 사람 우선
+  if (!s) return [];
   const by = {};
-  for (const r of rows) {
-    const day = ymd(new Date(r.played_at)), o = by[r.name] || (by[r.name] = { days: {}, wave: 0 });
-    o.days[day] = Math.max(o.days[day] || 0, r.score); o.wave = Math.max(o.wave, r.wave || 0);
-  }
-  return Object.keys(by).map((n) => {
-    const v = Object.values(by[n].days).sort((a, b) => b - a).slice(0, 7);
-    return { name: n, score: v.reduce((a, b) => a + b, 0), wave: by[n].wave, days: v.length, played_at: "" };
-  }).sort((a, b) => b.score - a.score).slice(0, 50);
+  for (const r of localRows()) { const d = kstDate(Date.parse(r.played_at)); if (d < s.start || d > s.end) continue; const o = by[r.name]; if (!o || r.score > o.score) by[r.name] = r; }
+  return Object.values(by).sort((a, b) => b.score - a.score || (a.played_at < b.played_at ? -1 : 1)).map((r, i) => ({ ...r, rank: i + 1 }));
 }
-async function fetchRanks(tab) {
-  const since = tab === "today" ? new Date(todayKey() + "T00:00:00") : tab === "season" ? seasonStart() : null;
-  let rows;
+async function getJSON(url) {
+  const r = await fetch(url, { headers: hdr() });
+  if (!r.ok) throw new Error("bad");
+  const j = await r.json(); if (!Array.isArray(j)) throw new Error("bad");
+  return j;
+}
+
+// ---- 랭킹 제출 ----
+async function submitScore(P) {
+  const name = myName();
+  LAST = { name, score: P.score };
+  if (S.mode !== "daily") return { st: "local", d: null }; // 연습 모드는 서버에 보내지 않는다 (이 기기 최고점만 uiGameOver 에서 저장)
   if (remote()) {
-    // 읽기는 leaderboard 뷰만 사용: 오늘=오늘 seed 의 일일 기록, 전체=기기별 최고 기록, 시즌=기간 내 일일 기록(일별 합산은 클라이언트에서)
-    const base = `${CONFIG.SUPABASE_URL}/rest/v1/`, sel = "select=name,score,round,win,hero,played_at";
-    const url = tab === "today" ? `${base}leaderboard_daily?${sel}&seed=eq.${dailySeed()}&order=score.desc&limit=50`
-      : tab === "season" ? `${base}leaderboard_daily?${sel}&played_at=gte.${encodeURIComponent(since.toISOString())}&order=score.desc&limit=1000`
-      : `${base}leaderboard_all?${sel}&order=score.desc&limit=50`;
-    const r = await fetch(url, { headers: hdr() });
-    if (!r.ok) throw new Error("bad");
-    rows = await r.json();
-    if (!Array.isArray(rows)) throw new Error("bad");
-    rows = rows.map((x) => ({ ...x, wave: x.round }));
-  } else {
-    rows = JSON.parse(lsGet(LS_KEY, "[]"));
-    if (since) rows = rows.filter((r) => new Date(r.played_at) >= since);
-    rows.sort((a, b) => b.score - a.score);
+    if (lsGet(NAME_OK, "") !== "1") { const rr = await ensureRegistered(); if (rr !== "ok") return { st: "noname", d: { why: rr } }; }
+    const item = { qid: Date.now() + "-" + Math.random().toString(36).slice(2, 8), mode: "daily", seed: S.seed, ver: GAME_VER, inputs: S.inputs, claimedScore: P.score, claimedRound: P.R, win: !!P.win, device_id: deviceId() };
+    let r = await postScore(item);
+    if (r.st === "drop" && r.d.error === "no_player") { lsSet(NAME_OK, ""); if ((await ensureRegistered()) === "ok") r = await postScore(item); }
+    if (r.st === "retry") { qSet([...qGet(), item]); return { st: "queued", d: r.d }; }
+    flushQueue(); // 이전에 밀린 기록도 이어서 전송
+    return r;
   }
-  return tab === "season" ? seasonBoard(rows) : rows.slice(0, 50);
+  const s = phaseNow().season, before = localBoard(s).find((x) => x.name === name);
+  const l = localRows();
+  l.push({ name, score: P.score, wave: P.R, win: !!P.win, hero: S.hero.id, seed: S.seed, played_at: new Date().toISOString() });
+  lsSet(LS_KEY, JSON.stringify(l));
+  const b = localBoard(s), me = b.find((x) => x.name === name);
+  return { st: "local", d: { ok: true, name, rank_before: before ? before.rank : null, prev_best: before ? before.score : null, rank_after: me.rank, season_best: me.score,
+    next_score: me.rank > 1 ? b[me.rank - 2].score : null, top_score: b[0].score, total: b.length, saved: true, best: P.score } };
 }
-async function showRanks(tab = "today", again = false) {
-  const T = [["today", "📅 오늘"], ["season", "🗓 시즌"], ["all", "🏆 전체"]];
-  const tabs = `<div class="tabs">${T.map(([k, l]) => `<button data-t="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
-  const foot = again ? `<button class="wide green" id="again">🔁 다시 하기</button>` : `<button class="wide" id="close">닫기</button>`;
-  modal(`<h2>🏆 랭킹</h2>${tabs}<p>불러오는 중…</p>`);
-  const wireTabs = () => document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => showRanks(b.dataset.t, again)));
-  let list = [];
-  try { list = await fetchRanks(tab); } catch { modal(`<h2>🏆 랭킹</h2>${tabs}<p>불러오지 못했어요 😢</p>${foot}`); wireRank(again); wireTabs(); return; }
-  const medal = ["🥇", "🥈", "🥉"], sea = tab === "season";
-  const li = list.map((r, i) => `<li class="${LAST && r.name === LAST.name && r.score === LAST.score ? "me" : ""}"><span class="no">${medal[i] || i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}점</span><small>R${r.wave}<br>${sea ? r.days + "일 합" : String(r.played_at).slice(5, 10)}</small></li>`).join("");
-  const sub = sea ? `<small>시즌 ${ymd(seasonStart()).slice(5)}~ · 일일 최고점 상위 7일 합</small>` : "<small>일일 챌린지 기록</small>";
-  modal(`<h2>🏆 랭킹</h2>${remote() ? "" : "<small>(이 기기 기록 — 서버 미설정)</small><br>"}${sub}${tabs}<ul class="rows">${li || "<li>아직 기록이 없어요. 첫 기록을 남겨요!</li>"}</ul>${foot}`);
-  wireRank(again); wireTabs();
+// 게임오버 화면의 순위 변동 문구: "12위 → 7위 ▲5", 다음 순위까지 필요한 점수
+function rankResultHtml(r, P) {
+  const d = r.d || {};
+  if (r.st === "queued") return { html: "📶 인터넷이 불안해요. 연결되면 자동으로 랭킹에 등록할게요", cheer: false };
+  if (r.st === "noname") return { html: "닉네임 등록이 아직이에요. 🏆 랭킹 → 👤 프로필에서 정해 주세요", cheer: false };
+  if (r.st === "local" && !d.ok) return { html: "", cheer: false };
+  if (r.st === "drop" || !d.ok) {
+    const m = { season_closed: "시즌이 끝나서 랭킹에 등록되지 않아요", season_not_started: "시즌이 아직 시작 전이에요", ver_mismatch: "새 버전이 나왔어요! 새로고침해 주세요", score_mismatch: "검증에 실패해서 등록되지 않았어요", replay_failed: "검증에 실패해서 등록되지 않았어요" }[d.error];
+    return { html: m || "랭킹 등록에 실패했어요 😢", cheer: false };
+  }
+  const best = d.season_best, rb = d.rank_before, ra = d.rank_after, newBest = d.prev_best == null || best > d.prev_best;
+  let h = r.st === "local" ? "<small>(이 기기 기록 · 서버 미설정)</small>" : "";
+  if (newBest) h += rb == null ? `🎉 시즌 첫 기록! <b>${ra}위</b>${d.total ? ` <small>/ ${d.total}명</small>` : ""}`
+    : ra < rb ? `✨ 시즌 최고점 갱신!<br><b>${rb}위 → ${ra}위 ▲${rb - ra}</b>` : `✨ 시즌 최고점 갱신! <b>${ra}위</b> 유지`;
+  else h += `시즌 최고점(${nf(best)}점)에는 못 미쳤어요<br>현재 <b>${ra}위</b>`;
+  if (newBest && d.prev_best != null) h += `<small>${nf(d.prev_best)}점 → ${nf(best)}점</small>`;
+  if (ra === 1) h += `<small>👑 지금 1위예요! 지켜내요</small>`;
+  else {
+    if (d.next_score != null) h += `<small>다음 순위까지 ${nf(d.next_score - best + 1)}점!</small>`;
+    if (ra > 2 && d.top_score != null) h += `<small>1위까지 ${nf(d.top_score - best + 1)}점</small>`;
+  }
+  if (d.saved === false && d.best != null) h += `<small>오늘 최고 기록은 ${nf(d.best)}점이에요</small>`;
+  return { html: h, cheer: newBest };
 }
-function wireRank(again) {
-  if ($("again")) $("again").onclick = () => restartGame();
-  if ($("close")) $("close").onclick = closeModal;
+async function finishRank(P) {
+  const box = $("rk"); if (!box) return;
+  const ph = phaseNow();
+  if (ph.phase !== "live") { box.textContent = "시즌 기간이 아니라 랭킹에는 등록되지 않아요"; return; }
+  let r;
+  try { r = await submitScore(P); } catch { r = { st: "drop", d: {} }; }
+  const b2 = $("rk"); if (!b2) return; // 그 사이 화면이 바뀜
+  const o = rankResultHtml(r, P);
+  b2.innerHTML = o.html || "";
+  if (o.cheer) { b2.classList.add("cheer"); sfx("reso"); vib([60, 40, 120]); }
+  refreshTitle();
+}
+
+// ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
+function showNick(msg) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
+  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요.<br>한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>`);
+  const say = (t) => { $("nkMsg").textContent = t; };
+  $("nkImp").onclick = () => showImport(() => showNick());
+  $("nkOk").onclick = async () => {
+    const c = checkName($("nk").value);
+    if (!c.ok) { say(NAME_ERR_MSG[c.err]); sfx("deny"); return; }
+    lsSet(NAME_KEY, c.name);
+    if (!remote()) { lsSet(NAME_OK, ""); closeModal(); refreshTitle(); return; }
+    $("nkOk").disabled = true; say("확인 중…");
+    const rr = await ensureRegistered();
+    if (rr === "taken" || rr === "bad") { lsSet(NAME_KEY, ""); lsSet(NAME_OK, ""); $("nkOk").disabled = false; say(rr === "taken" ? SRV_ERR_MSG.name_taken : NAME_ERR_MSG.bad); sfx("deny"); return; }
+    closeModal(); refreshTitle(); // offline 이면 이 기기에만 저장해 두고 나중에 첫 제출 때 다시 등록 시도
+  };
+}
+function showRename(back) {
+  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요.<br>바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
+  const say = (t) => { $("nkMsg").textContent = t; };
+  $("nkNo").onclick = () => showProfile(back);
+  $("nkOk").onclick = async () => {
+    const c = checkName($("nk").value);
+    if (!c.ok) { say(NAME_ERR_MSG[c.err]); sfx("deny"); return; }
+    if (c.name === myName()) { say("지금 닉네임과 같아요"); return; }
+    if (!remote()) {
+      if (lsGet(CHG_KEY, "") === kstDate()) { say(SRV_ERR_MSG.rename_cooldown); sfx("deny"); return; }
+      lsSet(NAME_KEY, c.name); lsSet(CHG_KEY, kstDate()); refreshTitle(); showProfile(back); return;
+    }
+    $("nkOk").disabled = true; say("바꾸는 중…");
+    if (lsGet(NAME_OK, "") !== "1") { // 아직 서버에 등록 전이면 새 이름으로 바로 등록
+      const old = myName(); lsSet(NAME_KEY, c.name); const rr = await ensureRegistered();
+      if (rr === "ok") { refreshTitle(); showProfile(back); return; }
+      lsSet(NAME_KEY, old); $("nkOk").disabled = false; say(rr === "taken" ? SRV_ERR_MSG.name_taken : "연결이 안 돼요. 인터넷을 확인해 주세요"); return;
+    }
+    const r = await api("rename", { name: c.name });
+    if (r.st === 200) { lsSet(NAME_KEY, r.d.name || c.name); refreshTitle(); showProfile(back); return; }
+    $("nkOk").disabled = false; sfx("deny");
+    if (r.st === 0) say("연결이 안 돼요. 인터넷을 확인해 주세요");
+    else if (r.d.error === "no_player") { lsSet(NAME_OK, ""); say("다시 한 번 눌러 주세요"); }
+    else say(SRV_ERR_MSG[r.d.error] || "바꾸지 못했어요 😢");
+  };
+}
+function showImport(back) {
+  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요.<br>이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:13px;width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
+  const say = (t) => { $("nkMsg").textContent = t; };
+  $("icNo").onclick = () => back();
+  $("icOk").onclick = async () => {
+    const code = $("ic").value.trim().toLowerCase();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(code)) { say("코드 모양이 달라요 (36자)"); sfx("deny"); return; }
+    if (!remote()) { say("서버가 설정되지 않아 불러올 수 없어요"); return; }
+    $("icOk").disabled = true; say("확인 중…");
+    const r = await api("import", { code });
+    $("icOk").disabled = false;
+    if (r.st === 200 && r.d.name) { lsSet(DEV_KEY, code); lsSet(NAME_KEY, r.d.name); lsSet(NAME_OK, "1"); qSet([]); sfx("ticket"); refreshTitle(); closeModal(); return; }
+    sfx("deny");
+    say(r.st === 404 ? "그 코드의 계정을 찾지 못했어요" : r.st === 0 ? "연결이 안 돼요. 인터넷을 확인해 주세요" : SRV_ERR_MSG[r.d.error] || "불러오지 못했어요 😢");
+  };
+}
+async function showProfile(back) {
+  const close = back || closeModal;
+  modal(`<h2>👤 내 프로필</h2><p>불러오는 중…</p>`);
+  const ph = phaseNow(), nm = myName();
+  let pf = null;
+  if (remote() && nm) { const r = await api("profile"); if (r.st === 200 && r.d.profile && r.d.profile.exists) pf = r.d.profile; }
+  let can = true, st;
+  if (pf) {
+    can = !!pf.can_change;
+    st = { best: pf.season_best, rank: pf.season_rank, total: pf.season_total, days: pf.season_days, plays: pf.plays, all: pf.all_best };
+  } else {
+    can = lsGet(CHG_KEY, "") !== kstDate();
+    const b = localBoard(ph.season), me = b.find((x) => x.name === nm), rows = localRows().filter((x) => x.name === nm);
+    st = { best: me ? me.score : null, rank: me ? me.rank : null, total: b.length, days: me ? rows.length : 0, plays: rows.length, all: rows.reduce((a, x) => Math.max(a, x.score), 0) };
+  }
+  const row = (k, v) => `${k}<b>${v}</b><br>`;
+  const stats = `<div class="sc2">${row("시즌 최고점", st.best != null ? nf(st.best) + "점" : "-")}${row("시즌 순위", st.rank != null ? `${st.rank}위 / ${st.total}명` : "-")}${row("이번 시즌 기록", (st.days || 0) + "일")}${row("누적 판수", (st.plays || 0) + "판")}${row("전체 최고점", st.all ? nf(st.all) + "점" : "-")}</div>`;
+  modal(`<h2>👤 내 프로필</h2><div class="score" style="font-size:30px">${nm ? esc(nm) : "(닉네임 없음)"}</div>${remote() && !pf && nm ? "<small>서버에 연결하지 못해 이 기기 기록만 보여요</small>" : ""}
+    <button class="wide mini" id="pfRen" ${can ? "" : "disabled"} ${BTNR}>✏️ 닉네임 바꾸기</button>${can ? "" : `<small>${SRV_ERR_MSG.rename_cooldown}</small>`}
+    ${stats}<button class="wide mini" id="pfShow" ${BTNR}>🔑 이전 코드 보기</button>
+    <div id="pfCode" style="display:none"><div class="codebox">${deviceId()}</div><small style="color:#d4182e">⚠ 이 코드를 아는 사람은 내 기록과 닉네임을 그대로 쓸 수 있어요.<br>다른 사람에게 보여주거나 올리지 마세요!</small><button class="wide mini" id="pfCopy" ${BTNR}>📋 복사</button></div>
+    <button class="wide mini" id="pfImp" ${BTNR}>📥 다른 기기에서 불러오기</button><button class="wide" id="pfClose">닫기</button>`);
+  $("pfClose").onclick = close;
+  $("pfRen").onclick = () => { if (can) showRename(back); };
+  $("pfImp").onclick = () => showImport(() => showProfile(back));
+  $("pfShow").onclick = () => { $("pfCode").style.display = "block"; $("pfShow").style.display = "none"; };
+  $("pfCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText(deviceId()); $("pfCopy").textContent = "✅ 복사했어요"; }
+    catch { try { window.prompt("이 코드를 복사하세요", deviceId()); } catch {} }
+  };
+}
+
+// ---- 랭킹 모달 (시즌 TOP 50 / 오늘 / 내 기록) ----
+async function fetchRanks(tab, ph) {
+  const s = ph.season; if (!s) return [];
+  if (remote()) {
+    const base = `${CONFIG.SUPABASE_URL}/rest/v1/`, sel = "select=name,score,round,win,hero,played_at";
+    const url = tab === "today" ? `${base}leaderboard_daily?${sel}&season=eq.${s.id}&seed=eq.${dailySeed()}&order=score.desc&limit=50`
+      : `${base}leaderboard_season?${sel},rank&season=eq.${s.id}&order=rank.asc&limit=50`;
+    return (await getJSON(url)).map((x) => ({ ...x, wave: x.round }));
+  }
+  if (tab === "today") return localRows().filter((r) => r.seed === dailySeed() && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).sort((a, b) => b.score - a.score).slice(0, 50);
+  return localBoard(s).slice(0, 50);
+}
+async function showRanks(tab = "season", again = false) {
+  const ph = phaseNow(), s = ph.season, nm = myName();
+  const T = [["season", "🏆 시즌 TOP 50", 2.3], ["today", "📅 오늘", 1], ["mine", "🙋 내 기록", 1.3]];
+  const tabs = `<div class="tabs">${T.map(([k, l, f]) => `<button data-t="${k}" style="flex:${f}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const sub = !s ? "<small>시즌 정보가 없어요</small>" : ph.phase === "live" ? `<small>${esc(s.name)} · ${md(s.start)}~${md(s.end)} · ${seasonLeft(s) === 0 ? "오늘이 마지막 날!" : "종료까지 " + seasonLeft(s) + "일"}</small>`
+    : ph.phase === "before" ? `<small>${esc(s.name)} 준비 중 · ${md(s.start)} 시작</small>` : `<small>${esc(s.name)} 종료 (${md(s.start)}~${md(s.end)}) · 최종 순위</small>`;
+  const head = `<h2>🏆 랭킹</h2>${remote() ? "" : "<small>(이 기기 기록 — 서버 미설정)</small><br>"}${sub}${tabs}`;
+  const foot = (me) => `<div class="stk">${me || ""}<button class="wide mini" id="prof" ${BTNR}>👤 내 프로필${nm ? " · " + esc(nm) : ""}</button>${again ? `<button class="wide green" id="again">🔁 다시 하기</button>` : `<button class="wide" id="close">닫기</button>`}</div>`;
+  const wire = () => {
+    document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => showRanks(b.dataset.t, again)));
+    if ($("again")) $("again").onclick = () => restartGame();
+    if ($("close")) $("close").onclick = closeModal;
+    if ($("prof")) $("prof").onclick = () => showProfile(() => showRanks(tab, again));
+  };
+  modal(`${head}<p>불러오는 중…</p>`);
+  let list = [], pf = null;
+  try {
+    const jobs = [tab === "mine" ? Promise.resolve([]) : fetchRanks(tab, ph)];
+    if (remote() && nm) jobs.push(api("profile"));
+    const [l, pr] = await Promise.all(jobs);
+    list = l; if (pr && pr.st === 200 && pr.d.profile && pr.d.profile.exists) pf = pr.d.profile;
+  } catch { modal(`${head}<p>불러오지 못했어요 😢</p>${foot()}`); wire(); return; }
+  const medal = ["🥇", "🥈", "🥉"], isMe = (r) => nm && String(r.name).toLowerCase() === nm.toLowerCase();
+  // 내 순위 (TOP 밖이어도 하단에 고정)
+  let mine = null;
+  if (pf && pf.season_best != null) mine = { rank: pf.season_rank, score: pf.season_best, total: pf.season_total, top: pf.top_score, next: pf.next_score };
+  else if (!remote() && nm) { const b = localBoard(s), me = b.find((x) => x.name === nm); if (me) mine = { rank: me.rank, score: me.score, total: b.length, top: b[0].score, next: me.rank > 1 ? b[me.rank - 2].score : null }; }
+  let meBar = "";
+  if (mine) {
+    const gap = mine.rank === 1 ? "👑 지금 1위!" : `다음 순위까지 ${nf(mine.next - mine.score + 1)}점${mine.rank > 2 ? ` · 1위까지 ${nf(mine.top - mine.score + 1)}점` : ""}`;
+    meBar = `<ul class="rows" style="margin:6px 0"><li class="me"><span class="no" style="width:auto;min-width:28px">${mine.rank}위</span><span class="nm">${esc(nm)} (나)</span><span class="sc">${nf(mine.score)}점</span><small>${gap}</small></li></ul>`;
+  } else if (!nm) meBar = `<small>닉네임을 정하면 내 순위가 여기 고정돼요</small>`;
+  else meBar = `<small>이번 시즌 기록이 아직 없어요. 첫 도전을 해봐요!</small>`;
+  let body;
+  if (tab === "mine") {
+    let rows = [];
+    if (pf) rows = (pf.mine || []).map((x) => ({ seed: x.seed, score: x.score, wave: x.round, win: x.win }));
+    else if (!remote() && s) rows = localRows().filter((r) => r.name === nm && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).map((r) => ({ seed: r.seed, score: r.score, wave: r.wave, win: r.win })).reverse();
+    const top = rows.reduce((a, x) => Math.max(a, x.score), 0);
+    const sd = (n) => { const t = String(n); return t.length === 8 ? `${+t.slice(4, 6)}/${+t.slice(6)}` : ""; };
+    body = `<ul class="rows">${rows.map((x) => `<li class="${x.score === top ? "me" : ""}"><span class="no" style="width:auto;min-width:40px;font-size:14px">${sd(x.seed)}</span><span class="nm">${x.win ? "🎉 클리어" : "R" + x.wave}</span><span class="sc">${nf(x.score)}점</span>${x.score === top ? "<small>⭐ 시즌 최고</small>" : ""}</li>`).join("") || "<li>이번 시즌 기록이 아직 없어요. 오늘 첫 도전!</li>"}</ul><small>하루에 한 판(그날 최고점)이 기록돼요</small>`;
+  } else {
+    const li = list.map((r, i) => `<li class="${isMe(r) ? "me" : ""}"><span class="no">${medal[i] || i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${nf(r.score)}점</span><small>R${r.wave}${r.win ? " 🎉" : ""}</small></li>`).join("");
+    body = `<ul class="rows">${li || "<li>아직 기록이 없어요. 첫 기록을 남겨요!</li>"}</ul>`;
+  }
+  modal(`${head}${body}${foot(tab === "mine" ? "" : meBar)}`);
+  wire();
 }
 function restartGame() {
   const mode = S ? S.mode : "daily";
@@ -713,16 +895,60 @@ function uiGameOver(result) {
   const parts = `<div class="sc2">라운드 ${P.R} x ${CONST.SCORE.ROUND}<b>${P.R * CONST.SCORE.ROUND}</b><br>처치 ${P.kills}기<b>${P.kills}</b><br>필드 유닛 점수 ${P.U}<b>${P.uPts}</b>${win ? `<br>클리어 보너스${P.left ? ` (남은 ${Math.floor(P.left)}초)` : ""}<b>${CONST.SCORE.WIN + CONST.SCORE.WIN_SEC * Math.floor(P.left)}</b>` : ""}</div>`;
   const why = res.why ? `<small>${esc(res.why)}</small><br>` : "";
   const reg = practice ? `<small>연습 모드는 랭킹에 등록되지 않아요 (이 기기 최고점만 저장)</small><button class="wide" id="skip">🔁 다시 하기</button>`
-    : `<input id="nm" maxlength="10" placeholder="닉네임" value="${esc(lsGet("malang-name", ""))}"><button class="wide" id="sub">랭킹에 등록</button><button class="wide mini" id="skip" style="flex-direction:row;padding:9px">그냥 다시 하기</button>`;
+    : `<div class="rk" id="rk">랭킹에 등록하는 중… ⏳</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>🏆 랭킹 보기</button>`;
   modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${S.hero.name} · ${practice ? "연습" : "일일 챌린지 " + todayKey()}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${reg}`);
   $("skip").onclick = () => restartGame();
-  if ($("sub")) $("sub").onclick = async () => {
-    const n = $("nm").value.trim(); lsSet("malang-name", n);
-    $("sub").disabled = true; $("sub").textContent = "등록 중…";
-    try { await submitScore(n, P); } catch {}
-    await showRanks("today", true);
-  };
+  if (!practice) { $("seeRank").onclick = () => showRanks("season", true); finishRank(P); }
   if (win) uiBanner("클리어! 말랑 왕국을 지켜냈어요!", "win");
+}
+
+// ---------- 타이틀 (시즌 배너 / 닉네임) ----------
+const SEA = { top: null, pf: null };
+function renderSeasonBox() {
+  const el = $("seasonBox"); if (!el) return;
+  const ph = phaseNow(), s = ph.season, nm = myName(), live = ph.phase === "live";
+  let top = SEA.top, pf = SEA.pf;
+  if (!remote() && live) { const b = localBoard(s); top = b[0] || null; const me = b.find((x) => x.name === nm); pf = me ? { season_best: me.score, season_rank: me.rank } : null; }
+  const chip = `<span class="pchip" id="profBtn">👤 ${nm ? esc(nm) : "닉네임"}</span>`;
+  let l1, l2 = "", l3 = "", sprint = false;
+  if (live) {
+    const left = seasonLeft(s); sprint = left <= 2;
+    l1 = sprint ? `🔥 마지막 스퍼트! ${left === 0 ? "오늘이 마지막 날" : "종료까지 " + left + "일"}` : `🏆 ${esc(s.name)} · 종료까지 ${left}일`;
+    l2 = top ? `👑 1위 ${esc(top.name)} ${nf(top.score)}점` : "👑 아직 1위가 없어요. 지금 도전하면 1등!";
+    if (pf && pf.season_best != null) l3 = `내 ${nf(pf.season_best)}점 · ${pf.season_rank}위` + (top && pf.season_rank > 1 ? ` · 1위까지 ${nf(top.score - pf.season_best + 1)}점!` : pf.season_rank === 1 ? " · 지금 1위!" : "");
+    else l3 = "내 기록이 아직 없어요. 첫 도전으로 순위에 올라요!";
+  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 일일 챌린지가 시작돼요"; l3 = "지금은 연습 모드로 몸을 풀어요!"; }
+  else if (ph.phase === "after") { l1 = `🏁 ${esc(s.name)} 종료`; l2 = "다음 시즌을 기다려 주세요"; l3 = "연습 모드는 계속 즐길 수 있어요!"; }
+  else { l1 = "🎲 시즌 정보가 없어요"; }
+  el.className = sprint ? "sprint" : "";
+  el.innerHTML = `<div class="sb1"><b>${l1}</b>${chip}</div>${l2 ? `<div class="sb2">${l2}</div>` : ""}${l3 ? `<div class="sb2">${l3}</div>` : ""}`;
+  const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "▶ 일일 챌린지" : "🔒 일일 챌린지 (시즌 밖)"; }
+}
+async function refreshTitle() {
+  renderSeasonBox();
+  const ph = phaseNow();
+  if (!remote() || ph.phase !== "live") return;
+  try {
+    const [top, pr] = await Promise.all([getJSON(`${CONFIG.SUPABASE_URL}/rest/v1/leaderboard_season?select=name,score&season=eq.${ph.season.id}&order=rank.asc&limit=1`).catch(() => null), myName() ? api("profile") : null]);
+    SEA.top = top && top[0] ? top[0] : null;
+    SEA.pf = pr && pr.st === 200 && pr.d.profile && pr.d.profile.exists ? pr.d.profile : null;
+  } catch {}
+  renderSeasonBox();
+}
+function showSeasonClosed() {
+  const ph = phaseNow(), s = ph.season;
+  const msg = ph.phase === "before" ? `${esc(s.name)}은 ${md(s.start)}에 시작해요!<br>그때까지는 연습 모드로 몸을 풀어요 🎲` : ph.phase === "after" ? `${esc(s.name)}이 끝났어요 🏁<br>다음 시즌을 기다려 주세요. 연습 모드는 계속 할 수 있어요!` : "지금은 열린 시즌이 없어요";
+  modal(`<h2>🔒 시즌 준비 중</h2><p>${msg}</p><button class="wide green" id="goP">🎲 연습 모드 하기</button><button class="wide mini" id="clo" ${BTNR}>닫기</button>`);
+  $("goP").onclick = () => { closeModal(); startRun("practice"); };
+  $("clo").onclick = closeModal;
+}
+async function initPlayer() { // 첫 실행이면 닉네임 정하기, 예전에 쓰던 닉네임이면 조용히 서버 등록
+  const nm = myName();
+  if (!nm || !checkName(nm).ok) { showNick(); return; }
+  if (remote() && lsGet(NAME_OK, "") !== "1") {
+    const rr = await ensureRegistered();
+    if (rr === "taken" || rr === "bad") showNick(rr === "taken" ? "예전 닉네임을 다른 사람이 먼저 썼어요. 새로 정해 주세요" : NAME_ERR_MSG.bad);
+  }
 }
 
 // ---------- 타이틀 ----------
@@ -744,7 +970,24 @@ function startRun(mode) {
 
 // ---------- 버튼 바인딩 ----------
 let _bound = false;
+function fitCanvas() { // 캔버스 외 영역의 실제 높이를 재서 남는 높이에 캔버스를 맞춘다 (카드 글이 길어져도 하단 버튼이 밀리지 않게)
+  try {
+    const app = $("app"), wrap = $("cvWrap"); if (!app || !wrap) return;
+    const cs = getComputedStyle(app), gap = parseFloat(cs.rowGap || cs.gap) || 0;
+    let used = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom), n = 0;
+    for (const c of app.children) { if (c === wrap || getComputedStyle(c).position === "fixed" || getComputedStyle(c).display === "none") continue; used += c.getBoundingClientRect().height; n++; }
+    used += gap * n;
+    const avail = app.clientHeight - used - 8; // 캔버스 테두리(4px*2) 여유
+    wrap.style.width = Math.max(150, Math.min(app.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), avail * 0.9)) + "px";
+  } catch {}
+}
+function fitVh() { try { const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight); document.documentElement.style.setProperty("--vh", h / 100 + "px"); } catch {} fitCanvas(); }
+function tryFullscreen() { // 안드로이드 크롬 등에서만 동작(아이폰 사파리는 미지원 → 홈 화면에 추가 시 전체화면)
+  try { const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone; const el = document.documentElement; if (!standalone && !document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); } catch {}
+}
 function bindUi() {
+  fitVh(); window.addEventListener("resize", fitVh); window.addEventListener("orientationchange", fitVh); if (window.visualViewport) window.visualViewport.addEventListener("resize", fitVh);
+  document.addEventListener("pointerdown", function once() { tryFullscreen(); document.removeEventListener("pointerdown", once); });
   if (_bound) return; _bound = true;
   $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < CONST.DRAW_COST) sfx("deny"); };
   // 합성: 탭 = 선택 칸 합성(경고 시 확인), 길게 = 가능한 만큼 일괄
@@ -766,17 +1009,18 @@ function bindUi() {
   $("lock").onclick = () => { if (S.sel >= 0) GAME.toggleLock(S.sel); };
   $("upg").onclick = () => { initAudio(); showUpg(); };
   $("prob").onclick = () => showProb();
-  $("rank").onclick = () => showRanks("today");
+  $("rank").onclick = () => showRanks("season");
   $("snd").onclick = () => sndCycle();
   sndLabel();
-  $("start").onclick = () => startRun("daily");
+  $("start").onclick = () => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); };
   $("startP").onclick = () => startRun("practice");
-  $("rank2").onclick = () => showRanks("today");
+  $("rank2").onclick = () => showRanks("season");
   $("tickets").onclick = (e) => {
     const t = e.target.closest(".tk"); if (!t) return;
     if (t.dataset.up) uiUpTicket(); else uiTicket(+t.dataset.g);
   };
   $("clanChips").onclick = (e) => { if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
-  setupTitle();
+  $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
+  setupTitle(); renderSeasonBox(); refreshTitle(); initPlayer();
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);

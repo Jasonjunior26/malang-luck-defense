@@ -20,7 +20,7 @@
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
   html,body { margin:0; height:100%; color:var(--ink); font-family:"Jua","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif; touch-action:manipulation; overflow:hidden;
     background:radial-gradient(circle at 20% 10%,#fff3c4 0,transparent 45%),radial-gradient(circle at 85% 90%,#ffd1e0 0,transparent 40%),#ffe3a3; }
-  #app { max-width:480px; margin:0 auto; height:100dvh; display:flex; flex-direction:column; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); gap:7px; }
+  #app { max-width:480px; margin:0 auto; height:100vh; height:100svh; height:calc(var(--vh,1vh)*100); display:flex; flex-direction:column; padding:calc(8px + env(safe-area-inset-top)) 10px calc(14px + env(safe-area-inset-bottom)); gap:7px; }
 
   #hud { display:flex; gap:7px; }
   .chip { flex:1; display:flex; align-items:center; gap:7px; background:linear-gradient(#fff,#fff4d6); border:2.5px solid #fff; border-radius:16px; padding:5px 10px; box-shadow:0 3px 0 #e2c58a,0 6px 10px #0001; min-width:0; }
@@ -38,7 +38,7 @@
   .card canvas { width:38px; height:38px; flex:none; background:radial-gradient(#fff,#ffeab0); border-radius:50%; } .card .ico2 { width:38px; height:38px; flex:none; display:grid; place-items:center; font-size:22px; background:radial-gradient(#fff,#d7f0ff); border-radius:50%; }
   .card b { display:block; font-size:14px; line-height:1.15; } .card small { display:block; font-size:11px; opacity:.75; line-height:1.2; }
 
-  #cvWrap { position:relative; width:min(100%, calc((100dvh - 318px) * 0.9)); flex:none; margin:0 auto; }
+  #cvWrap { position:relative; width:min(100%, calc((var(--vh,1vh)*100 - 338px) * 0.9)); flex:none; margin:0 auto; }
   canvas#cv { width:100%; aspect-ratio:360/400; display:block; border-radius:22px; border:4px solid #fff; box-shadow:0 5px 0 #c9a56a,0 10px 18px #0002; touch-action:none; background:#b9ec9f; }
   #info { flex:none; height:58px; overflow:hidden; text-align:center; font-size:13px; background:#ffffffaa; border-radius:12px; padding:4px 8px; line-height:17px; display:flex; flex-direction:column; justify-content:center; }
   #info .ln { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } #info .sm { font-size:11px; opacity:.85; line-height:16px; }
@@ -93,7 +93,7 @@
   #vig { position:fixed; inset:0; pointer-events:none; z-index:5; opacity:0; transition:opacity .4s; box-shadow:inset 0 0 90px 24px #ff1f3f; } #vig.on { opacity:.55; animation:vig .6s infinite alternate; } @keyframes vig { to { opacity:.25; } }
   #heroCard { flex:1.35; } #heroChip { display:inline-block; margin-top:2px; font-size:11px; background:#fff0a8; border-radius:9px; padding:0 7px; color:#a55a00; } #heroChip:empty { display:none; }
   #clanCard { flex:1; flex-direction:column; align-items:stretch; gap:3px; padding:4px 7px; }
-  #clanChips { display:flex; gap:3px; } .cc { flex:1; text-align:center; font-size:11px; line-height:1.15; border-radius:9px; background:#fff; border:2px solid var(--cc,#ddd); padding:1px 0; } .cc b { display:inline; font-size:12px; } .cc.buy { animation:ready .7s infinite alternate; } .cc.ut { background:#fff0a8; }
+  #clanChips { display:flex; gap:3px; } .cc { flex:1; text-align:center; font-size:11px; line-height:1.15; border-radius:9px; background:#fff; border:2px solid var(--cc,#ddd); padding:1px 0; } .cc b { display:inline; font-size:13px; } .cc small { display:block; font-size:9px; opacity:.7; line-height:1.1; } .cc.buy { animation:ready .7s infinite alternate; } .cc.ut { background:#fff0a8; }
   #tickets { display:flex; gap:4px; flex-wrap:wrap; min-height:17px; font-size:11px; } #tickets:empty::after { content:"선택권 없음"; opacity:.45; }
   .tk { border:2px solid var(--tc,#aaa); background:#fff; border-radius:9px; padding:0 6px; cursor:pointer; animation:ready .8s infinite alternate; }
   #bossBar { position:absolute; left:6px; right:6px; top:5px; display:none; background:#2b1220cc; color:#fff; border-radius:11px; padding:3px 8px 5px; font-size:12px; z-index:2; pointer-events:none; } #bossBar.on { display:block; }
@@ -113,6 +113,19 @@
   .up { display:flex; align-items:center; gap:7px; background:#fff; border-radius:14px; padding:6px 8px; margin-bottom:6px; text-align:left; font-size:13px; line-height:1.25; border-left:6px solid var(--cc); } .up .e { font-size:24px; width:30px; text-align:center; } .up .m { flex:1; min-width:0; } .up .m i { display:block; height:6px; background:#0001; border-radius:4px; margin-top:3px; overflow:hidden; } .up .m u { display:block; height:100%; background:var(--cc); text-decoration:none; } .up button { padding:7px 10px; font-size:14px; white-space:nowrap; border-radius:12px; }
   .sc2 { text-align:left; font-size:13px; background:#fff; border-radius:12px; padding:6px 10px; margin:6px 0; line-height:1.55; } .sc2 b { float:right; }
   #heroMini { width:64px; height:64px; display:block; margin:0 auto; }
+  /* ---- 시즌 배너 / 닉네임 / 랭킹 보조 ---- */
+  #seasonBox { box-sizing:border-box; width:min(92vw,340px); flex:none; background:linear-gradient(#fff7d6,#ffe9a8); border:3px solid #fff; border-radius:16px; padding:6px 10px 7px; text-align:left; line-height:1.3; cursor:pointer; box-shadow:0 3px 0 #e0b45a66; }
+  #seasonBox.sprint { background:linear-gradient(#ffe3d8,#ffb9a0); animation:pulse .9s infinite alternate; }
+  #seasonBox .sb1 { display:flex; align-items:center; gap:6px; font-size:14px; } #seasonBox .sb1 b { flex:1; min-width:0; font-weight:normal; color:var(--pink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #seasonBox .sb2 { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #seasonBox .pchip { flex:none; max-width:112px; font-size:12px; background:#fff; border:2px solid var(--pink); border-radius:10px; padding:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #title .tbtn.off { filter:grayscale(.7); opacity:.75; }
+  @media (max-height:700px) { #seasonBox { padding:4px 9px 5px; } }
+  .rk { background:#fff; border-radius:12px; padding:8px 10px; margin:8px 0; font-size:14px; line-height:1.5; } .rk b { color:var(--pink2); font-size:18px; } .rk small { display:block; opacity:.8; }
+  .rk.cheer { background:#fff0a8; outline:3px solid var(--gold); animation:glow 1s infinite alternate; }
+  .nkmsg { min-height:18px; margin:4px 0; font-size:12px; color:#d4182e; }
+  .codebox { font-size:12px; word-break:break-all; background:#fff; border-radius:10px; padding:6px; margin:6px 0; user-select:all; }
+  .stk { position:sticky; bottom:-1px; padding-top:6px; background:linear-gradient(#fff1cf00,#fff1cf 8px); }
 </style>
 </head>
 <body>
@@ -154,6 +167,7 @@
 <div id="title" class="on">
   <div class="logo">말랑<br><span>운빨 디펜스</span></div>
   <canvas id="parade" width="340" height="150"></canvas>
+  <div id="seasonBox"></div>
   <div id="todayBox"><canvas id="heroMini" width="84" height="84"></canvas><div id="todayTxt"></div></div>
   <button id="start" class="tbtn primary">▶ 일일 챌린지</button>
   <button id="startP" class="tbtn secondary">🎲 연습 모드</button>
