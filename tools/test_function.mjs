@@ -117,7 +117,7 @@ t("로그 변조(미네랄 부족한 draw 추가)", await post({ ...base, inputs
 t("재현불가 입력(sell 빈 슬롯)", await post({ ...base, inputs: [[0, "sell", 5]] }), [422, "replay_failed"]);
 t("연습 모드", await post({ ...base, mode: "practice" }), [400, "practice_not_ranked"]);
 t("ver 불일치", await post({ ...base, ver: "0" }), [409, "ver_mismatch"]);
-t("오래된 seed", await post({ ...base, seed: seed - 5 }), [400, "bad_seed"]);
+t("범위 밖 seed", await post({ ...base, seed: 0 }), [400, "bad_seed"]);
 t("device 형식", await post({ ...base, device_id: "abc" }), [400, "bad_device"]);
 t("op 오류", await post({ ...base, inputs: [[0, "x", 0]] }), [400, "bad_inputs"]);
 t("잘못된 action", await post({ ...base, action: "hack" }), [400, "bad_action"]);

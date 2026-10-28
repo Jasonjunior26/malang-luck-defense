@@ -27,6 +27,8 @@
   .chip .ico { font-size:22px; filter:drop-shadow(0 2px 0 #0002); }
   .chip div { flex:1; min-width:0; } .chip b { font-size:17px; display:block; line-height:1.1; }
   .chip.gold { flex:1.1; background:linear-gradient(#fff6c9,#ffe28a); } .chip.gold b { color:#a55a00; font-size:20px; }
+  #hud { gap:5px; } .chip { padding:4px 7px; gap:4px; } .chip .ico { font-size:18px; } .chip b { font-size:15px; } .chip.gold b { font-size:17px; }
+  #cWave { flex:1.5; } .chip.score { flex:1.1; background:linear-gradient(#f3ecff,#dccbff); } .chip.score b { color:#5a3aa8; font-size:17px; } .chip.urgent small#hCh { color:#d4182e; }
   .chip.bump b { animation:bump .25s; } @keyframes bump { 50% { transform:scale(1.25); color:#e0558a; } }
   .bar { display:block; height:7px; border-radius:5px; background:#0001; overflow:hidden; margin-top:3px; }
   .bar u { display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg,#7cc4ff,#4a9be0); text-decoration:none; transition:width .2s; }
@@ -98,7 +100,7 @@
   .tk { border:2px solid var(--tc,#aaa); background:#fff; border-radius:9px; padding:0 6px; cursor:pointer; animation:ready .8s infinite alternate; }
   #bossBar { position:absolute; left:6px; right:6px; top:5px; display:none; background:#2b1220cc; color:#fff; border-radius:11px; padding:3px 8px 5px; font-size:12px; z-index:2; pointer-events:none; } #bossBar.on { display:block; }
   #bossBar i { display:block; height:9px; background:#0006; border-radius:5px; overflow:hidden; margin-top:2px; } #bossBar u { display:block; height:100%; width:100%; background:linear-gradient(90deg,#ff9a6b,#ff3d5e); text-decoration:none; }
-  #logBox { position:absolute; left:6px; top:5px; width:78%; pointer-events:none; z-index:2; display:flex; flex-direction:column; gap:2px; } #bossBar.on ~ #logBox { top:46px; }
+  #logBox { position:absolute; left:6px; bottom:6px; width:78%; pointer-events:none; z-index:2; display:flex; flex-direction:column; justify-content:flex-end; gap:2px; }
   .lg { font-size:12px; line-height:1.25; background:#fffc; border-radius:8px; padding:1px 7px; width:fit-content; max-width:100%; animation:lgin .2s, lgout .6s 3.4s forwards; text-shadow:0 1px 0 #fff; } @keyframes lgin { from { transform:translateX(-14px); opacity:0; } } @keyframes lgout { to { opacity:0; } }
   #banner { position:absolute; left:0; right:0; top:34%; text-align:center; font-size:22px; color:#fff; -webkit-text-stroke:1.5px var(--bc,#e0558a); paint-order:stroke fill; text-shadow:0 3px 0 var(--bc,#e0558a),0 6px 12px #0006; pointer-events:none; z-index:3; opacity:0; padding:0 10px; line-height:1.15; }
   #banner.on { animation:ban 2.4s forwards; } #banner.big { font-size:30px; } @keyframes ban { 0% { transform:scale(.4); opacity:0; } 12% { transform:scale(1.15); opacity:1; } 20% { transform:scale(1); } 80% { opacity:1; } 100% { opacity:0; transform:translateY(-12px); } }
@@ -131,7 +133,8 @@
 <body>
 <div id="app">
   <div id="hud">
-    <div class="chip" id="cWave"><span class="ico" id="wIco">🌊</span><div><b id="hWave">라운드 1/50</b><small id="hCh" style="font-size:10px;opacity:.7;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></small><i class="bar"><u id="hWaveBar"></u></i></div></div>
+    <div class="chip" id="cWave"><span class="ico" id="wIco">🌊</span><div><b id="hWave">라운드 1/50</b><small id="hCh" style="font-size:12px;font-weight:700;color:#7a4a1e;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></small><i class="bar"><u id="hWaveBar"></u></i></div></div>
+    <div class="chip score" id="cScore"><span class="ico">🏆</span><div><b id="hScore">0</b><small style="font-size:10px;opacity:.7;display:block">점수</small></div></div>
     <div class="chip gold" id="cMin"><span class="ico">💎</span><b id="hMin">0</b></div>
     <div class="chip" id="cMob"><span class="ico">👾</span><div><b id="hMob">0/100</b><i class="bar danger" id="hMobWrap"><u id="hMobBar"></u></i></div></div>
   </div>
@@ -156,9 +159,6 @@
     <button id="sell" class="mini">🪙<small>판매</small></button>
     <button id="spd" class="mini">⏩<small>x1</small></button>
     <button id="prob" class="mini">ℹ<small>확률표</small></button>
-    <button id="auto" class="mini">🤖<small>자동</small></button>
-    <button id="lock" class="mini">🔒<small>잠금</small></button>
-    <button id="rank" class="mini">🏆<small>랭킹</small></button>
     <button id="snd" class="mini">🔊<small>소리</small></button>
   </div>
 </div>

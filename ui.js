@@ -163,11 +163,18 @@ const SFX = {
   },
 };
 for (let g = 0; g < 8; g++) { SFX["draw" + g] = _drawSfx[g]; SFX["merge" + g] = () => _mergeSfx(g); }
+// 히든 이상 등장 팡파르(짧은 BGM 스팅어): 등급이 높을수록 음이 늘고 길어진다
+for (let g = 4; g < 8; g++) SFX["jingle" + g] = () => { // 음 수는 동시 발음 제한(maxVoices 14) 안에 맞춘다
+  const up = [72, 76, 79, 84, 88, 91].slice(0, g), n = up.length;
+  arp(up, 0.1, "triangle", 0.075, 0.28, 0.12);
+  chord([72, 79], 0.9 + g * 0.12, 0.04, 0.12 + n * 0.1, "triangle"); spark(g - 1, 2200, 0.12 + n * 0.1);
+  if (g >= 6) swell(0.9, 0.03, 0.1);
+};
 for (let c = 0; c < 5; c++) SFX["atk" + c] = () => _atk[c](1 + Math.random() * 0.08);
 
 // 이름별/그룹별 최소 간격(ms). 같은 그룹은 서로 공유.
-const _sfxT = {}, _gap = { atk: 70, hit: 70, kill: 45, tick: 400, tap: 40, warn: 900, round: 600, boss: 800, modal: 150, upgrade: 90, draw: 40, merge: 60, deny: 120, sell: 50, over: 1500, win: 1500, reso: 300, bossKill: 800 };
-const _grp = { atk0: "atk", atk1: "atk", atk2: "atk", atk3: "atk", atk4: "atk", warn2: "warn", wave: "round", drawHi: "draw", ticket: "ticket" };
+const _sfxT = {}, _gap = { atk: 70, hit: 70, kill: 45, tick: 400, tap: 40, warn: 900, round: 600, boss: 800, modal: 150, upgrade: 90, draw: 40, merge: 60, deny: 120, sell: 50, over: 1500, win: 1500, jingle: 1500, reso: 300, bossKill: 800 };
+const _grp = { atk0: "atk", atk1: "atk", atk2: "atk", atk3: "atk", atk4: "atk", warn2: "warn", wave: "round", drawHi: "draw", ticket: "ticket", jingle4: "jingle", jingle5: "jingle", jingle6: "jingle", jingle7: "jingle" };
 let _atkAny = 0;
 function sfx(n) {
   if (MUTED || !AC || !SB) return;
@@ -432,7 +439,7 @@ function updateHud() {
   if (boss) {
     left = S.bossT > 0 ? S.bossT : Math.max(0, info.time - (S.roundT || 0));
     const sec = Math.ceil(left), urgent = left <= 10 && !S.over;
-    setText("hWave", `⚠ 보스 ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`);
+    setText("hWave", `⚠ 보스 ${S.round}/${CONST.ROUNDS}`);
     setCls("cWave", "urgent", urgent);
     if (urgent && sec !== _lastSec) { sfx("tick"); }
     _lastSec = sec;
@@ -442,7 +449,9 @@ function updateHud() {
     setText("hWave", `라운드 ${S.round}/${CONST.ROUNDS}`);
     $("hWaveBar").style.width = Math.min(100, ((S.roundT || 0) / CONST.ROUND_SEC) * 100) + "%";
   }
-  setText("hCh", CHAPTERS[info.ch - 1].name + (boss ? " - 보스" : ""));
+  const tl = boss ? left : Math.max(0, info.time - (S.roundT || 0)), ts = Math.ceil(tl);
+  setText("hCh", `⏱ ${Math.floor(ts / 60)}:${String(ts % 60).padStart(2, "0")}${boss ? " 보스" : ""}`);
+  setText("hScore", String(S.score()));
   setText("wIco", boss ? "👹" : "🌊");
   // 보스 바
   const bm = boss ? S.mobs.find((m) => m.boss) : null;
@@ -476,7 +485,6 @@ function updateHud() {
   $("merge").disabled = !mg.ok; setCls("merge", "ready", !!mg.ok);
   setHtml("merge", `🔀<small>${mg.ok ? "합성" : u && !u.hero && uc && uc.grade >= 6 ? "불가" : "합성"}</small>`);
   setHtml("spd", `⏩<small>x${S.speed}</small>`);
-  setCls("auto", "on", !!S.autoMerge); setCls("lock", "on", !!(u && u.lock));
   setHtml("info", infoText(u, mg));
   // 칩들 (공업 / 선택권 / 히어로 진행)
   const hs = S.heroState && S.heroState.progress;
@@ -584,7 +592,7 @@ function showUpg() {
 const LS_KEY = "malang-ranks2";
 const remote = () => CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
 const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Content-Type": "application/json" }; if (String(k).startsWith("eyJ")) h.Authorization = "Bearer " + k; return h; }; // sb_publishable_ 키는 JWT 가 아니므로 Bearer 로 보내지 않는다
-const GAME_VER = "2";
+const GAME_VER = "3";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
 function scoreParts(res) {
@@ -822,15 +830,19 @@ async function showProfile(back) {
 }
 
 // ---- 랭킹 모달 (시즌 TOP 50 / 오늘 / 내 기록) ----
+function kstMidnightISO() { return encodeURIComponent(new Date(Date.parse(kstDate() + "T00:00:00+09:00")).toISOString()); }
 async function fetchRanks(tab, ph) {
   const s = ph.season; if (!s) return [];
   if (remote()) {
     const base = `${CONFIG.SUPABASE_URL}/rest/v1/`, sel = "select=name,score,round,win,hero,played_at";
-    const url = tab === "today" ? `${base}leaderboard_daily?${sel}&season=eq.${s.id}&seed=eq.${dailySeed()}&order=score.desc&limit=50`
+    const url = tab === "today" ? `${base}leaderboard_daily?${sel}&season=eq.${s.id}&played_at=gte.${kstMidnightISO()}&order=score.desc&limit=300`
       : `${base}leaderboard_season?${sel},rank&season=eq.${s.id}&order=rank.asc&limit=50`;
-    return (await getJSON(url)).map((x) => ({ ...x, wave: x.round }));
+    const rows = (await getJSON(url)).map((x) => ({ ...x, wave: x.round }));
+    if (tab !== "today") return rows;
+    const seen = new Set(); // 판마다 시드가 달라 한 사람의 기록이 여러 건 -> 오늘 최고 1건만
+    return rows.filter((x) => !seen.has(x.name) && seen.add(x.name)).slice(0, 50);
   }
-  if (tab === "today") return localRows().filter((r) => r.seed === dailySeed() && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).sort((a, b) => b.score - a.score).slice(0, 50);
+  if (tab === "today") return localRows().filter((r) => kstDate(Date.parse(r.played_at)) === kstDate() && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).sort((a, b) => b.score - a.score).slice(0, 50);
   return localBoard(s).slice(0, 50);
 }
 async function showRanks(tab = "season", again = false) {
@@ -953,14 +965,12 @@ async function initPlayer() { // 첫 실행이면 닉네임 정하기, 예전에
 
 // ---------- 타이틀 ----------
 function setupTitle() {
-  const h = heroOfDay(makeRngs(dailySeed()).hero);
-  $("todayTxt").innerHTML = `<div class="tt-sub">${todayKey()} 오늘의 히어로</div><div class="tt-name">👑 ${esc(h.name)}</div><div class="tt-rule">${esc(h.rule)}</div>`;
+  // 시드가 매 판 새로 뽑히므로 영웅도 시작할 때 정해진다 (오늘의 히어로 없음)
+  $("todayTxt").innerHTML = `<div class="tt-sub">${todayKey()}</div><div class="tt-name">🎲 매 판 새로운 운명!</div><div class="tt-rule">영웅도, 뽑기 운도 판마다 완전히 달라져요.</div>`;
   try {
-    if (typeof drawHero === "function") {
-      const cv = $("heroMini"), dpr = Math.min(3, window.devicePixelRatio || 1), L = 96; cv.width = cv.height = Math.round(L * dpr);
-      const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, L, L);
-      c.save(); c.translate(L / 2, L * 0.54); c.scale(1.05, 1.05); drawHero(c, h.id, 0, 0, 0, {}); c.restore();
-    }
+    const cv = $("heroMini"), dpr = Math.min(3, window.devicePixelRatio || 1), L = 96; cv.width = cv.height = Math.round(L * dpr);
+    const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, L, L);
+    c.font = "56px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("🎲", L / 2, L / 2);
   } catch {}
 }
 function startRun(mode) {
@@ -1005,11 +1015,8 @@ function bindUi() {
   mg.onclick = () => { if (_lpDone) { _lpDone = false; return; } initAudio(); doMerge(false); };
   $("sell").onclick = () => { if (S.sel >= 0) GAME.sell(S.sel); };
   $("spd").onclick = () => GAME.setSpeed(S.speed >= 3 ? 1 : S.speed + 1);
-  $("auto").onclick = () => GAME.toggleAuto();
-  $("lock").onclick = () => { if (S.sel >= 0) GAME.toggleLock(S.sel); };
   $("upg").onclick = () => { initAudio(); showUpg(); };
   $("prob").onclick = () => showProb();
-  $("rank").onclick = () => showRanks("season");
   $("snd").onclick = () => sndCycle();
   sndLabel();
   $("start").onclick = () => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); };

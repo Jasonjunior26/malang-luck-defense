@@ -47,12 +47,11 @@ ${strip(game)}
 
 // ===== 래퍼 =====
   let __seed = 0;
-  dailySeed = function () { return __seed; }; // 서버는 클라이언트가 보낸(검증된) seed 로 판을 시작한다
   return {
     T, CONST, GAME, HEADLESS,
     get S() { return S; },
     update,
-    start(seed) { __seed = seed >>> 0; T.over = null; GAME.start("daily"); return S; },
+    start(seed) { __seed = seed >>> 0; T.over = null; GAME.start("daily", __seed); return S; },
     result() { return T.over; },
   };
 }

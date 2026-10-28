@@ -26,8 +26,8 @@ let S;
 const sqr = (x) => x * x;
 
 // ---------- 상태 ----------
-function newGame(mode) {
-  const seed = mode === "daily" ? dailySeed() : (Math.floor(Math.random() * 2147483647) + 1);
+function newGame(mode, forceSeed) {
+  const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
   const hero = heroOfDay(rng.hero);
   const hx = hero.fx || {};
@@ -226,7 +226,7 @@ function startRound() {
 }
 function spawn() {
   const info = S.info;
-  const hp = Math.round(info.hp * CONST.HP_MUL), boss = info.boss;
+  const hp = Math.round(info.hp * hpMul(info.r)), boss = info.boss;
   S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed, slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === 50, rew: info.rew });
 }
 
@@ -294,12 +294,12 @@ const GAME = {
     afterChange();
     const gr = GRADES[g];
     const pct = +probs[g].toFixed(3);
-    log(`${pct}%의 확률로 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "이" : "가"} 나왔어요!`, gr.color);
+    if (g >= 3) log(`${pct}%의 확률로 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "이" : "가"} 나왔어요!`, gr.color);
     if (si >= 0) {
       const p = slotPos(si); pop(p.x, p.y, `뿅! ${CLANS[c.clan].name.slice(0, -2)} Lv${S.lv[c.clan]}`, 0.8, gr.color, 13);
       burst(p.x, p.y, gr.color, 10 + g * 3, 80 + g * 12, 3, 0.5); ring(p.x, p.y, "#fff", 32, 0.35);
     }
-    sfx("draw" + g);
+    sfx("draw" + g); if (g >= 5) sfx("jingle" + g);
     if (g >= 4) { uiBanner(`[${gr.name}] ${c.name}!`, "hi"); vib(60 + g * 20); }
     if (g >= 5) S.flash = Math.max(S.flash, 0.18);
     if (g >= 6) { uiBanner("경축! 아니 이걸 뽑다니!", "big"); S.slowmo = 0.5; S.shake = Math.max(S.shake, 6); }
@@ -338,8 +338,8 @@ const GAME = {
       afterChange(); if (!S.inAuto) inp("merge", i); done++;
       const gr = GRADES[ci >> 2], c = CHARS[ci];
       if (!HEADLESS) { burst(p.x, p.y, gr.color, 14 + g * 4, 110, 3.4, 0.6); ring(p.x, p.y, gr.color, 44, 0.45); }
-      log(`[${GRADES[g].name}] 3기를 조합하여 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "을" : "를"} 얻었어요!`, gr.color);
-      sfx("merge" + (ci >> 2)); vib(30);
+      if (ci >> 2 >= 3) log(`[${GRADES[g].name}] 3기를 조합하여 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "을" : "를"} 얻었어요!`, gr.color);
+      sfx("merge" + (ci >> 2)); if (ci >> 2 >= 5) sfx("jingle" + (ci >> 2)); vib(30);
       if (ci >> 2 >= 5) S.flash = Math.max(S.flash, 0.15);
       if (!all) break;
       if (si < 0) break;
@@ -380,7 +380,7 @@ const GAME = {
   toggleLock(i) { const s = S.slots[i]; if (s && !s.hero) { s.lock = !s.lock; inp("lock", i); } },
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
-  start(mode) { newGame(mode === "practice" ? "practice" : "daily"); S.paused = false; S.sel = -1; return S; },
+  start(mode, seed) { newGame(mode === "practice" ? "practice" : "daily", seed); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 
@@ -598,11 +598,6 @@ function render() {
     if (b.sub) { ctx.font = "16px Jua,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
     ctx.restore();
   }
-  // 메시지 로그 (좌상단 3줄)
-  ctx.textAlign = "left"; ctx.font = "11px Jua,system-ui,sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,255,255,.95)";
-  const lg = S.log.slice(-3);
-  lg.forEach((l, i) => { ctx.globalAlpha = Math.min(1, l.t); ctx.fillStyle = l.col; ctx.strokeText(l.txt, 6, 10 + i * 13); ctx.fillText(l.txt, 6, 10 + i * 13); });
-  ctx.globalAlpha = 1;
   updateHud();
 }
 

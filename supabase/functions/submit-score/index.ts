@@ -24,17 +24,6 @@ const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const fail = (status: number, error: string, extra: Record<string, unknown> = {}) => json(status, { ok: false, error, ...extra });
 
-// 클라이언트 todayKey() 는 "기기 로컬 날짜"의 YYYYMMDD. 로컬 날짜 = now + (UTC-12 ~ UTC+14) 의 UTC 날짜.
-// 오래 플레이하고 자정을 넘겨 제출하는 경우를 위해 1시간 여유(-13h)를 둔다.
-function allowedSeeds(now = Date.now()): Set<number> {
-  const s = new Set<number>();
-  for (let h = -13; h <= 14; h++) {
-    const d = new Date(now + h * 3600_000);
-    s.add(d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate());
-  }
-  return s;
-}
-
 // 현재 시각(ms). 테스트에서만 globalThis.__NOW__ 로 고정한다(원격에서는 설정할 방법이 없다).
 const nowMs = (): number => (globalThis as any).__NOW__ ?? Date.now();
 
@@ -102,7 +91,7 @@ Deno.serve(async (req: Request) => {
     // 시즌 밖이면 거부 (서버 KST 시간 기준, 클라이언트 값은 신뢰하지 않는다)
     if (ph.phase === "before") return fail(403, "season_not_started", { season: seasonInfo });
     if (ph.phase !== "live") return fail(403, "season_closed", { season: seasonInfo });
-    if (!isInt(seed) || !allowedSeeds(now).has(seed)) return fail(400, "bad_seed");
+    if (!isInt(seed) || seed < 1 || seed > 2147483646) return fail(400, "bad_seed"); // 시드는 클라이언트가 매 판 뽑아 보내고, 서버는 같은 시드로 재생해 점수를 검증
     if (!isInt(claimedScore) || claimedScore < 0 || claimedScore > 30000) return fail(400, "bad_score");
     if (!isInt(claimedRound) || claimedRound < 1 || claimedRound > 50) return fail(400, "bad_round");
     if (typeof win !== "boolean") return fail(400, "bad_win");

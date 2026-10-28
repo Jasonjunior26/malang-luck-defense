@@ -393,7 +393,7 @@ function drawSlotTile(c, x, y, grade, sel, locked, t, clan) {
   if (grade === 7) { top = `hsl(${Math.floor(t * 60) % 360},100%,96%)`; bot = `hsl(${Math.floor(t * 60 + 120) % 360},100%,90%)`; }
   const tg = c.createLinearGradient(0, y - 28, 0, y + 28); tg.addColorStop(0, sel ? shade(top.charAt(0) === "#" ? top : "#fffbd0", 0) : top); tg.addColorStop(1, bot);
   _rrect(c, x - 28, y - 28, 56, 56, 16); c.fillStyle = tg; c.fill();
-  if (clan != null && clan >= 0 && grade !== -1) { c.save(); c.clip(); c.fillStyle = EMB_COL[clan]; c.globalAlpha = 0.9; c.fillRect(x - 28, y + 25, 56, 3); c.restore(); }
+  if (clan != null && clan >= 0 && grade !== -1) { c.globalAlpha = 0.28; c.fillStyle = EMB_COL[clan]; c.fill(); c.globalAlpha = 1; c.save(); c.clip(); c.fillStyle = EMB_COL[clan]; c.globalAlpha = 0.9; c.fillRect(x - 28, y + 25, 56, 3); c.restore(); }
   if (grade === 7) { const g = c.createLinearGradient(x - 28, y - 28, x + 28, y + 28); for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, `hsl(${Math.floor(t * 120 + i * 60) % 360},100%,62%)`); c.strokeStyle = g; }
   else c.strokeStyle = bd;
   c.lineWidth = bw; _rrect(c, x - 28, y - 28, 56, 56, 16); c.stroke();
@@ -409,8 +409,8 @@ function drawSlotOverlay(c, x, y, slot, t) {
   const hero = !!slot.hero, grade = hero ? -2 : CHARS[slot.ch].grade, clan = hero ? -1 : CHARS[slot.ch].clan, n = slot.n || 1;
   const bs = 9, bwid = badgeWidth(hero ? 6 : grade, bs);
   drawBadge(c, x + 24 - bwid / 2, y - 21, grade, bs);
-  if (clan >= 0) drawEmblem(c, clan, x - 20, y + 20, 13);
-  if (n >= 2) { const s = n >= 12 ? "MAX" : "x" + n, w = s.length * 6 + 8; c.save(); c.fillStyle = n >= 12 ? "#e8442e" : "rgba(60,40,20,.85)"; _rrect(c, x + 26 - w, y + 14, w, 12, 6); c.fill(); c.fillStyle = "#fff"; c.font = "bold 9px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(s, x + 26 - w / 2, y + 20.5); c.restore(); }
+  if (clan >= 0) drawEmblem(c, clan, x - 19, y + 19, 17);
+  if (n >= 2) { const s = n >= 12 ? "MAX" : "x" + n, w = s.length * 6.9 + 9.2; c.save(); c.fillStyle = n >= 12 ? "#e8442e" : "rgba(60,40,20,.85)"; _rrect(c, x + 26 - w, y + 12.2, w, 13.8, 7); c.fill(); c.fillStyle = "#fff"; c.font = "bold 10.4px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(s, x + 26 - w / 2, y + 19.2); c.restore(); }
   if (!hero && n >= 3 && grade < 6) { // 합성 가능 화살표 맥동
     const p = 0.5 + 0.5 * Math.sin(t * 6); c.save(); c.translate(x - 20, y - 17 - p * 2); c.fillStyle = "#35c759"; c.strokeStyle = "#fff"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(0, -6); c.lineTo(6, 1); c.lineTo(2.2, 1); c.lineTo(2.2, 6); c.lineTo(-2.2, 6); c.lineTo(-2.2, 1); c.lineTo(-6, 1); c.closePath(); c.stroke(); c.fill(); c.restore();
   }
