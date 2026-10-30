@@ -652,7 +652,7 @@ const qSet = (q) => lsSet(QUEUE_KEY, JSON.stringify(q.slice(-QUEUE_MAX)));
 async function api(action, body = {}) {
   try {
     const headers = { "Content-Type": "application/json" };
-    if (action === "link" || action === "me") { const t = window.AUTH && await AUTH.token(); if (!t) return { st: 401, d: { error: "unauthorized" } }; headers.Authorization = "Bearer " + t; } // 계정 액션만 JWT 를 보낸다
+    if (action === "link" || action === "me" || action.startsWith("ps")) { const t = window.AUTH && await AUTH.token(); if (!t) return { st: 401, d: { error: "unauthorized" } }; headers.Authorization = "Bearer " + t; } // 계정 액션만 JWT 를 보낸다
     const r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/submit-score", { method: "POST", headers, body: JSON.stringify({ action, device_id: deviceId(), ...body }) });
     let d = {}; try { d = await r.json(); } catch {}
     return { st: r.status, d };
@@ -973,23 +973,26 @@ async function showRanks(tab = "season", again = false) {
   wire();
 }
 function restartGame() {
+  if (window.SEASONS && SEASONS.run()) { SEASONS.restart(); return; } // 프라이빗 시즌 판
   const mode = S ? S.mode : "daily";
   $("modal").classList.remove("on"); MODAL_ON = false; MODAL_Q = [];
   GAME.start(mode); uiReset();
 }
 
 function uiGameOver(result) {
-  const res = result || {}, P = scoreParts(res), win = P.win, practice = S.mode === "practice";
+  const res = result || {}, P = scoreParts(res), win = P.win, priv = !!(window.SEASONS && SEASONS.run()), practice = S.mode === "practice";
   S.over = true; sfx(win ? "win" : "over"); vib(win ? [100, 50, 100, 50, 300] : 200);
-  const bk = practice ? "malang-best-p" : "malang-best2", best = Number(lsGet(bk, "0")), isBest = P.score > best;
+  const bk = priv ? "malang-best-ps" : practice ? "malang-best-p" : "malang-best2", best = Number(lsGet(bk, "0")), isBest = P.score > best;
   if (isBest) lsSet(bk, String(P.score));
   const parts = `<div class="sc2">라운드 ${P.R} x ${CONST.SCORE.ROUND}<b>${P.R * CONST.SCORE.ROUND}</b><br>처치 ${P.kills}기<b>${P.kills}</b><br>필드 유닛 점수 ${P.U}<b>${P.uPts}</b>${win ? `<br>클리어 보너스${P.left ? ` (남은 ${Math.floor(P.left)}초)` : ""}<b>${CONST.SCORE.WIN + CONST.SCORE.WIN_SEC * Math.floor(P.left)}</b>` : ""}</div>`;
   const why = res.why ? `<small>${esc(res.why)}</small><br>` : "";
-  const reg = practice ? `<small>연습 모드는 랭킹에 등록되지 않아요 (이 기기 최고점만 저장)</small><button class="wide" id="skip">🔁 다시 하기</button>`
+  const reg = priv ? `<div class="rk" id="rk">등록하는 중… ⏳</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>🏆 시즌 순위</button>`
+    : practice ? `<small>연습 모드는 랭킹에 등록되지 않아요 (이 기기 최고점만 저장)</small><button class="wide" id="skip">🔁 다시 하기</button>`
     : `<div class="rk" id="rk">랭킹에 등록하는 중… ⏳</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>🏆 랭킹 보기</button>`;
-  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${S.hero.name} · ${practice ? "연습" : "일일 챌린지 " + todayKey()}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${reg}`);
+  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${S.hero.name} · ${priv ? esc(SEASONS.run().name) : practice ? "연습" : "시즌 랭킹"}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${reg}`);
   $("skip").onclick = () => restartGame();
-  if (!practice) { $("seeRank").onclick = () => showRanks("season", true); finishRank(P); }
+  if (priv) { $("seeRank").onclick = () => SEASONS.openDetail(SEASONS.run().id); SEASONS.finish(P); }
+  else if (!practice) { $("seeRank").onclick = () => showRanks("season", true); finishRank(P); }
   if (win) uiBanner("클리어! 말랑 왕국을 지켜냈어요!", "win");
 }
 
@@ -1008,12 +1011,12 @@ function renderSeasonBox() {
     l2 = top ? `👑 1위 ${esc(top.name)} ${nf(top.score)}점` : "👑 아직 1위가 없어요. 지금 도전하면 1등!";
     if (pf && pf.season_best != null) l3 = `내 ${nf(pf.season_best)}점 · ${pf.season_rank}위` + (top && pf.season_rank > 1 ? ` · 1위까지 ${nf(top.score - pf.season_best + 1)}점!` : pf.season_rank === 1 ? " · 지금 1위!" : "");
     else l3 = "내 기록이 아직 없어요. 첫 도전으로 순위에 올라요!";
-  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 일일 챌린지가 시작돼요"; l3 = "지금은 연습 모드로 몸을 풀어요!"; }
+  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 랭킹 도전이 시작돼요"; l3 = "지금은 연습 모드로 몸을 풀어요!"; }
   else if (ph.phase === "after") { l1 = `🏁 ${esc(s.name)} 종료`; l2 = "다음 시즌을 기다려 주세요"; l3 = "연습 모드는 계속 즐길 수 있어요!"; }
   else { l1 = "🎲 시즌 정보가 없어요"; }
   el.className = sprint ? "sprint" : "";
   el.innerHTML = `<div class="sb1"><b>${l1}</b>${chip}</div>${l2 ? `<div class="sb2">${l2}</div>` : ""}${l3 ? `<div class="sb2">${l3}</div>` : ""}`;
-  const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "▶ 일일 챌린지" : "🔒 일일 챌린지 (시즌 밖)"; }
+  const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "▶ 랭킹 도전" : "🔒 랭킹 도전 (시즌 밖)"; }
 }
 async function refreshTitle() {
   renderSeasonBox();
@@ -1052,9 +1055,10 @@ function setupTitle() {
     c.font = "56px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("🎲", L / 2, L / 2);
   } catch {}
 }
-function startRun(mode) {
+function startRun(mode, seed, rules) { // seed/rules: 프라이빗 시즌 판(seasons.js)만 넘긴다
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
-  GAME.start(mode); uiReset(); sfx("wave");
+  if (!rules && window.SEASONS) SEASONS.clear();
+  GAME.start(mode, seed, rules); uiReset(); sfx("wave");
   if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 1200);
     setTimeout(() => uiBanner("같은 무리 4종이면 공명 보너스! (공명? 눌러요)", "info"), 4600); }
 }
@@ -1124,6 +1128,7 @@ function bindUi() {
   $("start").onclick = () => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); };
   $("startP").onclick = () => startRun("practice");
   $("rank2").onclick = () => showRanks("season");
+  $("seasons").onclick = () => SEASONS.open();
   $("tickets").onclick = (e) => {
     const t = e.target.closest(".tk"); if (!t) return;
     if (t.dataset.reso) { showReso(); return; }
@@ -1131,6 +1136,6 @@ function bindUi() {
   };
   $("clanChips").onclick = (e) => { if (e.target.closest(".rp")) { showReso(); return; } if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
-  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer);
+  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SEASONS && SEASONS.boot());
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);

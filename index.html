@@ -75,6 +75,26 @@
   .rows { text-align:left; margin:0; padding:0; list-style:none; } .rows li { display:flex; align-items:center; gap:8px; padding:7px 10px; margin-bottom:5px; border-radius:12px; background:#fff; font-size:15px; }
   .rows li.me { background:#fff0a8; outline:3px solid var(--gold); animation:glow 1s infinite alternate; } @keyframes glow { to { outline-color:var(--pink); } }
   .rows .no { width:28px; text-align:center; font-size:18px; } .rows .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .rows .sc { color:var(--pink2); } .rows small { opacity:.6; font-size:11px; display:block; text-align:right; }
+  /* 프라이빗 시즌 (seasons.js) */
+  #title .trow { display:flex; gap:8px; width:min(92vw,340px); flex:none; } #title .trow .tbtn { flex:1; width:auto; min-width:0; }
+  .ps { text-align:left; } .ps h2 { text-align:center; font-size:22px; margin:0 0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ps .pstxt { margin:6px 0; font-size:14px; line-height:1.4; text-align:center; } .ps .psbad { color:#d12a4f; min-height:18px; font-size:13px; }
+  .ps .psh { margin:10px 0 4px; font-size:13px; font-weight:bold; opacity:.75; }
+  .ps .pschips { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0; min-width:0; } .ps .pschip { max-width:100%; box-sizing:border-box; padding:2px 8px; border-radius:10px; background:#fff; border:2px solid #f0cf8a; font-size:12px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+  .ps .psinfo { display:flex; flex-wrap:wrap; gap:4px 12px; justify-content:center; font-size:13px; margin:6px 0; font-variant-numeric:tabular-nums; }
+  .ps .psb { display:flex; align-items:center; justify-content:center; width:100%; min-height:44px; margin-top:8px; padding:0 14px; box-sizing:border-box; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-radius:14px; }
+  .ps .psb.g { background:#fffaf0; color:var(--ink); text-shadow:none; box-shadow:none; border:3px solid var(--pink); }
+  .ps .psrow { display:block; width:100%; box-sizing:border-box; min-height:44px; margin:6px 0 0; padding:8px 12px; text-align:left; color:var(--ink); text-shadow:none; background:#fff; border:3px solid #f0cf8a; box-shadow:none; border-radius:14px; }
+  .ps .psrow.sel { border-color:var(--pink); background:#fff0f4; } .ps .psrow .psn { display:block; font-size:16px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ps .psrow .psm { float:right; font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; } .ps .psrow .psr { color:var(--pink2); font-weight:bold; }
+  .ps .psmod { display:flex; align-items:center; gap:8px; margin:6px 0; min-height:44px; } .ps .psmod .psn { flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ps .psmod b { min-width:62px; text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ps .psmod input[type=date], .ps .psmod select { width:auto; flex:none; font-size:15px; padding:8px; min-height:44px; box-sizing:border-box; }
+  .ps .psst { width:44px; height:44px; padding:0; font-size:20px; flex:none; border-radius:12px; } .ps .psst.cl { background:#fff; color:var(--ink); text-shadow:none; box-shadow:none; border:3px solid #f0cf8a; } .ps .psst.cl.on { border-color:var(--pink); background:#fff0f4; }
+  .ps .pstogs { display:flex; flex-wrap:wrap; gap:6px; } .ps .pstog { min-height:44px; padding:0 12px; font-size:14px; white-space:nowrap; background:#fff; color:var(--ink); text-shadow:none; box-shadow:none; border:3px solid #f0cf8a; border-radius:14px; } .ps .pstog.on { border-color:var(--pink); background:#fff0f4; font-weight:bold; }
+  .ps .psdots { display:flex; justify-content:center; gap:6px; margin-bottom:6px; } .ps .psdots i { width:8px; height:8px; border-radius:50%; background:#e3cfa0; } .ps .psdots i.on { background:var(--pink); }
+  .ps .psbd { max-height:30vh; overflow:auto; margin-top:6px; } .ps .psbd .nm { min-width:0; } .ps .psbd .sc { font-variant-numeric:tabular-nums; white-space:nowrap; } .ps .psme { position:sticky; bottom:0; text-align:center; font-weight:bold; background:#fff0a8; border-radius:12px; padding:6px; font-size:14px; font-variant-numeric:tabular-nums; }
+  .ps .pscode { text-align:center; font-size:30px; font-weight:bold; letter-spacing:4px; margin:4px 0; font-variant-numeric:tabular-nums; } .ps .psurl { font-size:11px; opacity:.6; text-align:center; word-break:break-all; user-select:text; -webkit-user-select:text; }
+  .ps input { width:100%; box-sizing:border-box; }
 
   #title { background:radial-gradient(circle at 50% 20%,#fff7d0,#ffd98a 60%,#ffb98a); flex-direction:column; text-align:center; gap:6px; } #title.on { display:flex; }
   .logo { font-size:50px; line-height:1.02; color:#fff; -webkit-text-stroke:2px #e0558a; paint-order:stroke fill; text-shadow:0 5px 0 #e0558a,0 10px 14px #0003; animation:float 2.2s ease-in-out infinite; } .logo span { color:#fff4a8; -webkit-text-stroke-color:#e08a00; text-shadow:0 5px 0 #e08a00,0 10px 14px #0003; }
@@ -189,11 +209,11 @@
   <canvas id="parade" width="340" height="150"></canvas>
   <div id="seasonBox"></div>
   <div id="todayBox"><canvas id="heroMini" width="84" height="84"></canvas><div id="todayTxt"></div></div>
-  <button id="start" class="tbtn primary">▶ 일일 챌린지</button>
+  <button id="start" class="tbtn primary">▶ 랭킹 도전</button>
   <button id="startP" class="tbtn secondary">🎲 연습 모드</button>
-  <button id="rank2" class="tbtn ghost">🏆 랭킹 보기</button>
+  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button></div>
   <div id="a2hs"><span id="a2hsTxt"></span><button id="a2hsX" aria-label="닫기">✕</button></div>
-  <p class="tiny">일일 챌린지는 오늘의 히어로와 뽑기 순서가 모두에게 똑같아요</p>
+  <p class="tiny">히어로와 뽑기 운은 판마다 새로 정해져요</p>
 </div>
 <div id="modal"><div id="box"></div></div>
 <div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno" class="mini" style="flex-direction:row">취소</button><button id="cok">그래도 할래요</button></div></div></div>
@@ -203,6 +223,7 @@
 <script src="data.js"></script>
 <script src="graphics.js"></script>
 <script src="ui.js"></script>
+<script src="seasons.js"></script>
 <script src="game.js"></script>
 <script>
 // PWA: https 또는 localhost 에서만 서비스워커 등록. 새 버전이 준비되면 window 에 'sw-update' 이벤트.

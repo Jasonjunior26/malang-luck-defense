@@ -1,11 +1,11 @@
 // 서비스워커: 앱 셸 프리캐시 + stale-while-revalidate. 배포할 때마다 CACHE_VERSION 을 올린다.
-const CACHE_VERSION = 'v7-kakao-auth';
+const CACHE_VERSION = 'v8-private-seasons';
 const SHELL_CACHE = 'malang-shell-' + CACHE_VERSION;
 const FONT_CACHE = 'malang-fonts-' + CACHE_VERSION;
 
 const SHELL = [
   './', 'index.html', 'manifest.json',
-  'config.js', 'auth.js', 'data.js', 'graphics.js', 'ui.js', 'game.js',
+  'config.js', 'auth.js', 'data.js', 'graphics.js', 'ui.js', 'seasons.js', 'game.js',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/icon-maskable-512.png',
   'assets/icons/apple-touch-icon-180.png', 'assets/icons/favicon-32.png', 'assets/icons/icon.svg'
 ];
