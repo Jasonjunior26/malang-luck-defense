@@ -210,7 +210,7 @@ export async function handlePrivate(req: Request, b: any): Promise<Response> {
     const nm = await myName(uid);
     const r = await rpc("submit_score_private", {
       p_user: uid, p_season: b.id, p_name: nm ?? "?", p_score: x.score, p_round: x.round, p_win: x.win, p_seed: b.seed, p_hero: x.hero,
-      p_units: { count: x.units, pts: x.unitPts, kills: x.kills, draws: x.draws },
+      p_units: { count: x.units, pts: x.unitPts, kills: x.kills, draws: x.draws }, p_build: RP.cleanBuild(x.build),
       p_ver: b.ver, p_inputs_hash: await sha256Hex(JSON.stringify(q.log)), p_today: today, p_now: new Date(now).toISOString(),
     });
     if (r.status !== "ok") return dbFail(r);

@@ -47,7 +47,7 @@ function newGame(mode, forceSeed, rules) {
     resonance: [0, 0, 0, 0], reso: [0, 0, 0, 0], lv: [0, 0, 0, 0], heroLv: 0, resoGot: [false, false, false, false],
     mobs: [], mobId: 0, queue: 0, spawnT: 0, info: null,
     fx: [], efx: [], parts: [], projs: [], pend: [], shake: 0, flash: 0, slowmo: 0, banner: null, log: [], inputs: [],
-    kills: 0, warnLvl: 0, modalQ: [], autoT: 0, progT: 0, bossLeft: 0, resultSent: false, hot: 0,
+    kills: 0, topGrade: 0, warnLvl: 0, modalQ: [], autoT: 0, progT: 0, bossLeft: 0, resultSent: false, hot: 0,
     score() { return calcScore(S.round, S.kills, unitPoints(S.slots), S.win, S.bossLeft); },
   };
   S.dispMin = S.minerals;
@@ -248,13 +248,14 @@ function freeSlot() { return S.slots.findIndex((s) => !s); }
 function placeUnit(ch, pref) {
   let si = -1;
   for (let i = 0; i < S.slots.length; i++) { const s = S.slots[i]; if (s && !s.hero && s.ch === ch && s.n < CONST.STACK_MAX) { si = i; break; } }
-  if (si >= 0) { S.slots[si].n++; return si; }
+  if (si >= 0) { S.topGrade = Math.max(S.topGrade, ch >> 2); S.slots[si].n++; return si; }
   if (S.slots.some((s) => s && !s.hero && s.ch === ch)) { // 꽉 찬 스택 -> 자동 판매
     const price = GRADES[ch >> 2].sell;
-    if (price > 0) { S.minerals += price; const full = S.slots.findIndex((s) => s && !s.hero && s.ch === ch); const p = slotPos(full); pop(p.x, p.y, `+${price}`, 0.8, "#e0a000"); log(`${CHARS[ch].name} 스택이 가득 차서 자동 판매했어요 (+${price})`, "#a08040"); return -2; }
+    if (price > 0) { S.minerals += price; const full = S.slots.findIndex((s) => s && !s.hero && s.ch === ch); const p = slotPos(full); pop(p.x, p.y, `+${price}`, 0.8, "#e0a000"); S.topGrade = Math.max(S.topGrade, ch >> 2); log(`${CHARS[ch].name} 스택이 가득 차서 자동 판매했어요 (+${price})`, "#a08040"); return -2; }
   }
   if (pref != null && pref >= 0 && !S.slots[pref]) si = pref; else si = freeSlot();
   if (si < 0) return -1;
+  S.topGrade = Math.max(S.topGrade, ch >> 2);
   S.slots[si] = { ch, n: 1, cd: 0, lock: false, anim: null, fire: null, shots: 0 };
   return si;
 }
@@ -408,12 +409,18 @@ const GAME = {
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 
 // ---------- 업데이트 ----------
+// 랭킹 표시용 빌드 요약(점수와 무관한 읽기 전용). n=무리별 필드 유닛 수(히어로 제외), lv=최종 공업 Lv(구매+보너스+공명, 상한 적용 S.lv), top=판 중 최고 등급 id
+function calcBuild() {
+  const n = [0, 0, 0, 0];
+  for (const s of S.slots) if (s && !s.hero) n[s.ch % 4] += s.n;
+  return { clans: n.map((c, i) => ({ n: c, lv: S.lv[i] })), top: S.topGrade };
+}
 function gameOver(win) {
   if (S.over) return;
   S.over = true; S.win = !!win;
   S.bossLeft = win ? Math.max(0, S.bossT) : 0;
   const result = { win: S.win, round: S.round, kills: S.kills, unitPts: unitPoints(S.slots), units: S.slots.reduce((a, s) => a + (s && !s.hero ? s.n : 0), 0),
-    bossLeft: Math.floor(S.bossLeft), score: S.score(), mode: S.mode, seed: S.seed, hero: S.hero.id, draws: S.draws, time: S.time, inputs: S.inputs };
+    bossLeft: Math.floor(S.bossLeft), build: calcBuild(), score: S.score(), mode: S.mode, seed: S.seed, hero: S.hero.id, draws: S.draws, time: S.time, inputs: S.inputs };
   sfx(win ? "win" : "over"); vib(win ? 120 : 200);
   uiGameOver(result);
 }

@@ -41,7 +41,7 @@ function clientRun(botSeed, opts) {
     }
   `, "bot");
   const r = run("T.over", "r");
-  return { r: { score: r.score, round: r.round, win: r.win, kills: r.kills, hero: r.hero }, seed: r.seed, inputs: JSON.parse(JSON.stringify(r.inputs)) };
+  return { r: { score: r.score, round: r.round, win: r.win, kills: r.kills, hero: r.hero, build: r.build }, seed: r.seed, inputs: JSON.parse(JSON.stringify(r.inputs)) };
 }
 
 let pass = 0, fail = 0;
@@ -61,7 +61,11 @@ for (let i = 0; i < N; i++) {
     const k1 = inp.findIndex((x, j) => j > 20 && x[1] === "draw");
     check("변조: 입력 1개 삭제 -> 불일치/거부", !cmp(replay(g.seed, m((c) => c.splice(k1, 1)))));
     check("변조: 앞 입력 150개 삭제 -> 불일치/거부", !cmp(replay(g.seed, m((c) => c.splice(0, 150)))));
-    check("변조: 입력 인자 변경 -> 불일치/거부", !cmp(replay(g.seed, m((c) => { const j = c.findIndex((x, q) => q > mid && x[1] === "sell"); const t = j >= 0 ? j : mid; c[t][2] = (c[t][2] + 1) % 20; }))));
+    // 인자 변경은 시드에 따라 우연히 점수가 같을 수 있어(예: 같은 칸 판매) 후보 여러 개 중 하나라도 달라지면 통과로 본다(안정화).
+    check("변조: 입력 인자 변경 -> 불일치/거부", (() => {
+      const cand = []; for (let q = mid; q < inp.length && cand.length < 8; q++) if (["sell", "merge", "up", "lock"].includes(inp[q][1])) cand.push(q);
+      return cand.some((t) => !cmp(replay(g.seed, m((c) => { c[t][2] = inp[t][1] === "up" ? (c[t][2] + 1) % 4 : (c[t][2] + 7) % 20; }))));
+    })());
     check("변조: 가짜 draw 100개 추가 -> 불일치/거부", !cmp(replay(g.seed, m((c) => { for (let q = 0; q < 100; q++) c.splice(mid, 0, [c[mid][0], "draw", 0]); }))));
     check("변조: seed 변경 -> 불일치/거부", !cmp(replay(g.seed + 1, inp)));
     check("변조: 잘못된 op -> 거부", !replay(g.seed, [[0, "hack", 1]]).ok);

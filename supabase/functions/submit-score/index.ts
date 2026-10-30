@@ -3,7 +3,7 @@
 // action: submit(기본) | register | rename | profile | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
-import { replay, validateInputs, ENGINE_VER } from "./replay.js";
+import { replay, validateInputs, cleanBuild, ENGINE_VER } from "./replay.js";
 import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
 import { handleFriends } from "./friends.ts"; // 친구(fr*) 액션
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
     const inputsHash = await sha256Hex(JSON.stringify(inputs));
     const row = firstRow(await rpc("submit_score_season", {
       p_season: seasonInfo!.id, p_score: r.score, p_round: r.round, p_win: r.win, p_mode: "daily", p_seed: seed, p_hero: r.hero,
-      p_units: { count: r.units, pts: r.unitPts, kills: r.kills, draws: r.draws },
+      p_units: { count: r.units, pts: r.unitPts, kills: r.kills, draws: r.draws }, p_build: cleanBuild(r.build),
       p_ver: b.ver, p_inputs_hash: inputsHash, p_device_id: dev,
     }));
     if (row?.o_status === "no_player") return fail(409, "no_player");

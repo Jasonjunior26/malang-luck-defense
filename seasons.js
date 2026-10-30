@@ -198,7 +198,7 @@
     const left = ph === "live" ? (() => { const n = Math.round((Date.parse(s.end + "T00:00:00Z") - Date.parse(t + "T00:00:00Z")) / 864e5); return n === 0 ? "오늘이 마지막 날" : "종료까지 " + n + "일"; })()
       : ph === "before" ? md(s.start) + " 시작" : ph === "cancelled" ? "취소됨" : "종료";
     const used = s.daily_run_limit == null ? "" : ` · 오늘 ${s.runs_today || 0}/${s.daily_run_limit}판`;
-    const li = rows.map((x) => `<li class="${x.me ? "me" : ""}"><span class="no">${x.rank}</span><span class="nm">${esc(x.name)}${x.owner ? " 👑" : ""}</span><span class="sc">${nf(x.score)}</span><small>R${x.round}${x.win ? "🎉" : ""}</small></li>`).join("");
+    const li = rows.map((x) => `<li class="${x.me ? "me" : ""}"><span class="no">${x.rank}</span><span class="nm">${esc(x.name)}${x.owner ? " 👑" : ""}</span><span class="sc">${nf(x.score)}</span><small>R${x.round}${x.win ? "🎉" : ""}${heroTag(x.hero)}</small>${buildTag(x.build)}</li>`).join("");
     const limitHit = s.daily_run_limit != null && (s.runs_today || 0) >= s.daily_run_limit;
     const canPlay = ph === "live" && !limitHit && s.is_member;
     const why = ph === "before" ? md(s.start) + " 부터 할 수 있어요" : ph !== "live" ? "끝난 시즌이에요" : limitHit ? ERR.daily_limit : "";

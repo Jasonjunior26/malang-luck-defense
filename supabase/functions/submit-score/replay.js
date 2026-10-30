@@ -4,6 +4,13 @@
 import { createEngine, ENGINE_VER, validateRules, rulesHash } from "./engine.js";
 
 export { ENGINE_VER, validateRules, rulesHash };
+// 랭킹 표시용 빌드 요약 검증/정리: {clans:[{n,lv}]x4, top} 모양이 아니거나 범위를 벗어나면 null (저장은 하되 build 없음).
+export function cleanBuild(b) {
+  const ok = (v, mx) => Number.isInteger(v) && v >= 0 && v <= mx;
+  if (!b || !Array.isArray(b.clans) || b.clans.length !== 4 || !ok(b.top, 7)) return null;
+  for (const c of b.clans) if (!c || !ok(c.n, 400) || !ok(c.lv, 200)) return null;
+  return { clans: b.clans.map((c) => ({ n: c.n, lv: c.lv })), top: b.top };
+}
 export const LIMITS = { MAX_INPUTS: 8000, MAX_TICKS: 60 * 60 * 25 };
 const OPS = { draw: [0, 0], merge: [0, 19], sell: [0, 19], up: [0, 3], ticket: [0, 31], upT: [0, 3], auto: [0, 1], lock: [0, 19] };
 
@@ -54,5 +61,5 @@ export function replay(seed, inputs, rules) {
   }
   const r = e.result();
   if (!r) return { ok: false, error: "결과 없음" };
-  return { ok: true, result: { score: r.score, round: r.round, win: !!r.win, kills: r.kills, hero: r.hero, units: r.units, unitPts: r.unitPts, draws: r.draws, bossLeft: r.bossLeft, ticks: S.tick } };
+  return { ok: true, result: { score: r.score, round: r.round, win: !!r.win, kills: r.kills, hero: r.hero, units: r.units, unitPts: r.unitPts, draws: r.draws, bossLeft: r.bossLeft, build: r.build, ticks: S.tick } };
 }
