@@ -8,7 +8,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ctx = vm.createContext({ console, URLSearchParams, Date, Math, JSON });
 ctx.window = ctx; ctx.globalThis = ctx;
 for (const f of ["data.js", "seasons.js"]) vm.runInContext(fs.readFileSync(path.join(root, f), "utf8"), ctx, { filename: f });
-const T = ctx.SEASONS._t;
+const T = ctx.SeasonMod._t;
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const eq = (a, b, m) => ok(JSON.stringify(a) === JSON.stringify(b), m + " " + JSON.stringify(a) + " != " + JSON.stringify(b));

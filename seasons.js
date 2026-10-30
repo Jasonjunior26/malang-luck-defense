@@ -1,5 +1,5 @@
 // 프라이빗 시즌 클라이언트 (docs/소셜_기획안.md §2 ①③⑤ §3 §4 §5). ui.js 뒤에 로드한다 ($, esc, modal, api, nf, lsGet/lsSet, startRun 등 ui.js 전역을 호출 시점에 사용).
-// 순수 로직(초대 링크·rules 조립/검증·오류 문구·참가 미리보기)은 SEASONS._t 로 내보내 tools/test_seasons_ui.mjs 가 DOM 없이 점검한다.
+// 순수 로직(초대 링크·rules 조립/검증·오류 문구·참가 미리보기)은 SeasonMod._t 로 내보내 tools/test_seasons_ui.mjs 가 DOM 없이 점검한다.
 (function (root) {
   const CODE_RE = /^[A-Za-z0-9]{8}$/, JOIN_KEY = "malang-join";
   const LIM = { MAX_DAYS: 60, DEF_PLAYERS: 10, MAX_PLAYERS: 30, DAILY: [3, 5, 10, null] };
@@ -403,6 +403,6 @@
     const p = ui().ls.get(JOIN_KEY);
     if (p && CODE_RE.test(p)) showJoin(p);
   }
-  root.SEASONS = { open: openList, boot, run: () => RUN, clear: () => { RUN = null; }, restart, finish, shareInvite, openDetail,
+  root.SeasonMod = { open: openList, boot, run: () => RUN, clear: () => { RUN = null; }, restart, finish, shareInvite, openDetail,
     _t: { inviteUrl, parseJoin, buildRules, checkRules, ruleChips, validateCreate, phase, errText, errKind, joinPreview, presetState, toggleMod: (w, k) => { const o = W; W = w; const r = toggleMod(k); W = o; return r; }, stepVal, PRESETS, MODS, days, addDays } };
 })(typeof window !== "undefined" ? window : globalThis);

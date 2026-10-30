@@ -37,7 +37,7 @@
   @media (max-width:340px) { .chip .ico { font-size:12px; } .chip { padding:3px 4px; gap:2px; } }
   /* HUD 통일: 4칸 grid, 칩 높이 44px 고정, 아이콘 열 고정폭, 윗줄=숫자 / 아랫줄=라벨(작은 글씨), 진행바는 칩 바닥 3px 띠 */
   #hud { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.2fr); gap:4px; }
-  #hud .chip { position:relative; box-sizing:border-box; height:44px; min-width:0; padding:3px 5px 6px; gap:3px; align-items:center; overflow:hidden; border-width:2px; }
+  #hud .chip { margin:0 !important; align-self:start; text-shadow:none; position:relative; box-sizing:border-box; height:44px; min-width:0; padding:3px 5px 6px; gap:3px; align-items:center; overflow:hidden; border-width:2px; }
   #hud .chip .ico, #hud .chip.score .ico { display:grid !important; place-items:center; flex:none; width:16px; font-size:14px; line-height:1; }
   #hud .chip > div { display:flex; flex-direction:column; justify-content:center; gap:1px; flex:1; min-width:0; }
   #hud .chip b, #hud .chip.gold b, #hud .chip.score b, #hud #cWave b { display:block; flex:none; font-size:clamp(11px,3.4vw,13px); line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left; }
@@ -129,7 +129,7 @@
   #cWave.boss { background:linear-gradient(#ffe0e0,#ffb3b3); } #cWave.boss.urgent { animation:pulse .35s infinite alternate; } #cWave.boss.urgent b { color:#d4182e; }
   #cMob.warn80 { background:linear-gradient(#fff6c9,#ffe066); animation:pulse .8s infinite alternate; } #cMob.warn90 { background:linear-gradient(#ffd6d6,#ff9a9a); animation:pulse .35s infinite alternate; }
   #vig { position:fixed; inset:0; pointer-events:none; z-index:5; opacity:0; transition:opacity .4s; box-shadow:inset 0 0 90px 24px #ff1f3f; } #vig.on { opacity:.55; animation:vig .6s infinite alternate; } @keyframes vig { to { opacity:.25; } }
-  #heroCard { flex:1.35; } #heroChip { display:inline-block; margin-top:2px; font-size:11px; background:#fff0a8; border-radius:9px; padding:0 7px; color:#a55a00; } #heroChip:empty { display:none; }
+  #heroCard { flex:1.35; } #heroChip { display:inline-block; margin-top:2px; font-size:11px; background:#fff0a8; border-radius:9px; padding:0 7px; color:#a55a00; } #heroChip:empty { display:none; } #heroDesc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   #clanCard { flex:1; flex-direction:column; align-items:stretch; gap:3px; padding:4px 7px; }
   #clanChips { display:flex; gap:3px; } .cc { flex:1; text-align:center; font-size:11px; line-height:1.15; border-radius:9px; background:#fff; border:2px solid var(--cc,#ddd); padding:1px 0; min-width:0; overflow:hidden; font-variant-numeric:tabular-nums; } .cc b { display:inline; font-size:13px; } .cc small { display:block; font-size:9px; opacity:.7; line-height:1.1; } .cc.buy { animation:ready .7s infinite alternate; } .cc.ut { background:#fff0a8; }
   .cc .rp { display:block; font-size:9px; line-height:1.15; margin:1px 2px 0; border-radius:6px; background:#0000000f; color:#6b5a48; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .cc .rp.on { background:var(--cc); color:#fff; font-weight:bold; text-shadow:0 1px 0 #0004; } .cc .rp.near { background:#fff0a8; color:#a55a00; }
@@ -177,6 +177,36 @@
     #title { flex-direction:column; flex-wrap:wrap; align-content:center; justify-content:center; gap:6px 14px; padding:8px; } .logo { font-size:34px; } #parade,#seasonBox,#todayBox { display:none !important; } #title .tbtn { height:44px; width:min(44vw,300px); } .tiny { display:none; } #a2hs { width:min(44vw,300px); }
     #box { max-height:96%; }
   }
+  /* ---- v13 레이아웃: 두 줄 동일 높이(--rowh), HUD 4등분, 히어로 좁게/무리 넓게, 모달·버튼 정중앙 ---- */
+  :root { --rowh:70px; }
+  #hud { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:var(--rowh); gap:4px; }
+  #hud .chip { height:var(--rowh); flex:none; align-self:stretch; justify-content:flex-start; }
+  #hud .chip > div { align-items:stretch; }
+  #hud .chip b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  #cards { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,2.1fr); grid-template-rows:var(--rowh); gap:4px; }
+  #cards .card { height:var(--rowh); box-sizing:border-box; padding:3px 5px; border-width:2px; overflow:hidden; flex:none; }
+  #heroCard { gap:5px; } #heroCard canvas { width:30px; height:30px; }
+  #heroCard > div { flex:1; min-width:0; }
+  #heroName { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #heroDesc { font-size:10px; } #heroChip { font-size:10px; padding:0 5px; max-width:100%; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #clanCard { gap:2px; justify-content:space-between; padding:3px 4px; }
+  #clanChips { flex:1; min-height:0; gap:3px; }
+  .cc { display:block; text-align:center; padding:2px 1px 0; border-width:2px; font-size:12px; line-height:1.1; white-space:nowrap; box-sizing:border-box; }
+  .cc b { display:inline; font-size:13px; margin-left:1px; } .cc small { font-size:9.5px; opacity:.8; }
+  .cc small, .cc .rp { text-align:center; } .cc .rp { font-size:8.5px; margin:1px 0 0; padding:0 2px; max-width:100%; box-sizing:border-box; }
+  #tickets { flex:none; height:18px; min-height:0; flex-wrap:nowrap; overflow:hidden; align-items:center; }
+  #tickets .tk { box-sizing:border-box; height:18px; min-height:0; padding:0 6px; font-size:10px; line-height:1; display:inline-flex; align-items:center; white-space:nowrap; flex:none; }
+  button.big, button.mini { justify-content:center; text-align:center; }
+  #cbox { display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px 16px 18px; }
+  #cmsg { text-align:center; font-size:17px; line-height:1.45; word-break:keep-all; margin:2px 0 4px; width:100%; }
+  #cbox .row { display:flex; justify-content:center; gap:10px; width:100%; margin-top:12px; }
+  #cbox .row button { flex:1 1 0; min-width:0; height:46px; margin:0; padding:0 8px; display:flex; flex-direction:row; align-items:center; justify-content:center; text-align:center; font-size:17px; line-height:1; white-space:nowrap; }
+  #box button.wide { width:100%; display:flex; align-items:center; justify-content:center; text-align:center; min-height:48px; padding:0 14px; box-sizing:border-box; line-height:1.2; }
+  #box p, #box h2 { text-align:center; word-break:keep-all; } #box .rows, #box .ps { text-align:left; }
+  #hud .chip.score { margin:0 !important; line-height:inherit; text-shadow:none; font-size:inherit; }
+  #hud .chip { padding:3px 4px 6px; gap:2px; } #hud .chip .ico, #hud .chip.score .ico { width:14px; }
+  #hud .chip b, #hud .chip.gold b, #hud .chip.score b, #hud #cWave b { font-size:clamp(10.5px,3.1vw,13px); }
+  #hud #cWave b { font-size:clamp(9px,2.6vw,12px); letter-spacing:-.3px; }
 </style>
 </head>
 <body>
@@ -226,7 +256,7 @@
   <p class="tiny">히어로와 뽑기 운은 판마다 새로 정해져요</p>
 </div>
 <div id="modal"><div id="box"></div></div>
-<div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno" class="mini" style="flex-direction:row">취소</button><button id="cok">그래도 할래요</button></div></div></div>
+<div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno">게임 계속</button><button id="cok" class="mini" style="flex-direction:row">홈 이동</button></div></div></div>
 
 <script src="config.js"></script>
 <script src="auth.js"></script>

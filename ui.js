@@ -454,7 +454,7 @@ function updateHud() {
   if (boss) {
     left = S.bossT > 0 ? S.bossT : Math.max(0, info.time - (S.roundT || 0));
     const sec = Math.ceil(left), urgent = left <= 10 && !S.over;
-    setText("hWave", `⚠ 보스 ${S.round}/${CONST.ROUNDS}`);
+    setText("hWave", `⚠보스 ${S.round}/${CONST.ROUNDS}`);
     setCls("cWave", "urgent", urgent);
     if (urgent && sec !== _lastSec) { sfx("tick"); }
     _lastSec = sec;
@@ -980,14 +980,14 @@ async function showRanks(tab = "season", again = false) {
   wire();
 }
 function restartGame() {
-  if (window.SEASONS && SEASONS.run()) { SEASONS.restart(); return; } // 프라이빗 시즌 판
+  if (window.SeasonMod && SeasonMod.run()) { SeasonMod.restart(); return; } // 프라이빗 시즌 판
   const mode = S ? S.mode : "daily";
   $("modal").classList.remove("on"); MODAL_ON = false; MODAL_Q = [];
   GAME.start(mode); uiReset();
 }
 
 function uiGameOver(result) {
-  const res = result || {}, P = scoreParts(res), win = P.win, priv = !!(window.SEASONS && SEASONS.run()), practice = S.mode === "practice";
+  const res = result || {}, P = scoreParts(res), win = P.win, priv = !!(window.SeasonMod && SeasonMod.run()), practice = S.mode === "practice";
   S.over = true; sfx(win ? "win" : "over"); vib(win ? [100, 50, 100, 50, 300] : 200);
   const bk = priv ? "malang-best-ps" : practice ? "malang-best-p" : "malang-best2", best = Number(lsGet(bk, "0")), isBest = P.score > best;
   if (isBest) lsSet(bk, String(P.score));
@@ -996,9 +996,9 @@ function uiGameOver(result) {
   const reg = priv ? `<div class="rk" id="rk">등록하는 중… ⏳</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>🏆 시즌 순위</button>`
     : practice ? `<small>연습 모드는 랭킹에 등록되지 않아요 (이 기기 최고점만 저장)</small><button class="wide" id="skip">🔁 다시 하기</button>`
     : `<div class="rk" id="rk">랭킹에 등록하는 중… ⏳</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>🏆 랭킹 보기</button>`;
-  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${S.hero.name} · ${priv ? esc(SEASONS.run().name) : practice ? "연습" : "시즌 랭킹"}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${reg}`);
+  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${S.hero.name} · ${priv ? esc(SeasonMod.run().name) : practice ? "연습" : "시즌 랭킹"}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${reg}`);
   $("skip").onclick = () => restartGame();
-  if (priv) { $("seeRank").onclick = () => SEASONS.openDetail(SEASONS.run().id); SEASONS.finish(P); }
+  if (priv) { $("seeRank").onclick = () => SeasonMod.openDetail(SeasonMod.run().id); SeasonMod.finish(P); }
   else if (!practice) { $("seeRank").onclick = () => showRanks("season", true); finishRank(P); }
   if (win) uiBanner("클리어! 말랑 왕국을 지켜냈어요!", "win");
 }
@@ -1063,7 +1063,7 @@ function setupTitle() {
   } catch {}
 }
 function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 안 함) -> 타이틀. 다시 시작하면 startRun 이 새 판을 만든다.
-  if (window.SEASONS) SEASONS.clear();
+  if (window.SeasonMod) SeasonMod.clear();
   if (S) { S.paused = true; S.modalQ = []; S.over = false; S.resultSent = true; }
   MODAL_Q = []; MODAL_ON = false; $("modal").classList.remove("on"); $("confirm").classList.remove("on"); CONFIRM_ON = false;
   TITLE_ON = true; $("title").classList.add("on");
@@ -1071,7 +1071,7 @@ function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 �
 }
 function startRun(mode, seed, rules) { // seed/rules: 프라이빗 시즌 판(seasons.js)만 넘긴다
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
-  if (!rules && window.SEASONS) SEASONS.clear();
+  if (!rules && window.SeasonMod) SeasonMod.clear();
   GAME.start(mode, seed, rules); uiReset(); sfx("wave");
   if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 1200);
     setTimeout(() => uiBanner("같은 무리 4종이면 공명 보너스! (공명? 눌러요)", "info"), 4600); }
@@ -1137,7 +1137,7 @@ function bindUi() {
   $("spd").onclick = () => GAME.setSpeed(S.speed >= 3 ? 1 : S.speed + 1);
   $("upg").onclick = () => { initAudio(); showUpg(); };
   $("rank").onclick = () => { initAudio(); showRanks("season"); }; // 모달이 열리면 modal() 이 S.paused 를 켜고 닫으면 풀림(시뮬 틱 불변)
-  $("home").onclick = () => uiConfirm("게임을 종료하고 홈으로 갈까요?\n진행 중인 판은 기록되지 않아요", goHome);
+  $("home").onclick = () => uiConfirm("홈으로 나갈까요?\n진행 중인 게임은 종료돼요.", goHome);
   $("snd").onclick = () => sndCycle();
   sndLabel();
   // 타이틀 버튼: 모달이 열려 있거나 방금 열리고 닫힌 직후(유령 클릭/이중 탭)에는 시작 계열 버튼을 무시한다.
@@ -1145,7 +1145,7 @@ function bindUi() {
   $("start").onclick = guard(() => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); });
   $("startP").onclick = guard(() => startRun("practice"));
   $("rank2").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) showRanks("season"); };
-  $("seasons").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) SEASONS.open(); };
+  $("seasons").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) SeasonMod.open(); };
   $("tickets").onclick = (e) => {
     const t = e.target.closest(".tk"); if (!t) return;
     if (t.dataset.reso) { showReso(); return; }
@@ -1153,6 +1153,6 @@ function bindUi() {
   };
   $("clanChips").onclick = (e) => { if (e.target.closest(".rp")) { showReso(); return; } if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
-  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SEASONS && SEASONS.boot());
+  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot());
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);
