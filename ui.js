@@ -355,10 +355,11 @@ function sndCycle() {
 }
 
 // ---------- 모달 (큐 + 일시정지) ----------
-let TITLE_ON = true, MODAL_Q = [], MODAL_ON = false, CONFIRM_ON = false;
-function modal(html) { $("box").innerHTML = html; $("modal").classList.add("on"); MODAL_ON = true; sfx("modal"); if (typeof S !== "undefined" && S && !S.over && !TITLE_ON) S.paused = true; }
+let TITLE_ON = true, MODAL_Q = [], MODAL_ON = false, CONFIRM_ON = false, _modalAt = 0;
+function modal(html) { _modalAt = Date.now(); $("box").innerHTML = html; $("modal").classList.add("on"); MODAL_ON = true; sfx("modal"); if (typeof S !== "undefined" && S && !S.over && !TITLE_ON) S.paused = true; }
 function queueModal(fn) { if (MODAL_ON) MODAL_Q.push(fn); else fn(); }
 function closeModal() {
+  _modalAt = Date.now();
   $("modal").classList.remove("on"); MODAL_ON = false;
   const nx = MODAL_Q.shift();
   if (nx) { nx(); return; }
@@ -606,8 +607,8 @@ function showUpg() {
     return `<div class="up" style="--cc:${c.color}"><div class="e">${c.ico}</div><div class="m"><b>${c.name}</b> Lv ${lv}${up.bonus ? ` <small>(구매${up.bought}+보너스${up.bonus})</small>` : ""} · 공격 x${dmgMul(lv).toFixed(2)}<br><small>${maxed ? "최대 단계" : `다음 💎${cost} · +${Math.round(CONST.UP_STEP * 100)}%`} · 공명 ${rc}종${rb ? " +" + rb : ""}</small><br><small>화력 비중 ${Math.round(pw[i] * 100)}%</small><i><u style="width:${Math.round(pw[i] * 100)}%"></u></i></div>
       <div style="display:flex;flex-direction:column;gap:4px"><button data-c="${i}" class="${can ? "green" : ""}" ${can ? "" : "disabled"}>${maxed ? "MAX" : "강화"}</button>${S.upTickets > 0 ? `<button data-t="${i}" class="mini" style="flex-direction:row;padding:5px">🎫+1</button>` : ""}</div></div>`;
   }).join("");
-  modal(`<h2>⬆ 무리 강화</h2><p class="tiny">💎 ${S.minerals} 보유 · 많이 뽑힌 무리에 투자하세요! 무리 공업은 필드의 모든 유닛에 즉시 적용돼요</p>${rows}<button class="wide" id="resoHelp" style="margin-bottom:6px">공명이 뭐예요?</button><button class="wide" id="close">닫기</button>`);
-  $("close").onclick = closeModal; $("resoHelp").onclick = () => { closeModal(); showReso(); };
+  modal(`<h2>⬆ 무리 강화</h2><p class="tiny">💎 ${S.minerals} 보유 · 많이 뽑힌 무리에 투자하세요! 무리 공업은 필드의 모든 유닛에 즉시 적용돼요</p>${rows}<button class="wide" id="resoHelp" style="margin-bottom:6px">공명이 뭐예요?</button><button class="wide" id="probHelp" style="margin-bottom:6px">ℹ 뽑기 확률표</button><button class="wide" id="close">닫기</button>`);
+  $("close").onclick = closeModal; $("resoHelp").onclick = () => { closeModal(); showReso(); }; $("probHelp").onclick = () => showProb();
   $("box").querySelectorAll("button[data-c]").forEach((b) => (b.onclick = () => { if (GAME.upgrade(+b.dataset.c) === false) sfx("deny"); const sc = $("box").scrollTop; showUpg(); $("box").scrollTop = sc; }));
   $("box").querySelectorAll("button[data-t]").forEach((b) => (b.onclick = () => { GAME.useUpTicket(+b.dataset.t); sfx("ticket"); const sc = $("box").scrollTop; if (S.upTickets > 0 || true) showUpg(); $("box").scrollTop = sc; }));
 }
@@ -908,25 +909,26 @@ async function showProfile(back) {
   };
 }
 
-// ---- 랭킹 모달 (시즌 TOP 50 / 오늘 / 내 기록) ----
+// ---- 랭킹 모달 (시즌 전체 / 오늘 / 내 기록) ----
 function kstMidnightISO() { return encodeURIComponent(new Date(Date.parse(kstDate() + "T00:00:00+09:00")).toISOString()); }
 async function fetchRanks(tab, ph) {
   const s = ph.season; if (!s) return [];
   if (remote()) {
     const base = `${CONFIG.SUPABASE_URL}/rest/v1/`, sel = "select=name,score,round,win,hero,played_at";
     const url = tab === "today" ? `${base}leaderboard_daily?${sel}&season=eq.${s.id}&played_at=gte.${kstMidnightISO()}&order=score.desc&limit=300`
-      : `${base}leaderboard_season?${sel},rank&season=eq.${s.id}&order=rank.asc&limit=50`;
+      : `${base}leaderboard_season?${sel},rank&season=eq.${s.id}&order=rank.asc&limit=1000`;
     const rows = (await getJSON(url)).map((x) => ({ ...x, wave: x.round }));
     if (tab !== "today") return rows;
     const seen = new Set(); // 판마다 시드가 달라 한 사람의 기록이 여러 건 -> 오늘 최고 1건만
-    return rows.filter((x) => !seen.has(x.name) && seen.add(x.name)).slice(0, 50);
+    return rows.filter((x) => !seen.has(x.name) && seen.add(x.name));
   }
-  if (tab === "today") return localRows().filter((r) => kstDate(Date.parse(r.played_at)) === kstDate() && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).sort((a, b) => b.score - a.score).slice(0, 50);
-  return localBoard(s).slice(0, 50);
+  if (tab === "today") return localRows().filter((r) => kstDate(Date.parse(r.played_at)) === kstDate() && kstDate(Date.parse(r.played_at)) >= s.start && kstDate(Date.parse(r.played_at)) <= s.end).sort((a, b) => b.score - a.score);
+  return localBoard(s);
 }
+const heroTag = (id) => { const h = id && HEROES.find((x) => x.id === id); return h ? ` · ${esc(h.name.split(" ").pop())}` : ""; }; // 랭킹 줄에 쓴 히어로 이름(짧게)
 async function showRanks(tab = "season", again = false) {
   const ph = phaseNow(), s = ph.season, nm = myName();
-  const T = [["season", "🏆 시즌 TOP 50", 2.3], ["today", "📅 오늘", 1], ["mine", "🙋 내 기록", 1.3]];
+  const T = [["season", "🏆 시즌 랭킹", 2.3], ["today", "📅 오늘", 1], ["mine", "🙋 내 기록", 1.3]];
   const tabs = `<div class="tabs">${T.map(([k, l, f]) => `<button data-t="${k}" style="flex:${f}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
   const sub = !s ? "<small>시즌 정보가 없어요</small>" : ph.phase === "live" ? `<small>${esc(s.name)} · ${md(s.start)}~${md(s.end)} · ${seasonLeft(s) === 0 ? "오늘이 마지막 날!" : "종료까지 " + seasonLeft(s) + "일"}</small>`
     : ph.phase === "before" ? `<small>${esc(s.name)} 준비 중 · ${md(s.start)} 시작</small>` : `<small>${esc(s.name)} 종료 (${md(s.start)}~${md(s.end)}) · 최종 순위</small>`;
@@ -966,8 +968,8 @@ async function showRanks(tab = "season", again = false) {
     const sd = (n) => { const t = String(n); return t.length === 8 ? `${+t.slice(4, 6)}/${+t.slice(6)}` : ""; };
     body = `<ul class="rows">${rows.map((x) => `<li class="${x.score === top ? "me" : ""}"><span class="no" style="width:auto;min-width:40px;font-size:14px">${sd(x.seed)}</span><span class="nm">${x.win ? "🎉 클리어" : "R" + x.wave}</span><span class="sc">${nf(x.score)}점</span>${x.score === top ? "<small>⭐ 시즌 최고</small>" : ""}</li>`).join("") || "<li>이번 시즌 기록이 아직 없어요. 오늘 첫 도전!</li>"}</ul><small>하루에 한 판(그날 최고점)이 기록돼요</small>`;
   } else {
-    const li = list.map((r, i) => `<li class="${isMe(r) ? "me" : ""}"><span class="no">${medal[i] || i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${nf(r.score)}점</span><small>R${r.wave}${r.win ? " 🎉" : ""}</small></li>`).join("");
-    body = `<ul class="rows">${li || "<li>아직 기록이 없어요. 첫 기록을 남겨요!</li>"}</ul>`;
+    const li = list.map((r, i) => `<li class="${isMe(r) ? "me" : ""}"><span class="no">${medal[i] || i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${nf(r.score)}점</span><small>R${r.wave}${r.win ? " 🎉" : ""}${heroTag(r.hero)}</small></li>`).join("");
+    body = `<small>총 ${list.length}명 참가</small><ul class="rows">${li || "<li>아직 기록이 없어요. 첫 기록을 남겨요!</li>"}</ul>`;
   }
   modal(`${head}${body}${foot(tab === "mine" ? "" : meBar)}`);
   wire();
@@ -1055,6 +1057,13 @@ function setupTitle() {
     c.font = "56px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("🎲", L / 2, L / 2);
   } catch {}
 }
+function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 안 함) -> 타이틀. 다시 시작하면 startRun 이 새 판을 만든다.
+  if (window.SEASONS) SEASONS.clear();
+  if (S) { S.paused = true; S.modalQ = []; S.over = false; S.resultSent = true; }
+  MODAL_Q = []; MODAL_ON = false; $("modal").classList.remove("on"); $("confirm").classList.remove("on"); CONFIRM_ON = false;
+  TITLE_ON = true; $("title").classList.add("on");
+  try { refreshTitle(); renderSeasonBox(); } catch {}
+}
 function startRun(mode, seed, rules) { // seed/rules: 프라이빗 시즌 판(seasons.js)만 넘긴다
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
   if (!rules && window.SEASONS) SEASONS.clear();
@@ -1122,13 +1131,16 @@ function bindUi() {
   $("sell").onclick = () => { if (S.sel >= 0) GAME.sell(S.sel); };
   $("spd").onclick = () => GAME.setSpeed(S.speed >= 3 ? 1 : S.speed + 1);
   $("upg").onclick = () => { initAudio(); showUpg(); };
-  $("prob").onclick = () => showProb();
+  $("rank").onclick = () => { initAudio(); showRanks("season"); }; // 모달이 열리면 modal() 이 S.paused 를 켜고 닫으면 풀림(시뮬 틱 불변)
+  $("home").onclick = () => uiConfirm("게임을 종료하고 홈으로 갈까요?\n진행 중인 판은 기록되지 않아요", goHome);
   $("snd").onclick = () => sndCycle();
   sndLabel();
-  $("start").onclick = () => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); };
-  $("startP").onclick = () => startRun("practice");
-  $("rank2").onclick = () => showRanks("season");
-  $("seasons").onclick = () => SEASONS.open();
+  // 타이틀 버튼: 모달이 열려 있거나 방금 열리고 닫힌 직후(유령 클릭/이중 탭)에는 시작 계열 버튼을 무시한다.
+  const guard = (fn) => (e) => { if (e) e.stopPropagation(); if (MODAL_ON || CONFIRM_ON || Date.now() - _modalAt < 600) return; fn(); };
+  $("start").onclick = guard(() => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); });
+  $("startP").onclick = guard(() => startRun("practice"));
+  $("rank2").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) showRanks("season"); };
+  $("seasons").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) SEASONS.open(); };
   $("tickets").onclick = (e) => {
     const t = e.target.closest(".tk"); if (!t) return;
     if (t.dataset.reso) { showReso(); return; }

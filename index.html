@@ -35,6 +35,15 @@
   .chip b, .chip.score b, .chip.gold b { font-size:clamp(10.5px,3.3vw,12.5px); } .chip.gold b { flex:1; } #cWave b { font-size:clamp(10px,3.2vw,11.5px); }
   #hCh { font-size:clamp(9.5px,3vw,11px) !important; }
   @media (max-width:340px) { .chip .ico { font-size:12px; } .chip { padding:3px 4px; gap:2px; } }
+  /* HUD 통일: 4칸 grid, 칩 높이 44px 고정, 아이콘 열 고정폭, 윗줄=숫자 / 아랫줄=라벨(작은 글씨), 진행바는 칩 바닥 3px 띠 */
+  #hud { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.2fr); gap:4px; }
+  #hud .chip { position:relative; box-sizing:border-box; height:44px; min-width:0; padding:3px 5px 6px; gap:3px; align-items:center; overflow:hidden; border-width:2px; }
+  #hud .chip .ico, #hud .chip.score .ico { display:grid !important; place-items:center; flex:none; width:16px; font-size:14px; line-height:1; }
+  #hud .chip > div { display:flex; flex-direction:column; justify-content:center; gap:1px; flex:1; min-width:0; }
+  #hud .chip b, #hud .chip.gold b, #hud .chip.score b, #hud #cWave b { display:block; flex:none; font-size:clamp(11px,3.4vw,13px); line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left; }
+  #hud .chip small, #hud #hCh { display:block !important; font-size:clamp(9px,2.7vw,10.5px) !important; line-height:1.1; font-weight:700; opacity:.75; color:#7a4a1e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+  #hud .chip .bar { position:absolute; left:6px; right:6px; bottom:2px; height:3px; margin:0; border-radius:2px; }
+  #hud .chip .bar u { border-radius:2px; }
   .chip.bump b { animation:bump .25s; } @keyframes bump { 50% { transform:scale(1.25); color:#e0558a; } }
   .bar { display:block; height:7px; border-radius:5px; background:#0001; overflow:hidden; margin-top:3px; }
   .bar u { display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg,#7cc4ff,#4a9be0); text-decoration:none; transition:width .2s; }
@@ -136,7 +145,7 @@
   #banner { position:absolute; left:0; right:0; top:34%; text-align:center; font-size:22px; color:#fff; -webkit-text-stroke:1.5px var(--bc,#e0558a); paint-order:stroke fill; text-shadow:0 3px 0 var(--bc,#e0558a),0 6px 12px #0006; pointer-events:none; z-index:3; opacity:0; padding:0 10px; line-height:1.15; }
   #banner.on { animation:ban 2.4s forwards; } #banner.big { font-size:30px; } @keyframes ban { 0% { transform:scale(.4); opacity:0; } 12% { transform:scale(1.15); opacity:1; } 20% { transform:scale(1); } 80% { opacity:1; } 100% { opacity:0; transform:translateY(-12px); } }
   #flash { position:absolute; inset:0; pointer-events:none; z-index:3; background:#fff; opacity:0; border-radius:18px; } #flash.on { animation:fl .5s; } @keyframes fl { 0% { opacity:.85; } 100% { opacity:0; } }
-  #bar2 { display:flex; gap:5px; } #bar2 button { flex:1; min-height:46px; padding:6px 0; font-size:18px; border-radius:14px; box-shadow:0 4px 0 var(--blue2),0 6px 8px #0002; } #bar2 button small { font-size:10px; }
+  #bar2 { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; } #bar2 button { min-width:44px; min-height:46px; padding:6px 0; font-size:18px; border-radius:14px; box-shadow:0 4px 0 var(--blue2),0 6px 8px #0002; } #bar2 button small { font-size:10px; }
   #bar2 button.on { background:linear-gradient(#9be8ad,var(--green)); box-shadow:0 4px 0 var(--green2); } #bar2 button.gold { background:linear-gradient(#ffe28a,var(--gold)); box-shadow:0 4px 0 #c98a00; }
   #bar button.big { flex:2.4; } #merge { flex:1.4; font-size:18px; background:linear-gradient(#9be8ad,var(--green)); box-shadow:0 5px 0 var(--green2),0 8px 10px #0002; } #merge small { font-size:11px; } #merge.ready { animation:ready .6s infinite alternate; }
   #confirm { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:20px; z-index:20; background:#3b1f0e99; } #confirm.on { display:flex; } #cbox { background:#fffdf5; border:4px solid #fff; border-radius:22px; padding:16px; width:100%; max-width:320px; text-align:center; box-shadow:0 8px 0 #c9a56a; line-height:1.4; } #cbox .row { display:flex; gap:8px; } #cbox .row button { flex:1; margin-top:10px; padding:10px; }
@@ -175,8 +184,8 @@
   <div id="hud">
     <div class="chip" id="cWave"><span class="ico" id="wIco">🌊</span><div><b id="hWave">라운드 1/50</b><small id="hCh" style="font-size:12px;font-weight:700;color:#7a4a1e;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></small><i class="bar"><u id="hWaveBar"></u></i></div></div>
     <div class="chip score" id="cScore"><span class="ico">🏆</span><div><b id="hScore">0</b><small style="font-size:10px;opacity:.7;display:block">점수</small></div></div>
-    <div class="chip gold" id="cMin"><span class="ico">💎</span><b id="hMin">0</b></div>
-    <div class="chip" id="cMob"><span class="ico">👾</span><div><b id="hMob">0/100</b><i class="bar danger" id="hMobWrap"><u id="hMobBar"></u></i></div></div>
+    <div class="chip gold" id="cMin"><span class="ico">💎</span><div><b id="hMin">0</b><small>미네랄</small></div></div>
+    <div class="chip" id="cMob"><span class="ico">👾</span><div><b id="hMob">0/100</b><small>몬스터</small><i class="bar danger" id="hMobWrap"><u id="hMobBar"></u></i></div></div>
   </div>
   <div id="cards">
     <div class="card" id="heroCard"><canvas id="heroIco" width="76" height="76"></canvas><div><b id="heroName"></b><small id="heroDesc"></small><span id="heroChip"></span></div></div>
@@ -198,8 +207,9 @@
     <button id="upg" class="mini gold">⬆<small>강화</small></button>
     <button id="sell" class="mini">🪙<small>판매</small></button>
     <button id="spd" class="mini">⏩<small>x1</small></button>
-    <button id="prob" class="mini">ℹ<small>확률표</small></button>
+    <button id="rank" class="mini">🏆<small>랭킹</small></button>
     <button id="snd" class="mini">🔊<small>소리</small></button>
+    <button id="home" class="mini">🏠<small>홈</small></button>
   </div>
 </div>
 <div id="vig"></div>
