@@ -3,4 +3,5 @@
 window.CONFIG = {
   SUPABASE_URL: "https://oktgigevvwlczqavbyuq.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_2Q2xW8R76GPlIoVmXJUzzA_LvBpEp8B",
+  KAKAO_ENABLED: false, // 카카오 앱 등록 + Supabase Auth 설정을 마친 뒤 true (docs/카카오_로그인_설정.md)
 };

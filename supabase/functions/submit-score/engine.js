@@ -34,6 +34,75 @@ function checkName(raw, extraBad) {
 
 export { SEASONS, kstDate, dayDiff, seasonPhase, checkName };
 
+// ----- 프라이빗 시즌 규칙: data.js 의 RULES-BEGIN~END 구간 (validateRules 는 HEROES 를 참조하므로 HEROES 도 모듈 수준으로 추출) -----
+const HEROES = [
+ {"id":"darami","name":"도토리 대장 다람이","prob":9.6,"rule":"시작 미네랄 +30, 숲무리 강화 Lv +3","fx":{"startMin":30,"lv":[3,0,0,0]},"look":{"shape":[1,0.95],"c1":"#d9a066","c2":"#fbeedd","c3":"#8b5a2b","base":[["ear","round","#f2a7a7"],["mark","stripes","#8b5a2b"],["tail","fluffy","#d9a066"]],"face":["dot","smile"],"parts":[["hat","acorncap","#9b6a3c"],["acc","scarf","#58c26a"]]}},
+ {"id":"hwarang","name":"불꽃 대장 화랑이","prob":8.4,"rule":"불꽃무리 강화 Lv +5 (시작 보너스 없음)","fx":{"lv":[0,5,0,0]},"look":{"shape":[1,0.95],"c1":"#d9663a","c2":"#fff0dc","c3":"#ffd24d","base":[["ear","round","#fff0dc"],["mark","cheek","#fff0dc"],["tail","flame","#ff9f43"]],"face":["dot","smile"],"parts":[["hat","headband","#e8442e"],["acc","scarf","#ffd24d"]]}},
+ {"id":"duduk","name":"두더지 상인 두둑이","prob":7.8,"rule":"매 라운드 시작 +8 미네랄","fx":{"roundMin":8},"look":{"shape":[1.05,0.92],"c1":"#8a6a58","c2":"#d9c0ae","c3":"#ffd54f","base":[["ear","nub","#d9c0ae"],["nose","pink","#ffb3c6"]],"face":["sleepy","smile"],"parts":[["hat","minerhelmet","#ffd54f"],["acc","coinbag","#ffd54f"]]}},
+ {"id":"banjjak","name":"수집가 까치 반짝이","prob":6.6,"rule":"한 등급의 4종을 모두 동시 보유할 때마다 +70 (등급당 1회, 최대 8회)","fx":{"collect":{"bonus":70}},"look":{"shape":[1,0.95],"c1":"#4a5a7a","c2":"#ffffff","c3":"#3b9dff","base":[["ear","tuft","#3b9dff"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","monocle","#ffd54f"],["acc","gem","#ff4f81"]]}},
+ {"id":"bongbong","name":"저금통 토끼 봉봉이","prob":6.6,"rule":"노멀 [솜토끼] 10기를 동시 보유하면 +200 (1회)","fx":{"hold":{"ch":4,"n":10,"bonus":200}},"look":{"shape":[1.05,1],"c1":"#ffd9e6","c2":"#ffffff","c3":"#ff9ec0","base":[["ear","long","#ff9ec0"],["tail","puff","#ffffff"]],"face":["dot","smile"],"parts":[["hat","piggybank","#ff9ec0"],["acc","coin","#ffd54f"]]}},
+ {"id":"buung","name":"부엉박사","prob":6,"rule":"노멀 [달부엉]이 뽑기로 나올 때마다 +20 (합성/선택권 제외)","fx":{"drawBonus":{"ch":7,"bonus":20}},"look":{"shape":[1.05,0.98],"c1":"#c9b6f2","c2":"#f1eaff","c3":"#ffd54f","base":[["ear","tuft","#a58be0"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","glasses","#3a3a5a"]]}},
+ {"id":"lucky","name":"행운 고양이 럭키","prob":4.8,"rule":"유니크 확률 -1.5%p(5.5→4.0), 히든 이상 확률 2배 (부족분은 커먼에서 차감 없이 합계 100 유지: 표 참조)","fx":{"probMod":"lucky"},"look":{"shape":[1.02,0.95],"c1":"#fffaf0","c2":"#ffffff","c3":"#ffd54f","base":[["ear","point","#ffb3c6"],["whisker"],["tail","puff","#ffffff"]],"face":["dot","cat"],"parts":[["acc","bell","#ffd54f"],["acc","coinpaw","#ffd54f"]]}},
+ {"id":"nulgul","name":"도박꾼 너구리 너굴","prob":4.2,"rule":"처치 시 7% 확률로 처치 보상 3배, 보스 처치 시 +100 추가","fx":{"killLuck":{"p":0.07,"mul":3},"bossBonus":100},"look":{"shape":[1.08,0.95],"c1":"#8a7a6a","c2":"#e9dccb","c3":"#3a3030","base":[["ear","round","#3a3030"],["mark","mask","#3a3030"],["tail","striped","#5a4a40"]],"face":["sharp","smile"],"parts":[["hat","tophat","#3a3a5a"],["acc","dice","#ffffff"]]}},
+ {"id":"moonseer","name":"달토끼 점쟁이","prob":3.6,"rule":"매 라운드 시작 시 8% 확률로 히든 등급 유닛 1기 획득","fx":{"roundHidden":0.08},"look":{"shape":[1,1],"c1":"#e8e0ff","c2":"#ffffff","c3":"#8a7bff","base":[["ear","long","#c9b6f2"],["tail","puff","#ffffff"]],"face":["sleepy","smile"],"parts":[["hat","moonhat","#8a7bff"],["acc","crystalball","#bfe6ff"]]}},
+ {"id":"firstmalang","name":"첫 말랑","prob":2.4,"rule":"시작 미네랄 +50, 모든 무리 강화 Lv +2","fx":{"startMin":50,"lv":[2,2,2,2]},"look":{"shape":[1,0.98],"c1":"#ffffff","c2":"#fff6d6","c3":"#ffd54f","base":[["ear","none"]],"face":["star","smile"],"parts":[["halo","ring","#ffef9a"],["acc","gem","#ff9ec0"]]}},
+ {"id":"durumi","name":"대장장이 두루미","prob":4,"rule":"모든 강화 비용 -15%","fx":{"upCost":0.85},"look":{"shape":[1,1],"c1":"#f4f4f8","c2":"#ffffff","c3":"#e8442e","base":[["ear","tuft","#e8442e"],["beak","#ffb347"]],"face":["big","beak"],"parts":[["hat","headband","#e8442e"],["acc","armor","#8a97a8"]]}},
+ {"id":"oduck","name":"에누리 오리","prob":4,"rule":"유닛 판매가 +50%","fx":{"sellMul":1.5},"look":{"shape":[1.08,0.95],"c1":"#ffe066","c2":"#fff6c2","c3":"#ff9f1c","base":[["ear","none"],["beak","#ff9f1c"],["tail","puff","#ffe066"]],"face":["dot","beak"],"parts":[["hat","tophat","#c0392b"],["acc","coinbag","#ffd54f"]]}},
+ {"id":"fairy","name":"반딧 요정","prob":4,"rule":"뽑기 비용 -2 (15→13)","fx":{"drawCost":2},"look":{"shape":[0.95,1],"c1":"#b8f27a","c2":"#f4ffd6","c3":"#fff59d","base":[["ear","leaf","#7ed957"],["tail","ember","#fff59d"]],"face":["star","smile"],"parts":[["hat","sprout","#58c26a"],["acc","wand","#fff59d"]]}},
+ {"id":"compound","name":"복리 햄스터","prob":4,"rule":"라운드 시작 시 보유 미네랄 100당 +2 (최대 +20)","fx":{"interest":{"per":100,"gain":2,"max":20}},"look":{"shape":[1.1,0.95],"c1":"#ffcf9e","c2":"#fff1e0","c3":"#ffd54f","base":[["ear","round","#ff9ec0"],["mark","cheek","#ff9ec0"]],"face":["dot","smile"],"parts":[["hat","ring","#ffd54f"],["acc","coin","#ffd54f"]]}},
+ {"id":"turtle","name":"느릿 거북","prob":5,"rule":"모든 몹 이동 속도 -10%","fx":{"mobSlow":0.1},"look":{"shape":[1.1,0.92],"c1":"#7fc48a","c2":"#d9f2dc","c3":"#4e8f5a","base":[["ear","nub","#7fc48a"],["mark","spots","#4e8f5a"]],"face":["sleepy","smile"],"parts":[["acc","shell","#a0724a"],["acc","bamboo","#58c26a"]]}},
+ {"id":"hawk","name":"사냥꾼 매","prob":4,"rule":"보스에게 주는 피해 +20%","fx":{"bossDmg":1.2},"look":{"shape":[1,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a4a6a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["sharp","beak"],"parts":[["hat","headband","#3a4a6a"],["acc","cape","#3a4a6a"]]}},
+ {"id":"twinsq","name":"쌍둥이 다람쥐","prob":3,"rule":"합성 시 8% 확률로 결과 유닛 1기 추가 (자리 없으면 무효)","fx":{"mergeTwin":0.08},"look":{"shape":[1,0.95],"c1":"#c98a52","c2":"#fbeedd","c3":"#58c26a","base":[["ear","point","#8b5a2b"],["tail","fluffy","#c98a52"]],"face":["dot","smile"],"parts":[["hat","flowerpair","#ffb3c6"],["acc","clover","#58c26a"]]}},
+ {"id":"frostfox","name":"서리 여우","prob":4,"rule":"모든 공격에 둔화 +15%p 추가 (최대 75%)","fx":{"slowPlus":0.15},"look":{"shape":[1,0.95],"c1":"#bfe8ff","c2":"#ffffff","c3":"#4aa8ff","base":[["ear","point","#ffffff"],["tail","fluffy","#ffffff"],["mark","cheek","#9fd8ff"]],"face":["dot","smile"],"parts":[["hat","star","#9fd8ff"],["acc","scarf","#4aa8ff"]]}},
+ {"id":"ember","name":"불씨 도깨비","prob":4,"rule":"보스 제한시간 +10초, 화상 지속 +30%","fx":{"bossTime":10,"burnDur":1.3},"look":{"shape":[1.05,0.98],"c1":"#ff7043","c2":"#ffe0b2","c3":"#ffb300","base":[["ear","bump","#ff7043"],["tail","ember","#ffb300"]],"face":["sharp","fang"],"parts":[["hat","crown","#ffb300"],["acc","lavadrip","#ff5722"]]}},
+ {"id":"moleart","name":"합성 장인 두더쥐","prob":4,"rule":"합성에 성공할 때마다 미네랄 +3","fx":{"mergeMin":3},"look":{"shape":[1.05,0.92],"c1":"#6d5b6a","c2":"#d9c8d6","c3":"#7ad0c8","base":[["ear","nub","#d9c8d6"],["nose","pink","#ffb3c6"],["mark","belly","#d9c8d6"]],"face":["sleepy","smile"],"parts":[["hat","headband","#ffd54f"],["acc","gem","#7ad0c8"]]}},
+];
+// RULES-BEGIN
+// ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
+// 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
+const RULE_SPEC = {
+ rounds: ["int", 50, 200], hpMul: ["num", 0.7, 2.5], mobSpeed: ["num", 0.8, 1.5], mobCount: ["num", 0.8, 1.6], bossTime: ["num", -10, 15],
+ noGrade: ["int", 0, 2], gradeCap: ["int", 4, 6], drawLimit: ["int", 60, 300], noSell: ["bool"], clanBan: ["clans"], heroPool: ["heroes"],
+ startMin: ["int", 0, 200], killReward: ["num", 0.5, 2], drawCost: ["int", 10, 25], luckyWeek: ["bool"],
+};
+function validateRules(rules) {
+ if (rules == null || typeof rules !== "object" || Array.isArray(rules)) return { ok: false, err: "rules 형식 오류" };
+ const out = {};
+ for (const k of Object.keys(rules).sort()) {
+  const sp = RULE_SPEC[k], v = rules[k];
+  if (!sp) return { ok: false, err: "알 수 없는 규칙: " + k };
+  if (sp[0] === "int" || sp[0] === "num") {
+   if (typeof v !== "number" || !isFinite(v) || (sp[0] === "int" && !Number.isInteger(v)) || v < sp[1] || v > sp[2]) return { ok: false, err: "범위 오류: " + k };
+   if (k === "noGrade" && v === 0) continue;
+   out[k] = v;
+  } else if (sp[0] === "bool") {
+   if (v !== true && v !== false && v !== 0 && v !== 1) return { ok: false, err: "형식 오류: " + k };
+   if (v) out[k] = true;
+  } else if (sp[0] === "clans") {
+   if (!Array.isArray(v) || v.length > 2 || v.some((c) => !Number.isInteger(c) || c < 0 || c > 3)) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort((a, b) => a - b);
+   if (u.length) out[k] = u;
+  } else {
+   if (!Array.isArray(v) || v.length > HEROES.length || v.some((h) => typeof h !== "string" || !HEROES.some((x) => x.id === h))) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort();
+   if (u.length) out[k] = u;
+  }
+ }
+ if (Object.keys(out).filter((k) => k !== "rounds").length > 3) return { ok: false, err: "모디파이어는 최대 3개" };
+ return { ok: true, rules: out };
+}
+// 키를 정렬한 JSON 문자열의 안정적 해시(FNV-1a 32비트 x2 -> 16자리 16진수, 순수 JS)
+function rulesHash(rules) {
+ const norm = (v) => Array.isArray(v) ? v.map(norm) : v && typeof v === "object" ? Object.keys(v).sort().reduce((o, k) => ((o[k] = norm(v[k])), o), {}) : v;
+ const str = JSON.stringify(norm(rules || {}));
+ let a = 0x811c9dc5, b = 0x9747b28c;
+ for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); a = Math.imul(a ^ c, 0x01000193) >>> 0; b = Math.imul(b ^ c, 0x85ebca6b) >>> 0; b = (b ^ (b >>> 13)) >>> 0; }
+ const h = (n) => ("00000000" + n.toString(16)).slice(-8);
+ return h(a) + h(b);
+}
+
+export { validateRules, rulesHash };
+
 // 시뮬 한 판을 헤드리스로 만든다. 반환 객체로 GAME.* / update 를 구동한다.
 export function createEngine() {
   var window = undefined; // game.js 의 HEADLESS(typeof window === "undefined") 판정용
@@ -209,7 +278,7 @@ const CHAPTERS = [
 
 const CONST = {
  W: 360, H: 400, DT: 1 / 60,
- ROUNDS: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
+ ROUNDS: 50, ROUNDS_BASE: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
  DRAW_COST: 15, START_MIN: 50, KILL_REWARD: 2, BOSS_REWARD: 50,
  SLOTS: 20, COLS: 4, ROWS: 5, STACK_MAX: 12,
  MOB_LOSE: 160, MOB_WARN: [130, 145],
@@ -254,6 +323,51 @@ function checkName(raw, extraBad) {
 }
 // SEASONS-END
 
+// RULES-BEGIN
+// ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
+// 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
+const RULE_SPEC = {
+ rounds: ["int", 50, 200], hpMul: ["num", 0.7, 2.5], mobSpeed: ["num", 0.8, 1.5], mobCount: ["num", 0.8, 1.6], bossTime: ["num", -10, 15],
+ noGrade: ["int", 0, 2], gradeCap: ["int", 4, 6], drawLimit: ["int", 60, 300], noSell: ["bool"], clanBan: ["clans"], heroPool: ["heroes"],
+ startMin: ["int", 0, 200], killReward: ["num", 0.5, 2], drawCost: ["int", 10, 25], luckyWeek: ["bool"],
+};
+function validateRules(rules) {
+ if (rules == null || typeof rules !== "object" || Array.isArray(rules)) return { ok: false, err: "rules 형식 오류" };
+ const out = {};
+ for (const k of Object.keys(rules).sort()) {
+  const sp = RULE_SPEC[k], v = rules[k];
+  if (!sp) return { ok: false, err: "알 수 없는 규칙: " + k };
+  if (sp[0] === "int" || sp[0] === "num") {
+   if (typeof v !== "number" || !isFinite(v) || (sp[0] === "int" && !Number.isInteger(v)) || v < sp[1] || v > sp[2]) return { ok: false, err: "범위 오류: " + k };
+   if (k === "noGrade" && v === 0) continue;
+   out[k] = v;
+  } else if (sp[0] === "bool") {
+   if (v !== true && v !== false && v !== 0 && v !== 1) return { ok: false, err: "형식 오류: " + k };
+   if (v) out[k] = true;
+  } else if (sp[0] === "clans") {
+   if (!Array.isArray(v) || v.length > 2 || v.some((c) => !Number.isInteger(c) || c < 0 || c > 3)) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort((a, b) => a - b);
+   if (u.length) out[k] = u;
+  } else {
+   if (!Array.isArray(v) || v.length > HEROES.length || v.some((h) => typeof h !== "string" || !HEROES.some((x) => x.id === h))) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort();
+   if (u.length) out[k] = u;
+  }
+ }
+ if (Object.keys(out).filter((k) => k !== "rounds").length > 3) return { ok: false, err: "모디파이어는 최대 3개" };
+ return { ok: true, rules: out };
+}
+// 키를 정렬한 JSON 문자열의 안정적 해시(FNV-1a 32비트 x2 -> 16자리 16진수, 순수 JS)
+function rulesHash(rules) {
+ const norm = (v) => Array.isArray(v) ? v.map(norm) : v && typeof v === "object" ? Object.keys(v).sort().reduce((o, k) => ((o[k] = norm(v[k])), o), {}) : v;
+ const str = JSON.stringify(norm(rules || {}));
+ let a = 0x811c9dc5, b = 0x9747b28c;
+ for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); a = Math.imul(a ^ c, 0x01000193) >>> 0; b = Math.imul(b ^ c, 0x85ebca6b) >>> 0; b = (b ^ (b >>> 13)) >>> 0; }
+ const h = (n) => ("00000000" + n.toString(16)).slice(-8);
+ return h(a) + h(b);
+}
+// RULES-END
+
 // ---------- 순수 헬퍼 ----------
 function mulberry32(seed) {
  let a = seed >>> 0;
@@ -278,33 +392,56 @@ function makeRngs(seed) {
   misc: mulberry32((seed ^ 0x3C3C3C3C) >>> 0),
  };
 }
-function heroOfDay(rngHero) {
+function heroOfDay(rngHero, pool) {
+ if (pool && pool.length) { // 규칙 heroPool: 풀 안에서 확률 비례(원래 확률 가중) 선택, 난수 1회 소비는 동일
+  const hs = HEROES.filter((h) => pool.indexOf(h.id) >= 0), tot = hs.reduce((a, h) => a + h.prob, 0);
+  let y = rngHero() * tot;
+  for (const h of hs) { y -= h.prob; if (y < 0) return h; }
+  return hs[hs.length - 1];
+ }
  let x = rngHero() * 100;
  for (let i = 0; i < HEROES.length; i++) { x -= HEROES[i].prob; if (x < 0) return HEROES[i]; }
  return HEROES[0];
 }
-function gradeProbs(hero) {
- const lucky = !!(hero && hero.fx && hero.fx.probMod === "lucky");
- return GRADES.map(g => lucky ? g.luckyProb : g.prob);
+function gradeProbs(hero, rules) {
+ const lucky = !!(hero && hero.fx && hero.fx.probMod === "lucky") || !!(rules && rules.luckyWeek);
+ const p = GRADES.map(g => lucky ? g.luckyProb : g.prob);
+ const ng = rules && rules.noGrade;
+ if (ng) { // 가장 낮은 등급 N개 제외, 확률은 남은 등급에 비례 재분배(합 100)
+  let t = 0;
+  for (let i = 0; i < p.length; i++) { if (i < ng) p[i] = 0; t += p[i]; }
+  for (let i = 0; i < p.length; i++) p[i] = p[i] * 100 / t;
+ }
+ return p;
 }
 function rollGrade(r, probs) {
  let x = r() * 100;
  for (let g = 0; g < probs.length; g++) { x -= probs[g]; if (x < 0) return g; }
  return 0;
 }
-function rollChar(r, grade) { return grade * 4 + Math.floor(r() * 4); }
-function mergeResult(r, grade) { return (grade + 1) * 4 + Math.floor(r() * 4); }
-function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((Math.min(r, K.ROUNDS) - 1) / (K.ROUNDS - 1), K.HP_POW); }
+function pickClan(r, ban) { // 규칙 clanBan: 금지 무리를 뺀 목록에서 같은 횟수(1회)의 난수로 선택
+ if (!ban || !ban.length) return Math.floor(r() * 4);
+ const ok = [0, 1, 2, 3].filter((c) => ban.indexOf(c) < 0);
+ return ok[Math.floor(r() * ok.length)];
+}
+function rollChar(r, grade, ban) { return grade * 4 + pickClan(r, ban); }
+function mergeResult(r, grade, ban) { return (grade + 1) * 4 + pickClan(r, ban); }
+function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((r - 1) / (K.ROUNDS_BASE - 1), K.HP_POW); } // 50 초과는 같은 거듭제곱 곡선 연장
 let UP_MUL = 1; // 히어로(대장장이 두루미)의 강화 비용 배율. newGame 이 설정
 function upgradeCost(bought) { const c = CONST.UP_COST0 + CONST.UP_COSTK * bought; return UP_MUL === 1 ? c : Math.round(c * UP_MUL); }
 function dmgMul(lv) { return 1 + CONST.UP_STEP * lv; }
 function armorFactor(armorPct, pierce) { return 1 - (armorPct / 100) * (1 - (pierce || 0)); }
 function charAt(grade, clan) { return CHARS[grade * 4 + clan]; }
-function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : -1; }
+function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : (round > CONST.ROUNDS_BASE && round % 10 === 0 ? CONST.TICKET_GRADE[CONST.ROUNDS_BASE] : -1); } // 50 초과 보스는 마지막 값 유지
 function roundInfo(r) {
- const row = ROUNDS[Math.max(1, Math.min(CONST.ROUNDS, r)) - 1];
- return { r: row[0], ch: row[1], name: row[2], kind: row[3], hue: row[4], hp: row[5], armor: row[6],
-  n: row[7], gap: row[8], speed: row[9], time: row[10], rew: row[11] == null ? 1 : row[11], boss: row[0] % 5 === 0 };
+ const B = CONST.ROUNDS_BASE;
+ let row = ROUNDS[Math.max(1, Math.min(B, r)) - 1], boss = row[0] % 5 === 0;
+ if (r > B) { // 확장 라운드: 10라운드마다 보스(후반 보스 표 50/40/30 순환), 나머지는 마지막 챕터 일반 몹 순환
+  boss = r % 10 === 0;
+  row = boss ? ROUNDS[[49, 39, 29][(r / 10 - B / 10 - 1) % 3]] : ROUNDS[B - 5 + ((r - B - 1) % 4)];
+ }
+ return { r: r > B ? r : row[0], ch: row[1], name: row[2], kind: row[3], hue: row[4], hp: row[5], armor: row[6],
+  n: row[7], gap: row[8], speed: row[9], time: row[10], rew: row[11] == null ? 1 : row[11], boss };
 }
 // 표시 Lv = 구매 + 보너스 (상한 UP_LV_CAP). 공명 보너스는 포함하지 않음(game.js 가 bonus 에 반영하거나 별도 가산).
 function clanLevel(S, c) {
@@ -370,17 +507,20 @@ let S;
 const sqr = (x) => x * x;
 
 // ---------- 상태 ----------
-function newGame(mode, forceSeed) {
+function newGame(mode, forceSeed, rules) {
+  let R = {}; // 규칙(모디파이어). 없으면 {} -> 아래 분기는 전부 기본 동작
+  if (rules) { const v = validateRules(rules); if (!v.ok) throw new Error(v.err); R = v.rules; }
+  CONST.ROUNDS = R.rounds || CONST.ROUNDS_BASE;
   const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
-  const hero = heroOfDay(rng.hero);
+  const hero = heroOfDay(rng.hero, R.heroPool);
   const hx = hero.fx || {};
   UP_MUL = hx.upCost || 1; // 히어로가 바꾸는 상수는 매 판 기준값에서 다시 계산 (판매가·뽑기 비용)
   if (CONST.DRAW_COST0 == null) CONST.DRAW_COST0 = CONST.DRAW_COST;
-  CONST.DRAW_COST = CONST.DRAW_COST0 - (hx.drawCost || 0);
+  CONST.DRAW_COST = (R.drawCost != null ? R.drawCost : CONST.DRAW_COST0) - (hx.drawCost || 0);
   for (const g of GRADES) { if (g.sell0 == null) g.sell0 = g.sell; g.sell = g.sell0 > 0 ? Math.round(g.sell0 * (hx.sellMul || 1)) : 0; }
   S = {
-    mode, seed, rng, hero, minerals: CONST.START_MIN + (hx.startMin || 0), dispMin: 0, draws: 0,
+    mode, seed, rng, hero, rules: R, minerals: (R.startMin != null ? R.startMin : CONST.START_MIN) + (hx.startMin || 0), dispMin: 0, draws: 0,
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
     slots: Array(CONST.SLOTS).fill(null), sel: -1,
     up: [0, 1, 2, 3].map((c) => ({ bought: 0, bonus: (hx.lv && hx.lv[c]) || 0 })),
@@ -558,8 +698,10 @@ function impact(pr) {
 function startRound() {
   S.round++; S.roundT = 0; S.nextT = -1;
   const info = S.info = roundInfo(S.round);
-  S.queue = info.n; S.spawnT = 0;
+  S.queue = info.n; S.spawnT = 0; S.rewK = 1;
+  if (S.rules.mobCount && !info.boss) { S.queue = Math.max(1, Math.round(info.n * S.rules.mobCount)); S.rewK = info.n / S.queue; } // 몹 수 가감 시 라운드 총 보상은 유지
   S.bossT = info.boss ? info.time + ((S.hero.fx || {}).bossTime || 0) : 0;
+  if (info.boss && S.rules.bossTime) S.bossT = Math.max(10, S.bossT + S.rules.bossTime);
   const ch = CHAPTERS[info.ch - 1];
   S.banner = { txt: info.boss ? `⚠ 보스 ${S.round}` : `라운드 ${S.round}`, sub: info.boss ? info.name : ch.name, t: 1.6, max: 1.6, boss: info.boss };
   if (S.round > 1 || !S.paused) sfx(info.boss ? "boss" : "round");
@@ -577,8 +719,8 @@ function startRound() {
 }
 function spawn() {
   const info = S.info;
-  const hp = Math.round(info.hp * hpMul(info.r)), boss = info.boss;
-  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === 50, rew: info.rew });
+  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1)), boss = info.boss;
+  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)) * (S.rules.mobSpeed || 1), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === CONST.ROUNDS, rew: info.rew * (S.rewK || 1) });
 }
 
 // ---------- 유닛 보관 ----------
@@ -638,10 +780,11 @@ function updateProgress() {
 const GAME = {
   draw() {
     if (S.over || S.paused) return false;
+    if (S.rules.drawLimit && S.draws >= S.rules.drawLimit) { return false; }
     if (S.minerals < CONST.DRAW_COST) { return false; }
     if (freeSlot() < 0) { log("자리가 없어요! 판매하거나 합성하세요", "#e0558a"); sfx("deny"); return false; }
     S.minerals -= CONST.DRAW_COST; S.draws++; inp("draw");
-    const probs = gradeProbs(S.hero), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g), c = CHARS[ci];
+    const probs = gradeProbs(S.hero, S.rules), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g, S.rules.clanBan), c = CHARS[ci];
     const hx = S.hero.fx || {};
     if (hx.drawBonus && ci === hx.drawBonus.ch) { S.minerals += hx.drawBonus.bonus; S.heroState.flags.db = (S.heroState.flags.db || 0) + 1; }
     const si = placeUnit(ci);
@@ -664,7 +807,7 @@ const GAME = {
     if (S.over || S.paused) return { ok: false, reason: "지금은 할 수 없어요" };
     if (!s || s.hero) return { ok: false, reason: "유닛이 아니에요" };
     const g = s.ch >> 2;
-    if (g >= 6) return { ok: false, reason: "레전더리 등급부터는 유닛을 조합할 수 없습니다!" };
+    if (g >= (S.rules.gradeCap || 6)) return { ok: false, reason: S.rules.gradeCap ? "이번 시즌은 이 등급부터 조합할 수 없습니다!" : "레전더리 등급부터는 유닛을 조합할 수 없습니다!" };
     if (s.n < 3) return { ok: false, reason: "같은 유닛 3기가 필요해요" };
     if (s.n === 3 || freeSlot() >= 0) return { ok: true, reason: "" };
     return { ok: false, reason: "자리가 없어요" };
@@ -685,7 +828,7 @@ const GAME = {
     for (let guard = 0; guard < 40; guard++) {
       const s = S.slots[i];
       if (!this.canMerge(i).ok) break;
-      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g);
+      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
       s.n -= 3; const p = slotPos(i);
       if (s.n <= 0) S.slots[i] = null;
       const si = placeUnit(ci, i);
@@ -707,6 +850,7 @@ const GAME = {
   sell(i) {
     const s = S.slots[i];
     if (S.over || S.paused || !s || s.hero) return false;
+    if (S.rules.noSell) { log("이번 시즌은 판매할 수 없어요", "#e0558a"); return false; }
     const price = GRADES[s.ch >> 2].sell;
     if (price <= 0) { log("패런츠는 판매할 수 없어요", "#e0558a"); return false; }
     S.minerals += price; s.n--; inp("sell", i);
@@ -724,6 +868,7 @@ const GAME = {
   useTicket(chIdx) { // chIdx = 고른 유닛(CHARS 인덱스). 같은 등급 선택권 1장을 소모한다.
     const g = chIdx >> 2, k = S.tickets.indexOf(g);
     if (k < 0 || S.over) return false;
+    if (S.rules.clanBan && S.rules.clanBan.includes(chIdx & 3)) return false;
     if (!addUnit(chIdx)) { log("자리가 없어요! 자리를 만든 뒤 다시 골라주세요", "#e0558a"); sfx("deny"); return false; }
     S.tickets.splice(k, 1); inp("ticket", chIdx);
     log(`[${GRADES[g].name}] ${CHARS[chIdx].name} 선택!`, GRADES[g].color); sfx("ticket"); return true;
@@ -737,7 +882,9 @@ const GAME = {
   toggleLock(i) { const s = S.slots[i]; if (s && !s.hero) { s.lock = !s.lock; inp("lock", i); } },
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
-  start(mode, seed) { newGame(mode === "practice" ? "practice" : "daily", seed); S.paused = false; S.sel = -1; return S; },
+  start(mode, seed, rules) {
+    if (!rules && !HEADLESS && mode === "practice") { try { const q = new URLSearchParams(location.search).get("rules"); if (q) rules = JSON.parse(q); } catch (e) { rules = null; } } // 개발용: ?rules={"hpMul":1.5} 연습 모드 전용(랭킹 제외)
+    newGame(mode === "practice" ? "practice" : "daily", seed, rules); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 
@@ -754,7 +901,7 @@ function gameOver(win) {
 function killMob(m) {
   S.kills++;
   const hx = S.hero.fx || {};
-  let r = CONST.KILL_REWARD;
+  let r = CONST.KILL_REWARD * (S.rules.killReward || 1);
   if (S.slots.some((s) => s && !s.hero && s.ch === 28)) r += 1; // 숲신 패시브
   r *= m.rew; // 라운드 몹 수가 늘어난 만큼 개체 보상 비례 감소(라운드 총 보상 유지)
   if (hx.killLuck && S.rng.misc() < hx.killLuck.p) { r *= hx.killLuck.mul; S.heroState.flags.kl = (S.heroState.flags.kl || 0) + 1; const q = trackPoint(m.d); pop(q.x, q.y - 8, `대박 +${Math.max(1, Math.round(r))}`, 0.9, "#e0a000", 14); }
@@ -797,7 +944,7 @@ function update(dt) {
     if (S.nextT >= 0) { if ((S.nextT -= dt) <= 0) startRound(); }
     else if (S.bossT <= 0) { gameOver(false); return; }
     else if (S.bossT <= 10 && Math.floor(S.bossT + dt) !== Math.floor(S.bossT)) sfx("tick");
-  } else if (S.roundT >= info.time) startRound();
+  } else if (S.roundT >= info.time && S.round < CONST.ROUNDS) startRound();
   if (S.over) return;
   const cur = S.info;
   if (S.queue > 0 && (S.spawnT -= dt) <= 0) { spawn(); S.queue--; S.spawnT += cur.gap; }
@@ -984,7 +1131,7 @@ requestAnimationFrame(loop);
     T, CONST, GAME, HEADLESS,
     get S() { return S; },
     update,
-    start(seed) { __seed = seed >>> 0; T.over = null; GAME.start("daily", __seed); return S; },
+    start(seed, rules) { __seed = seed >>> 0; T.over = null; GAME.start("daily", __seed, rules || null); return S; },
     result() { return T.over; },
   };
 }

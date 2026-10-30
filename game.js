@@ -26,17 +26,20 @@ let S;
 const sqr = (x) => x * x;
 
 // ---------- 상태 ----------
-function newGame(mode, forceSeed) {
+function newGame(mode, forceSeed, rules) {
+  let R = {}; // 규칙(모디파이어). 없으면 {} -> 아래 분기는 전부 기본 동작
+  if (rules) { const v = validateRules(rules); if (!v.ok) throw new Error(v.err); R = v.rules; }
+  CONST.ROUNDS = R.rounds || CONST.ROUNDS_BASE;
   const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
-  const hero = heroOfDay(rng.hero);
+  const hero = heroOfDay(rng.hero, R.heroPool);
   const hx = hero.fx || {};
   UP_MUL = hx.upCost || 1; // 히어로가 바꾸는 상수는 매 판 기준값에서 다시 계산 (판매가·뽑기 비용)
   if (CONST.DRAW_COST0 == null) CONST.DRAW_COST0 = CONST.DRAW_COST;
-  CONST.DRAW_COST = CONST.DRAW_COST0 - (hx.drawCost || 0);
+  CONST.DRAW_COST = (R.drawCost != null ? R.drawCost : CONST.DRAW_COST0) - (hx.drawCost || 0);
   for (const g of GRADES) { if (g.sell0 == null) g.sell0 = g.sell; g.sell = g.sell0 > 0 ? Math.round(g.sell0 * (hx.sellMul || 1)) : 0; }
   S = {
-    mode, seed, rng, hero, minerals: CONST.START_MIN + (hx.startMin || 0), dispMin: 0, draws: 0,
+    mode, seed, rng, hero, rules: R, minerals: (R.startMin != null ? R.startMin : CONST.START_MIN) + (hx.startMin || 0), dispMin: 0, draws: 0,
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
     slots: Array(CONST.SLOTS).fill(null), sel: -1,
     up: [0, 1, 2, 3].map((c) => ({ bought: 0, bonus: (hx.lv && hx.lv[c]) || 0 })),
@@ -214,8 +217,10 @@ function impact(pr) {
 function startRound() {
   S.round++; S.roundT = 0; S.nextT = -1;
   const info = S.info = roundInfo(S.round);
-  S.queue = info.n; S.spawnT = 0;
+  S.queue = info.n; S.spawnT = 0; S.rewK = 1;
+  if (S.rules.mobCount && !info.boss) { S.queue = Math.max(1, Math.round(info.n * S.rules.mobCount)); S.rewK = info.n / S.queue; } // 몹 수 가감 시 라운드 총 보상은 유지
   S.bossT = info.boss ? info.time + ((S.hero.fx || {}).bossTime || 0) : 0;
+  if (info.boss && S.rules.bossTime) S.bossT = Math.max(10, S.bossT + S.rules.bossTime);
   const ch = CHAPTERS[info.ch - 1];
   S.banner = { txt: info.boss ? `⚠ 보스 ${S.round}` : `라운드 ${S.round}`, sub: info.boss ? info.name : ch.name, t: 1.6, max: 1.6, boss: info.boss };
   if (S.round > 1 || !S.paused) sfx(info.boss ? "boss" : "round");
@@ -233,8 +238,8 @@ function startRound() {
 }
 function spawn() {
   const info = S.info;
-  const hp = Math.round(info.hp * hpMul(info.r)), boss = info.boss;
-  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === 50, rew: info.rew });
+  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1)), boss = info.boss;
+  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)) * (S.rules.mobSpeed || 1), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === CONST.ROUNDS, rew: info.rew * (S.rewK || 1) });
 }
 
 // ---------- 유닛 보관 ----------
@@ -294,10 +299,11 @@ function updateProgress() {
 const GAME = {
   draw() {
     if (S.over || S.paused) return false;
+    if (S.rules.drawLimit && S.draws >= S.rules.drawLimit) { return false; }
     if (S.minerals < CONST.DRAW_COST) { return false; }
     if (freeSlot() < 0) { log("자리가 없어요! 판매하거나 합성하세요", "#e0558a"); sfx("deny"); return false; }
     S.minerals -= CONST.DRAW_COST; S.draws++; inp("draw");
-    const probs = gradeProbs(S.hero), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g), c = CHARS[ci];
+    const probs = gradeProbs(S.hero, S.rules), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g, S.rules.clanBan), c = CHARS[ci];
     const hx = S.hero.fx || {};
     if (hx.drawBonus && ci === hx.drawBonus.ch) { S.minerals += hx.drawBonus.bonus; S.heroState.flags.db = (S.heroState.flags.db || 0) + 1; }
     const si = placeUnit(ci);
@@ -320,7 +326,7 @@ const GAME = {
     if (S.over || S.paused) return { ok: false, reason: "지금은 할 수 없어요" };
     if (!s || s.hero) return { ok: false, reason: "유닛이 아니에요" };
     const g = s.ch >> 2;
-    if (g >= 6) return { ok: false, reason: "레전더리 등급부터는 유닛을 조합할 수 없습니다!" };
+    if (g >= (S.rules.gradeCap || 6)) return { ok: false, reason: S.rules.gradeCap ? "이번 시즌은 이 등급부터 조합할 수 없습니다!" : "레전더리 등급부터는 유닛을 조합할 수 없습니다!" };
     if (s.n < 3) return { ok: false, reason: "같은 유닛 3기가 필요해요" };
     if (s.n === 3 || freeSlot() >= 0) return { ok: true, reason: "" };
     return { ok: false, reason: "자리가 없어요" };
@@ -341,7 +347,7 @@ const GAME = {
     for (let guard = 0; guard < 40; guard++) {
       const s = S.slots[i];
       if (!this.canMerge(i).ok) break;
-      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g);
+      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
       s.n -= 3; const p = slotPos(i);
       if (s.n <= 0) S.slots[i] = null;
       const si = placeUnit(ci, i);
@@ -363,6 +369,7 @@ const GAME = {
   sell(i) {
     const s = S.slots[i];
     if (S.over || S.paused || !s || s.hero) return false;
+    if (S.rules.noSell) { log("이번 시즌은 판매할 수 없어요", "#e0558a"); return false; }
     const price = GRADES[s.ch >> 2].sell;
     if (price <= 0) { log("패런츠는 판매할 수 없어요", "#e0558a"); return false; }
     S.minerals += price; s.n--; inp("sell", i);
@@ -380,6 +387,7 @@ const GAME = {
   useTicket(chIdx) { // chIdx = 고른 유닛(CHARS 인덱스). 같은 등급 선택권 1장을 소모한다.
     const g = chIdx >> 2, k = S.tickets.indexOf(g);
     if (k < 0 || S.over) return false;
+    if (S.rules.clanBan && S.rules.clanBan.includes(chIdx & 3)) return false;
     if (!addUnit(chIdx)) { log("자리가 없어요! 자리를 만든 뒤 다시 골라주세요", "#e0558a"); sfx("deny"); return false; }
     S.tickets.splice(k, 1); inp("ticket", chIdx);
     log(`[${GRADES[g].name}] ${CHARS[chIdx].name} 선택!`, GRADES[g].color); sfx("ticket"); return true;
@@ -393,7 +401,9 @@ const GAME = {
   toggleLock(i) { const s = S.slots[i]; if (s && !s.hero) { s.lock = !s.lock; inp("lock", i); } },
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
-  start(mode, seed) { newGame(mode === "practice" ? "practice" : "daily", seed); S.paused = false; S.sel = -1; return S; },
+  start(mode, seed, rules) {
+    if (!rules && !HEADLESS && mode === "practice") { try { const q = new URLSearchParams(location.search).get("rules"); if (q) rules = JSON.parse(q); } catch (e) { rules = null; } } // 개발용: ?rules={"hpMul":1.5} 연습 모드 전용(랭킹 제외)
+    newGame(mode === "practice" ? "practice" : "daily", seed, rules); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 
@@ -410,7 +420,7 @@ function gameOver(win) {
 function killMob(m) {
   S.kills++;
   const hx = S.hero.fx || {};
-  let r = CONST.KILL_REWARD;
+  let r = CONST.KILL_REWARD * (S.rules.killReward || 1);
   if (S.slots.some((s) => s && !s.hero && s.ch === 28)) r += 1; // 숲신 패시브
   r *= m.rew; // 라운드 몹 수가 늘어난 만큼 개체 보상 비례 감소(라운드 총 보상 유지)
   if (hx.killLuck && S.rng.misc() < hx.killLuck.p) { r *= hx.killLuck.mul; S.heroState.flags.kl = (S.heroState.flags.kl || 0) + 1; const q = trackPoint(m.d); pop(q.x, q.y - 8, `대박 +${Math.max(1, Math.round(r))}`, 0.9, "#e0a000", 14); }
@@ -453,7 +463,7 @@ function update(dt) {
     if (S.nextT >= 0) { if ((S.nextT -= dt) <= 0) startRound(); }
     else if (S.bossT <= 0) { gameOver(false); return; }
     else if (S.bossT <= 10 && Math.floor(S.bossT + dt) !== Math.floor(S.bossT)) sfx("tick");
-  } else if (S.roundT >= info.time) startRound();
+  } else if (S.roundT >= info.time && S.round < CONST.ROUNDS) startRound();
   if (S.over) return;
   const cur = S.info;
   if (S.queue > 0 && (S.spawnT -= dt) <= 0) { spawn(); S.queue--; S.spawnT += cur.gap; }

@@ -30,6 +30,15 @@ const rpcImpl = {
     if (nameTaken(a.p_name, a.p_device)) return [{ o_status: "name_taken", o_name: p.name }];
     p.name = a.p_name; p.chg = a.p_now; return [{ o_status: "ok", o_name: p.name, o_next: nxt }];
   },
+  player_link: (a) => { // 003_accounts.sql 의 player_link 와 같은 규칙
+    const p = players.get(a.p_device); if (!p) return [{ o_status: "no_player" }];
+    if (p.user === a.p_user) return [{ o_status: "already", o_device: a.p_device, o_name: p.name }];
+    if (p.user) return [{ o_status: "device_linked_other" }];
+    const up = [...players].find(([, x]) => x.user === a.p_user);
+    if (up) return [{ o_status: "user_has_player", o_device: up[0], o_name: up[1].name }];
+    p.user = a.p_user; p.knick = a.p_nick; return [{ o_status: "ok", o_device: a.p_device, o_name: p.name }];
+  },
+  player_get_by_user: (a) => { const up = [...players].find(([, x]) => x.user === a.p_user); return up ? [{ o_device: up[0], o_name: up[1].name }] : []; },
   player_get: (a) => { const p = players.get(a.p_device); return p ? [{ o_name: p.name }] : []; },
   player_profile: (a) => {
     const p = players.get(a.p_device); if (!p) return { exists: false };
@@ -55,8 +64,13 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, init) => {
   if (String(url).startsWith("http://x/rest/v1/rpc/")) { const fn = String(url).split("/").pop(), args = JSON.parse(init.body); rpcCalls.push([fn, args]);
     return new Response(JSON.stringify(rpcImpl[fn](args)), { status: 200 }); }
+  if (String(url) === "http://x/auth/v1/user") { // Supabase Auth 모킹: 토큰 "a.b.c" 형태, 끝 글자로 사용자 구분
+    const tok = String(init.headers.Authorization || "").replace(/^Bearer /, ""), id = USERS[tok];
+    return id ? new Response(JSON.stringify({ id, user_metadata: { name: "카톡닉" } }), { status: 200 }) : new Response("{}", { status: 401 });
+  }
   return realFetch(url, init);
 };
+const USERS = { "h.u1.s": "a0000000-0000-4000-8000-000000000001", "h.u2.s": "a0000000-0000-4000-8000-000000000002" };
 const setNow = (kstDay, hh = 12) => { globalThis.__NOW__ = Date.parse(`${kstDay}T${String(hh).padStart(2, "0")}:00:00+09:00`); };
 setNow("2026-10-27");
 await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/index.ts")).href);
@@ -156,6 +170,24 @@ tb("순위/총 인원 반환", rankOk);
 setNow("2026-10-27");
 const nBoard = board(1).filter((x) => x.device === dB).length;
 tb("시즌 랭킹에는 플레이어당 1건", nBoard === 1);
+
+// ---- 카카오 계정 연결 (me / link) ----
+const callA = async (o, tok) => { const r = await handler(new Request("http://f/", { method: "POST", headers: tok ? { authorization: "Bearer " + tok } : {}, body: JSON.stringify(o) })); const j = await r.json(); return [r.status, j.error || "ok", j]; };
+const LA = "523e4567-e89b-12d3-a456-426614174000", LB = "623e4567-e89b-12d3-a456-426614174000", LC = "723e4567-e89b-12d3-a456-426614174000";
+await post({ action: "register", device_id: LA, name: "연결갑" }); await post({ action: "register", device_id: LB, name: "연결을" }); await post({ action: "register", device_id: LC, name: "연결병" });
+t("link: JWT 없음 -> 401", (await callA({ action: "link", device_id: LA }, null)).slice(0, 2), [401, "unauthorized"]);
+t("link: 잘못된 JWT -> 401", (await callA({ action: "link", device_id: LA }, "bad.tok.en")).slice(0, 2), [401, "unauthorized"]);
+t("link: JWT 형식 아님 -> 401", (await callA({ action: "link", device_id: LA }, "nodots")).slice(0, 2), [401, "unauthorized"]);
+t("me: JWT 없음 -> 401", (await callA({ action: "me", device_id: LA }, null)).slice(0, 2), [401, "unauthorized"]);
+t("me: 연결 전 -> account_player null", [(await callA({ action: "me", device_id: LA }, "h.u1.s"))[2].account_player], [null]);
+{ const r = await callA({ action: "link", device_id: LA }, "h.u1.s"); tb("link: 정상 연결", r[0] === 200 && r[2].linked === true && r[2].account_player.device_id === LA); }
+{ const r = await callA({ action: "link", device_id: LA }, "h.u1.s"); tb("link: 같은 계정에 다시 -> 멱등(linked false)", r[0] === 200 && r[2].linked === false && r[2].account_player.device_id === LA); }
+t("link: 이미 다른 계정에 연결된 기기 -> 409", (await callA({ action: "link", device_id: LA }, "h.u2.s")).slice(0, 2), [409, "device_linked_other"]);
+{ const r = await callA({ action: "link", device_id: LB }, "h.u1.s"); tb("link: 계정에 이미 player 있음 -> 기존 player 반환(병합 안 함)", r[0] === 200 && r[2].linked === false && r[2].account_player.device_id === LA && players.get(LB).user === undefined); }
+{ const r = await callA({ action: "me", device_id: LB }, "h.u1.s"); tb("me: 새 기기에서 계정 player 조회", r[0] === 200 && r[2].account_player.device_id === LA && r[2].account_player.name === "연결갑"); }
+t("link: player 없는 기기 -> 404", (await callA({ action: "link", device_id: "823e4567-e89b-12d3-a456-426614174000" }, "h.u2.s")).slice(0, 2), [404, "no_player"]);
+tb("link: 익명 submit 은 계속 허용(JWT 불필요)", (await call({ ...base, device_id: LC })) [0] !== 401);
+tb("link: 카카오 닉네임 저장 호출", rpcCalls.some((c) => c[0] === "player_link" && c[1].p_nick === "카톡닉"));
 
 rateOk = false; t("rate limit", await post(base), [429, "rate_limited"]);
 t("rate limit(닉네임)", await post({ action: "register", device_id: dev3, name: "가나다" }), [429, "rate_limited"]); rateOk = true;

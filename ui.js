@@ -391,7 +391,7 @@ function uiBanner(txt, kind = "info") {
 }
 // 뽑기 직후 호출(선택): game.js 가 uiDrew(idx) 를 부르면 형식 로그 + 등급 연출
 function uiDrew(idx) {
-  const c = CHARS[idx], g = c.grade, p = gradeProbs(S && S.hero)[g];
+  const c = CHARS[idx], g = c.grade, p = gradeProbs(S && S.hero, S && S.rules)[g];
   const lv = S ? clanLevel(S, c.clan) : 0;
   uiLog(`${pct(p)}%의 확률로 [${gname(g)}] ${c.name}이(가) 나왔어요! ${CLANS[c.clan].ico}Lv${lv}`, GCOL(g));
   if (g >= 4) { sfx("drawHi"); vib(g >= 6 ? [80, 40, 80, 40, 200] : 80); }
@@ -542,7 +542,7 @@ function paintPortraits(root, px) {
   });
 }
 function showProb() {
-  const probs = gradeProbs(S && S.hero), lucky = S && S.hero && S.hero.fx.probMod === "lucky";
+  const probs = gradeProbs(S && S.hero, S && S.rules), lucky = S && S.hero && S.hero.fx.probMod === "lucky";
   const rows = GRADES.map((g, i) => {
     const mod = lucky && g.luckyProb !== g.prob ? ` <small>(기본 ${pct(g.prob)})</small>` : "";
     const ports = [0, 1, 2, 3].map((k) => `<canvas data-i="${i * 4 + k}" width="52" height="52" title="${esc(CHARS[i * 4 + k].name)}"></canvas>`).join("");
@@ -635,6 +635,7 @@ const nf = (n) => Number(n).toLocaleString("en-US");
 const myName = () => lsGet(NAME_KEY, "");
 const NAME_ERR_MSG = { len: "2~10자로 정해 주세요", chars: "한글·영문·숫자·공백(_ . - 포함)만 쓸 수 있어요", bad: "쓸 수 없는 단어가 들어 있어요" };
 const SRV_ERR_MSG = { name_taken: "이미 쓰는 사람이 있는 닉네임이에요 😢", bad_name_len: NAME_ERR_MSG.len, bad_name_chars: NAME_ERR_MSG.chars, bad_name: NAME_ERR_MSG.bad,
+  unauthorized: "로그인이 만료됐어요. 다시 로그인해 주세요", device_linked_other: "이 기기의 기록은 이미 다른 카카오 계정에 연결돼 있어요", no_player: "먼저 닉네임을 정하고 한 판 해 주세요",
   rate_limited: "너무 빨라요! 잠시 뒤에 다시 해 주세요", server_error: "서버가 잠깐 아파요. 다시 해 주세요", rename_cooldown: "오늘은 이미 바꿨어요. 내일 0시(한국 시간) 이후에 바꿀 수 있어요" };
 function deviceId() {
   let id = lsGet(DEV_KEY, "");
@@ -650,7 +651,9 @@ const qSet = (q) => lsSet(QUEUE_KEY, JSON.stringify(q.slice(-QUEUE_MAX)));
 // Edge Function 호출. 반환 {st: HTTP 상태(네트워크 실패=0), d: 응답 JSON}
 async function api(action, body = {}) {
   try {
-    const r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/submit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, device_id: deviceId(), ...body }) });
+    const headers = { "Content-Type": "application/json" };
+    if (action === "link" || action === "me") { const t = window.AUTH && await AUTH.token(); if (!t) return { st: 401, d: { error: "unauthorized" } }; headers.Authorization = "Bearer " + t; } // 계정 액션만 JWT 를 보낸다
+    const r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/submit-score", { method: "POST", headers, body: JSON.stringify({ action, device_id: deviceId(), ...body }) });
     let d = {}; try { d = await r.json(); } catch {}
     return { st: r.status, d };
   } catch { return { st: 0, d: {} }; }
@@ -663,6 +666,48 @@ async function ensureRegistered() {
   if (r.st === 409) return "taken";
   if (r.st === 400) return "bad";
   return "offline";
+}
+// ---- 카카오 계정 연결 (게스트 우선: 로그인은 선택). 흐름은 docs/소셜_기획안.md §2 ①② ----
+const LINK_NO = "malang-link-no"; // "1": 연결 제안을 거절함(프로필에서 직접 연결 가능)
+const kakaoOn = () => !!(window.AUTH && AUTH.enabled());
+const kakaoNick = () => (window.AUTH && AUTH.user() ? AUTH.user().nick : "");
+const okModal = (h, p) => { modal(`<h2>${h}</h2><p style="font-size:13px;line-height:1.45">${p}</p><button class="wide" id="lkOk">확인</button>`); $("lkOk").onclick = closeModal; };
+function adoptPlayer(p) { // 계정에 연결된 player 를 이 기기에서 쓴다 (기기 로컬 player 는 병합하지 않는다)
+  lsSet(DEV_KEY, p.device_id); lsSet(NAME_KEY, p.name); lsSet(NAME_OK, "1"); qSet([]);
+}
+async function doLink(back) { // 현재 기기 player 를 계정에 연결
+  const r = await api("link");
+  if (r.st === 200 && r.d.ok) {
+    const ap = r.d.account_player;
+    if (ap && ap.device_id !== deviceId()) { adoptPlayer(ap); refreshTitle(); okModal("💛 계정 연결됨", `이미 계정에 있던 <b>${esc(ap.name)}</b> 기록을 불러왔어요.<br>이 기기의 예전 기록은 합치지 않고 그대로 두었어요.`); return; }
+    lsSet(LINK_NO, ""); refreshTitle(); if (back) back(); else closeModal(); return;
+  }
+  sfx("deny");
+  okModal("💛 연결하지 못했어요", esc(r.st === 0 ? "연결이 안 돼요. 인터넷을 확인해 주세요" : SRV_ERR_MSG[r.d.error] || "잠시 뒤에 다시 해 주세요"));
+}
+async function offerLink(back) { // "이 기기의 기록 N건을 계정에 연결할까요?"
+  const pr = await api("profile"), n = pr.st === 200 && pr.d.profile && pr.d.profile.exists ? pr.d.profile.plays || 0 : 0;
+  modal(`<h2>💛 기록을 계정에 연결할까요?</h2><p style="font-size:13px;line-height:1.45">이 기기의 기록 <b>${n}건</b>(<b>${esc(myName())}</b>)을 카카오 계정${kakaoNick() ? " <b>" + esc(kakaoNick()) + "</b>" : ""}에 연결해요.<br>기기를 바꿔도 로그인하면 기록을 이어 쓸 수 있어요.</p><button class="wide" id="lkYes">연결하기</button><button class="wide mini" id="lkNo" ${BTNR}>나중에</button>`);
+  $("lkYes").onclick = () => { $("lkYes").disabled = true; doLink(back); };
+  $("lkNo").onclick = () => { lsSet(LINK_NO, "1"); if (back) back(); else closeModal(); };
+}
+// 로그인 상태에서 계정과 이 기기를 맞춘다. 앱 시작 시 한 번(로그인 복귀 직후 포함).
+async function syncAccount() {
+  if (!remote() || !window.AUTH) return;
+  if (AUTH.error) { const e = AUTH.error; AUTH.error = ""; okModal("로그인하지 못했어요", `카카오 로그인이 취소되었거나 실패했어요.<br>계정 없이도 그대로 플레이할 수 있어요.<br><small>${esc(e).slice(0, 80)}</small>`); return; }
+  if (!AUTH.signedIn()) return;
+  const r = await api("me");
+  if (r.st === 401) { AUTH.clear(); refreshTitle(); return; }
+  if (r.st !== 200) return;
+  const ap = r.d.account_player;
+  if (ap) {
+    if (ap.device_id === deviceId()) return;
+    const had = !!myName();
+    adoptPlayer(ap); refreshTitle();
+    okModal("💛 계정 불러옴", `카카오 계정의 <b>${esc(ap.name)}</b> 기록을 이 기기에서 쓰도록 바꿨어요.${had ? "<br>이 기기에 있던 예전 닉네임·기록은 합치지 않고 그대로 남겨 두었어요." : ""}`);
+    return;
+  }
+  if (lsGet(NAME_OK, "") === "1" && (AUTH.fresh || lsGet(LINK_NO, "") !== "1")) offerLink();
 }
 let FLUSHING = false;
 // 반환 st: "ok"(저장/이미 더 높은 기록) | "drop"(서버가 거부: 재전송해도 소용없음) | "retry"(네트워크/서버 오류, 큐 유지)
@@ -758,16 +803,18 @@ async function finishRank(P) {
   try { r = await submitScore(P); } catch { r = { st: "drop", d: {} }; }
   const b2 = $("rk"); if (!b2) return; // 그 사이 화면이 바뀜
   const o = rankResultHtml(r, P);
-  b2.innerHTML = o.html || "";
+  b2.innerHTML = (o.html || "") + (kakaoOn() && !AUTH.signedIn() && r.st !== "local" ? `<button class="wide mini" id="rkKk" ${BTNR}>💛 카카오로 기록 지키기</button>` : "");
+  if ($("rkKk")) $("rkKk").onclick = () => AUTH.login();
   if (o.cheer) { b2.classList.add("cheer"); sfx("reso"); vib([60, 40, 120]); }
   refreshTitle();
 }
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
 function showNick(msg) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
-  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요.<br>한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>`);
+  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요.<br>한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkImp").onclick = () => showImport(() => showNick());
+  if ($("nkKk")) $("nkKk").onclick = () => AUTH.login();
   $("nkOk").onclick = async () => {
     const c = checkName($("nk").value);
     if (!c.ok) { say(NAME_ERR_MSG[c.err]); sfx("deny"); return; }
@@ -821,6 +868,11 @@ function showImport(back) {
     say(r.st === 404 ? "그 코드의 계정을 찾지 못했어요" : r.st === 0 ? "연결이 안 돼요. 인터넷을 확인해 주세요" : SRV_ERR_MSG[r.d.error] || "불러오지 못했어요 😢");
   };
 }
+function kakaoBox() { // 프로필의 카카오 계정 영역 (게스트 우선: 연결은 선택)
+  if (!window.AUTH) return "";
+  if (AUTH.signedIn()) return `<div class="sc2" style="text-align:center">💛 카카오 연결됨${kakaoNick() ? " · " + esc(kakaoNick()) : ""}</div>${myName() && lsGet(NAME_OK, "") === "1" ? `<button class="wide mini" id="pfLink" ${BTNR}>🔗 이 기기 기록 계정에 연결</button>` : ""}<button class="wide mini" id="pfOut" ${BTNR}>로그아웃</button>`;
+  return kakaoOn() ? `<button class="wide mini" id="pfKk" ${BTNR}>💛 카카오로 계정 연결</button>` : `<button class="wide mini" disabled ${BTNR}>💛 카카오 계정 연결 (준비 중)</button>`;
+}
 async function showProfile(back) {
   const close = back || closeModal;
   modal(`<h2>👤 내 프로필</h2><p>불러오는 중…</p>`);
@@ -840,10 +892,13 @@ async function showProfile(back) {
   const stats = `<div class="sc2">${row("시즌 최고점", st.best != null ? nf(st.best) + "점" : "-")}${row("시즌 순위", st.rank != null ? `${st.rank}위 / ${st.total}명` : "-")}${row("이번 시즌 기록", (st.days || 0) + "일")}${row("누적 판수", (st.plays || 0) + "판")}${row("전체 최고점", st.all ? nf(st.all) + "점" : "-")}</div>`;
   modal(`<h2>👤 내 프로필</h2><div class="score" style="font-size:30px">${nm ? esc(nm) : "(닉네임 없음)"}</div>${remote() && !pf && nm ? "<small>서버에 연결하지 못해 이 기기 기록만 보여요</small>" : ""}
     <button class="wide mini" id="pfRen" ${can ? "" : "disabled"} ${BTNR}>✏️ 닉네임 바꾸기</button>${can ? "" : `<small>${SRV_ERR_MSG.rename_cooldown}</small>`}
-    ${stats}<button class="wide mini" id="pfShow" ${BTNR}>🔑 이전 코드 보기</button>
+    ${kakaoBox()}${stats}<button class="wide mini" id="pfShow" ${BTNR}>🔑 이전 코드 보기</button>
     <div id="pfCode" style="display:none"><div class="codebox">${deviceId()}</div><small style="color:#d4182e">⚠ 이 코드를 아는 사람은 내 기록과 닉네임을 그대로 쓸 수 있어요.<br>다른 사람에게 보여주거나 올리지 마세요!</small><button class="wide mini" id="pfCopy" ${BTNR}>📋 복사</button></div>
     <button class="wide mini" id="pfImp" ${BTNR}>📥 다른 기기에서 불러오기</button><button class="wide" id="pfClose">닫기</button>`);
   $("pfClose").onclick = close;
+  if ($("pfKk")) $("pfKk").onclick = () => AUTH.login();
+  if ($("pfLink")) $("pfLink").onclick = () => offerLink(() => showProfile(back));
+  if ($("pfOut")) $("pfOut").onclick = async () => { await AUTH.logout(); refreshTitle(); showProfile(back); };
   $("pfRen").onclick = () => { if (can) showRename(back); };
   $("pfImp").onclick = () => showImport(() => showProfile(back));
   $("pfShow").onclick = () => { $("pfCode").style.display = "block"; $("pfShow").style.display = "none"; };
@@ -945,7 +1000,7 @@ function renderSeasonBox() {
   const ph = phaseNow(), s = ph.season, nm = myName(), live = ph.phase === "live";
   let top = SEA.top, pf = SEA.pf;
   if (!remote() && live) { const b = localBoard(s); top = b[0] || null; const me = b.find((x) => x.name === nm); pf = me ? { season_best: me.score, season_rank: me.rank } : null; }
-  const chip = `<span class="pchip" id="profBtn">👤 ${nm ? esc(nm) : "닉네임"}</span>`;
+  const chip = `<span class="pchip" id="profBtn">👤 ${nm ? esc(nm) : "닉네임"}${window.AUTH && AUTH.signedIn() ? " 💛" : ""}</span>`;
   let l1, l2 = "", l3 = "", sprint = false;
   if (live) {
     const left = seasonLeft(s); sprint = left <= 2;
@@ -1076,6 +1131,6 @@ function bindUi() {
   };
   $("clanChips").onclick = (e) => { if (e.target.closest(".rp")) { showReso(); return; } if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
-  setupTitle(); renderSeasonBox(); refreshTitle(); initPlayer();
+  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer);
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);

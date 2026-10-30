@@ -1,9 +1,10 @@
 // 말랑 운빨 디펜스 - 점수 제출 Edge Function (Deno).
 // 배포: supabase functions deploy submit-score --no-verify-jwt
-// action: submit(기본) | register | rename | profile | import. 모든 쓰기는 이 함수(service_role)만 한다.
+// action: submit(기본) | register | rename | profile | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
 import { replay, validateInputs, ENGINE_VER } from "./replay.js";
+import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -42,6 +43,19 @@ async function rpc(fn: string, args: Record<string, unknown>) {
   return r.json();
 }
 
+// Authorization: Bearer <JWT> 를 Supabase Auth(/auth/v1/user)에 물어 검증한다(서명 검증을 GoTrue 에 맡겨 비밀키를 다루지 않는다). 없거나 무효면 null.
+export async function getUser(req: Request): Promise<{ id: string; nick: string } | null> {
+  const m = /^Bearer\s+(\S+)$/i.exec(req.headers.get("authorization") ?? "");
+  if (!m || m[1].split(".").length !== 3) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? SERVICE_KEY, Authorization: `Bearer ${m[1]}` } });
+    if (!r.ok) return null;
+    const u = await r.json(); const md = u?.user_metadata ?? {};
+    if (typeof u?.id !== "string" || !UUID_RE.test(u.id)) return null;
+    return { id: u.id.toLowerCase(), nick: String(md.name ?? md.nickname ?? md.full_name ?? md.preferred_username ?? "").slice(0, 40) };
+  } catch { return null; }
+}
+
 const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -62,7 +76,8 @@ Deno.serve(async (req: Request) => {
   if (!b || typeof b !== "object") return fail(400, "bad_body");
 
   const action = b.action ?? "submit";
-  if (!["submit", "register", "rename", "profile", "import"].includes(action)) return fail(400, "bad_action");
+  if (typeof action === "string" && action.startsWith("ps")) return handlePrivate(req, b); // 프라이빗 시즌: JWT 인증, device_id 불필요
+  if (!["submit", "register", "rename", "profile", "import", "me", "link"].includes(action)) return fail(400, "bad_action");
   const { device_id } = b;
   if (typeof device_id !== "string" || !UUID_RE.test(device_id)) return fail(400, "bad_device");
   const dev = device_id.toLowerCase();
@@ -103,6 +118,7 @@ Deno.serve(async (req: Request) => {
   const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "?").split(",")[0].trim();
   const lim = action === "submit" ? { p_kind: "submit" }
     : action === "profile" ? { p_kind: "read", p_ip_max: 40, p_dev_max: 20 }
+    : action === "me" || action === "link" ? { p_kind: "name", p_ip_max: 20, p_dev_max: 10 }
     : action === "import" ? { p_kind: "import", p_ip_max: 6, p_dev_max: 6 }
     : { p_kind: "name", p_ip_max: 6, p_dev_max: 4 };
   try {
@@ -110,7 +126,24 @@ Deno.serve(async (req: Request) => {
     if (okRate === false) return fail(429, "rate_limited");
   } catch (e) { console.error("rate", e); return fail(500, "server_error"); }
 
+  let user: { id: string; nick: string } | null = null;
+  if (action === "me" || action === "link") {
+    user = await getUser(req);
+    if (!user) return fail(401, "unauthorized");
+  }
   try {
+    if (action === "me") {
+      const row = firstRow(await rpc("player_get_by_user", { p_user: user!.id }));
+      return json(200, { ok: true, account_player: row?.o_device ? { device_id: row.o_device, name: row.o_name } : null });
+    }
+    if (action === "link") {
+      const row = firstRow(await rpc("player_link", { p_device: dev, p_user: user!.id, p_nick: user!.nick }));
+      const st = row?.o_status;
+      if (st === "no_player") return fail(404, "no_player");
+      if (st === "device_linked_other") return fail(409, "device_linked_other");
+      if (st === "user_has_player") return json(200, { ok: true, linked: false, account_player: { device_id: row.o_device, name: row.o_name } });
+      return json(200, { ok: true, linked: st === "ok", account_player: { device_id: row.o_device, name: row.o_name } });
+    }
     if (action === "register") {
       const row = firstRow(await rpc("player_register", { p_device: dev, p_name: name }));
       if (row?.o_status === "name_taken") return fail(409, "name_taken");

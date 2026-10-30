@@ -154,7 +154,7 @@ const CHAPTERS = [
 
 const CONST = {
  W: 360, H: 400, DT: 1 / 60,
- ROUNDS: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
+ ROUNDS: 50, ROUNDS_BASE: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
  DRAW_COST: 15, START_MIN: 50, KILL_REWARD: 2, BOSS_REWARD: 50,
  SLOTS: 20, COLS: 4, ROWS: 5, STACK_MAX: 12,
  MOB_LOSE: 160, MOB_WARN: [130, 145],
@@ -199,6 +199,51 @@ function checkName(raw, extraBad) {
 }
 // SEASONS-END
 
+// RULES-BEGIN
+// ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
+// 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
+const RULE_SPEC = {
+ rounds: ["int", 50, 200], hpMul: ["num", 0.7, 2.5], mobSpeed: ["num", 0.8, 1.5], mobCount: ["num", 0.8, 1.6], bossTime: ["num", -10, 15],
+ noGrade: ["int", 0, 2], gradeCap: ["int", 4, 6], drawLimit: ["int", 60, 300], noSell: ["bool"], clanBan: ["clans"], heroPool: ["heroes"],
+ startMin: ["int", 0, 200], killReward: ["num", 0.5, 2], drawCost: ["int", 10, 25], luckyWeek: ["bool"],
+};
+function validateRules(rules) {
+ if (rules == null || typeof rules !== "object" || Array.isArray(rules)) return { ok: false, err: "rules 형식 오류" };
+ const out = {};
+ for (const k of Object.keys(rules).sort()) {
+  const sp = RULE_SPEC[k], v = rules[k];
+  if (!sp) return { ok: false, err: "알 수 없는 규칙: " + k };
+  if (sp[0] === "int" || sp[0] === "num") {
+   if (typeof v !== "number" || !isFinite(v) || (sp[0] === "int" && !Number.isInteger(v)) || v < sp[1] || v > sp[2]) return { ok: false, err: "범위 오류: " + k };
+   if (k === "noGrade" && v === 0) continue;
+   out[k] = v;
+  } else if (sp[0] === "bool") {
+   if (v !== true && v !== false && v !== 0 && v !== 1) return { ok: false, err: "형식 오류: " + k };
+   if (v) out[k] = true;
+  } else if (sp[0] === "clans") {
+   if (!Array.isArray(v) || v.length > 2 || v.some((c) => !Number.isInteger(c) || c < 0 || c > 3)) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort((a, b) => a - b);
+   if (u.length) out[k] = u;
+  } else {
+   if (!Array.isArray(v) || v.length > HEROES.length || v.some((h) => typeof h !== "string" || !HEROES.some((x) => x.id === h))) return { ok: false, err: "형식 오류: " + k };
+   const u = Array.from(new Set(v)).sort();
+   if (u.length) out[k] = u;
+  }
+ }
+ if (Object.keys(out).filter((k) => k !== "rounds").length > 3) return { ok: false, err: "모디파이어는 최대 3개" };
+ return { ok: true, rules: out };
+}
+// 키를 정렬한 JSON 문자열의 안정적 해시(FNV-1a 32비트 x2 -> 16자리 16진수, 순수 JS)
+function rulesHash(rules) {
+ const norm = (v) => Array.isArray(v) ? v.map(norm) : v && typeof v === "object" ? Object.keys(v).sort().reduce((o, k) => ((o[k] = norm(v[k])), o), {}) : v;
+ const str = JSON.stringify(norm(rules || {}));
+ let a = 0x811c9dc5, b = 0x9747b28c;
+ for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); a = Math.imul(a ^ c, 0x01000193) >>> 0; b = Math.imul(b ^ c, 0x85ebca6b) >>> 0; b = (b ^ (b >>> 13)) >>> 0; }
+ const h = (n) => ("00000000" + n.toString(16)).slice(-8);
+ return h(a) + h(b);
+}
+// RULES-END
+
 // ---------- 순수 헬퍼 ----------
 function mulberry32(seed) {
  let a = seed >>> 0;
@@ -223,33 +268,56 @@ function makeRngs(seed) {
   misc: mulberry32((seed ^ 0x3C3C3C3C) >>> 0),
  };
 }
-function heroOfDay(rngHero) {
+function heroOfDay(rngHero, pool) {
+ if (pool && pool.length) { // 규칙 heroPool: 풀 안에서 확률 비례(원래 확률 가중) 선택, 난수 1회 소비는 동일
+  const hs = HEROES.filter((h) => pool.indexOf(h.id) >= 0), tot = hs.reduce((a, h) => a + h.prob, 0);
+  let y = rngHero() * tot;
+  for (const h of hs) { y -= h.prob; if (y < 0) return h; }
+  return hs[hs.length - 1];
+ }
  let x = rngHero() * 100;
  for (let i = 0; i < HEROES.length; i++) { x -= HEROES[i].prob; if (x < 0) return HEROES[i]; }
  return HEROES[0];
 }
-function gradeProbs(hero) {
- const lucky = !!(hero && hero.fx && hero.fx.probMod === "lucky");
- return GRADES.map(g => lucky ? g.luckyProb : g.prob);
+function gradeProbs(hero, rules) {
+ const lucky = !!(hero && hero.fx && hero.fx.probMod === "lucky") || !!(rules && rules.luckyWeek);
+ const p = GRADES.map(g => lucky ? g.luckyProb : g.prob);
+ const ng = rules && rules.noGrade;
+ if (ng) { // 가장 낮은 등급 N개 제외, 확률은 남은 등급에 비례 재분배(합 100)
+  let t = 0;
+  for (let i = 0; i < p.length; i++) { if (i < ng) p[i] = 0; t += p[i]; }
+  for (let i = 0; i < p.length; i++) p[i] = p[i] * 100 / t;
+ }
+ return p;
 }
 function rollGrade(r, probs) {
  let x = r() * 100;
  for (let g = 0; g < probs.length; g++) { x -= probs[g]; if (x < 0) return g; }
  return 0;
 }
-function rollChar(r, grade) { return grade * 4 + Math.floor(r() * 4); }
-function mergeResult(r, grade) { return (grade + 1) * 4 + Math.floor(r() * 4); }
-function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((Math.min(r, K.ROUNDS) - 1) / (K.ROUNDS - 1), K.HP_POW); }
+function pickClan(r, ban) { // 규칙 clanBan: 금지 무리를 뺀 목록에서 같은 횟수(1회)의 난수로 선택
+ if (!ban || !ban.length) return Math.floor(r() * 4);
+ const ok = [0, 1, 2, 3].filter((c) => ban.indexOf(c) < 0);
+ return ok[Math.floor(r() * ok.length)];
+}
+function rollChar(r, grade, ban) { return grade * 4 + pickClan(r, ban); }
+function mergeResult(r, grade, ban) { return (grade + 1) * 4 + pickClan(r, ban); }
+function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((r - 1) / (K.ROUNDS_BASE - 1), K.HP_POW); } // 50 초과는 같은 거듭제곱 곡선 연장
 let UP_MUL = 1; // 히어로(대장장이 두루미)의 강화 비용 배율. newGame 이 설정
 function upgradeCost(bought) { const c = CONST.UP_COST0 + CONST.UP_COSTK * bought; return UP_MUL === 1 ? c : Math.round(c * UP_MUL); }
 function dmgMul(lv) { return 1 + CONST.UP_STEP * lv; }
 function armorFactor(armorPct, pierce) { return 1 - (armorPct / 100) * (1 - (pierce || 0)); }
 function charAt(grade, clan) { return CHARS[grade * 4 + clan]; }
-function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : -1; }
+function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : (round > CONST.ROUNDS_BASE && round % 10 === 0 ? CONST.TICKET_GRADE[CONST.ROUNDS_BASE] : -1); } // 50 초과 보스는 마지막 값 유지
 function roundInfo(r) {
- const row = ROUNDS[Math.max(1, Math.min(CONST.ROUNDS, r)) - 1];
- return { r: row[0], ch: row[1], name: row[2], kind: row[3], hue: row[4], hp: row[5], armor: row[6],
-  n: row[7], gap: row[8], speed: row[9], time: row[10], rew: row[11] == null ? 1 : row[11], boss: row[0] % 5 === 0 };
+ const B = CONST.ROUNDS_BASE;
+ let row = ROUNDS[Math.max(1, Math.min(B, r)) - 1], boss = row[0] % 5 === 0;
+ if (r > B) { // 확장 라운드: 10라운드마다 보스(후반 보스 표 50/40/30 순환), 나머지는 마지막 챕터 일반 몹 순환
+  boss = r % 10 === 0;
+  row = boss ? ROUNDS[[49, 39, 29][(r / 10 - B / 10 - 1) % 3]] : ROUNDS[B - 5 + ((r - B - 1) % 4)];
+ }
+ return { r: r > B ? r : row[0], ch: row[1], name: row[2], kind: row[3], hue: row[4], hp: row[5], armor: row[6],
+  n: row[7], gap: row[8], speed: row[9], time: row[10], rew: row[11] == null ? 1 : row[11], boss };
 }
 // 표시 Lv = 구매 + 보너스 (상한 UP_LV_CAP). 공명 보너스는 포함하지 않음(game.js 가 bonus 에 반영하거나 별도 가산).
 function clanLevel(S, c) {
