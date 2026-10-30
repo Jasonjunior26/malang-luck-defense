@@ -29,6 +29,12 @@
   .chip.gold { flex:1.1; background:linear-gradient(#fff6c9,#ffe28a); } .chip.gold b { color:#a55a00; font-size:20px; }
   #hud { gap:5px; } .chip { padding:4px 7px; gap:4px; } .chip .ico { font-size:18px; } .chip b { font-size:15px; } .chip.gold b { font-size:17px; }
   #cWave { flex:1.5; } .chip.score { flex:1.1; background:linear-gradient(#f3ecff,#dccbff); } .chip.score b { color:#5a3aa8; font-size:17px; } .chip.urgent small#hCh { color:#d4182e; }
+  /* HUD 숫자 넘침 방지: 내용 기준 폭 + 축소 허용, 숫자 고정폭, 한 줄 */
+  #hud { gap:3px; } .chip { flex:1 1 auto; padding:3px 5px; gap:3px; overflow:hidden; border-width:2px; } .chip .ico { font-size:14px; flex:none; } .chip.score .ico { display:none; } #cWave, #cMob, .chip.gold { flex:1 1 auto; }
+  .chip b, .chip small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; min-width:0; }
+  .chip b, .chip.score b, .chip.gold b { font-size:clamp(10.5px,3.3vw,12.5px); } .chip.gold b { flex:1; } #cWave b { font-size:clamp(10px,3.2vw,11.5px); }
+  #hCh { font-size:clamp(9.5px,3vw,11px) !important; }
+  @media (max-width:340px) { .chip .ico { font-size:12px; } .chip { padding:3px 4px; gap:2px; } }
   .chip.bump b { animation:bump .25s; } @keyframes bump { 50% { transform:scale(1.25); color:#e0558a; } }
   .bar { display:block; height:7px; border-radius:5px; background:#0001; overflow:hidden; margin-top:3px; }
   .bar u { display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg,#7cc4ff,#4a9be0); text-decoration:none; transition:width .2s; }
@@ -96,8 +102,8 @@
   #vig { position:fixed; inset:0; pointer-events:none; z-index:5; opacity:0; transition:opacity .4s; box-shadow:inset 0 0 90px 24px #ff1f3f; } #vig.on { opacity:.55; animation:vig .6s infinite alternate; } @keyframes vig { to { opacity:.25; } }
   #heroCard { flex:1.35; } #heroChip { display:inline-block; margin-top:2px; font-size:11px; background:#fff0a8; border-radius:9px; padding:0 7px; color:#a55a00; } #heroChip:empty { display:none; }
   #clanCard { flex:1; flex-direction:column; align-items:stretch; gap:3px; padding:4px 7px; }
-  #clanChips { display:flex; gap:3px; } .cc { flex:1; text-align:center; font-size:11px; line-height:1.15; border-radius:9px; background:#fff; border:2px solid var(--cc,#ddd); padding:1px 0; } .cc b { display:inline; font-size:13px; } .cc small { display:block; font-size:9px; opacity:.7; line-height:1.1; } .cc.buy { animation:ready .7s infinite alternate; } .cc.ut { background:#fff0a8; }
-  .cc .rp { display:block; font-size:9px; line-height:1.15; margin:1px 2px 0; border-radius:6px; background:#0000000f; color:#6b5a48; white-space:nowrap; } .cc .rp.on { background:var(--cc); color:#fff; font-weight:bold; text-shadow:0 1px 0 #0004; } .cc .rp.near { background:#fff0a8; color:#a55a00; }
+  #clanChips { display:flex; gap:3px; } .cc { flex:1; text-align:center; font-size:11px; line-height:1.15; border-radius:9px; background:#fff; border:2px solid var(--cc,#ddd); padding:1px 0; min-width:0; overflow:hidden; font-variant-numeric:tabular-nums; } .cc b { display:inline; font-size:13px; } .cc small { display:block; font-size:9px; opacity:.7; line-height:1.1; } .cc.buy { animation:ready .7s infinite alternate; } .cc.ut { background:#fff0a8; }
+  .cc .rp { display:block; font-size:9px; line-height:1.15; margin:1px 2px 0; border-radius:6px; background:#0000000f; color:#6b5a48; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .cc .rp.on { background:var(--cc); color:#fff; font-weight:bold; text-shadow:0 1px 0 #0004; } .cc .rp.near { background:#fff0a8; color:#a55a00; }
   .cc.rz { box-shadow:0 0 0 2px var(--cc) inset; } .cc.pulse { animation:rpulse .9s 2; } @keyframes rpulse { 50% { transform:scale(1.12); background:#fff0a8; } }
   .tk.q { animation:none; min-width:44px; text-align:center; margin-left:auto; border-color:#c9a56a; font-weight:bold; } #tickets:empty::after { margin-right:auto; }
   .rs { text-align:left; font-size:13px; line-height:1.4; } .rs p { margin:4px 0; } .rs table { width:100%; border-collapse:collapse; margin:6px 0; font-size:13px; } .rs td,.rs th { border:2px solid #f0cf8a; padding:3px 5px; text-align:center; background:#fff; } .rs .rc { display:flex; align-items:center; gap:6px; margin:4px 0; padding:4px 6px; border-radius:12px; background:#fff; border:3px solid var(--cc); } .rs .rc.on { background:#fff0a8; } .rs .rc small { opacity:.75; }
