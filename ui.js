@@ -410,7 +410,7 @@ function uiMerged(fromGrade, toIdx) {
 // ---------- HUD ----------
 const _txt = {};
 function setText(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).textContent = v; } }
-function setHtml(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).innerHTML = v; } }
+function setHtml(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).innerHTML = v; return true; } return false; }
 function setCls(id, cls, on) { const k = id + "." + cls; if (_txt[k] !== on) { _txt[k] = on; $(id).classList.toggle(cls, on); } }
 let _S = null, _hudFrame = 0, _lastRound = 0, _mobLv = 0, _lastSec = -1;
 // 공명 상태 추적(표시 전용): 발동/해제 순간 배너, 종류 수 증가 시 칩 강조, 단계 1종 전 힌트
@@ -421,7 +421,7 @@ function trackReso() {
   if (!prev) return;
   cur.forEach(([n, b], i) => {
     const [pn, pb] = prev[i], c = CLANS[i];
-    if (n > pn) { _resoPulse[i] = 1; setTimeout(() => { _resoPulse[i] = 0; delete _txt.clanChips; }, 1900); delete _txt.clanChips; }
+    if (n > pn) { _resoPulse[i] = 1; setTimeout(() => { _resoPulse[i] = 0; delete _txt.clanRows; }, 1900); delete _txt.clanRows; }
     if (b > pb) { uiBanner(`${c.ico} ${c.name} 공명 +${b}Lv!`, "epic"); vib(60); if (_resoSeen[i]) sfx("reso"); _resoSeen[i] = 1; }
     else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
     else if (n > pn && (n === 3 || n === 5)) uiLog(`${c.ico} ${c.name} ${n === 3 ? 4 : 6}종까지 1종 남음`, c.color);
@@ -466,7 +466,6 @@ function updateHud() {
   }
   const tl = boss ? left : Math.max(0, info.time - (S.roundT || 0)), ts = Math.ceil(tl);
   setText("hCh", `⏱ ${Math.floor(ts / 60)}:${String(ts % 60).padStart(2, "0")}${boss ? " 보스" : ""}`);
-  setText("hScore", String(S.score()));
   setText("wIco", boss ? "👹" : "🌊");
   // 보스 바
   const bm = boss ? S.mobs.find((m) => m.boss) : null;
@@ -477,12 +476,13 @@ function updateHud() {
     setText("bossHp", Math.ceil(Math.max(0, bm.hp)) + "/" + Math.ceil(bm.max));
     $("bossFill").style.width = Math.max(0, (bm.hp / bm.max) * 100) + "%";
   }
-  // 몹 수 게이지 (80/90 경고)
+  // 몹 수: 상한의 80% 이상이면 점수 칸이 👾 N/상한 경고로 바뀐다 (130/145 배너·소리는 그대로)
   const n = S.mobs.length, W80 = CONST.MOB_WARN[0], W90 = CONST.MOB_WARN[1];
-  setText("hMob", `${n}/${CONST.MOB_LOSE}`);
-  $("hMobBar").style.width = Math.min(100, (n / CONST.MOB_LOSE) * 100) + "%";
-  setCls("cMob", "warn80", n >= W80 && n < W90); setCls("cMob", "warn90", n >= W90);
-  setCls("hMobWrap", "hot", n >= W80);
+  const alarm = n >= Math.ceil(CONST.MOB_LOSE * 0.8) && !S.over;
+  setCls("cScore", "alarm", alarm);
+  setText("sIco", alarm ? "👾" : "🏆");
+  setText("hScore", alarm ? `${n}/${CONST.MOB_LOSE}` : String(S.score()));
+  setText("hScoreLbl", alarm ? "몬스터!" : "점수");
   setCls("vig", "on", n >= W90 && !S.over);
   const lv = n >= W90 ? 2 : n >= W80 ? 1 : 0;
   if (lv > _mobLv) { uiBanner(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, "warn"); uiLog(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, lv === 2 ? "#d4182e" : "#c98a00"); sfx(lv === 2 ? "warn2" : "warn"); vib(60); }
@@ -493,47 +493,50 @@ function updateHud() {
   setHtml("drawLbl", free ? "🎲 뽑기" : "자리가 없어요");
   setText("drawCost", "💎 " + CONST.DRAW_COST);
   const u = S.slots[S.sel], uc = u && !u.hero ? CHARS[u.ch] : null;
-  const sellable = !!uc && uc.grade < 7;
+  const sellable = !!uc && GRADES[uc.grade].sell > 0 && !S.rules.noSell;
+  setCls("sell", "on", !!uc);
   $("sell").disabled = !sellable || S.over;
-  setHtml("sell", `🪙<small>${sellable ? "판매 " + GRADES[uc.grade].sell : "판매"}</small>`);
+  setHtml("sell", sellable ? `판매 <small>💎${GRADES[uc.grade].sell}</small>` : "판매 불가");
   const mg = u && !S.over ? GAME.canMerge(S.sel) : { ok: false };
   $("merge").disabled = !mg.ok; setCls("merge", "ready", !!mg.ok);
   setHtml("merge", `🔀<small>${mg.ok ? "합성" : u && !u.hero && uc && uc.grade >= 6 ? "불가" : "합성"}</small>`);
   setHtml("spd", `⏩<small>x${S.speed}</small>`);
-  setHtml("info", infoText(u, mg));
-  // 칩들 (공업 / 선택권 / 히어로 진행)
-  const hs = S.heroState && S.heroState.progress;
-  setText("heroChip", hs || "");
-  setHtml("clanChips", CLANS.map((c, i) => {
-    const up = S.up[i], can = up.bought < CONST.UP_MAX && S.minerals >= upgradeCost(up.bought);
-    let cnt = 0; for (const sl of S.slots) if (sl && !sl.hero && CHARS[sl.ch].clan === i) cnt += sl.n;
-    const rn = resonanceCount(S.slots, i), rb = resonanceBonus(S.slots, i), nx = rn >= 6 ? 0 : rn >= 4 ? 6 : 4;
-    const rtxt = rb ? `공명+${rb}${nx ? " " + rn + "/" + nx : " MAX"}` : `공명 ${rn}/${nx}`;
-    return `<div class="cc${can ? " buy" : ""}${S.upTickets > 0 ? " ut" : ""}${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}" title="${c.name} 유닛 ${cnt}기 · 공업 Lv${clanLevel(S, i)} · ${rtxt}">${c.ico}<b>${cnt}</b><small>공업${clanLevel(S, i)}</small><span class="rp${rb ? " on" : nx && nx - rn === 1 ? " near" : ""}" data-reso="1">${rtxt}</span></div>`;
-  }).join(""));
+  setHtml("info", infoText(u));
+  const pk = uc ? uc.idx : S.hero ? S.hero.id : "";
+  if (_txt.infoPt !== pk) { _txt.infoPt = pk; try { if (pk !== "" && typeof drawPortrait === "function") drawPortrait($("infoPt"), pk, 84); else $("infoPt").getContext("2d").clearRect(0, 0, 84, 84); } catch {} }
+  // 무리 4줄 (공업 Lv · 공명 슬롯 · 강화 칩)
+  if (setHtml("clanRows", clanRowsHtml())) paintPortraits($("clanRows"), 44);
   trackReso();
-  const tk = {}; (S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
-  setHtml("tickets", Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="--tc:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join("") + (S.upTickets > 0 ? `<span class="tk" data-up="1" style="--tc:#ffb703">⬆공업 x${S.upTickets}</span>` : "") + `<span class="tk q" data-reso="1">공명?</span>`);
-  if (_hudFrame++ % 20 === 0) drawHeroCard();
 }
-function infoText(u, mg) {
-  if (!u) return "";
-  if (u.hero) return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)</div><div class="ln sm">${esc(S.hero.rule)} · 이동/판매/합성 불가</div>`;
-  const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = clanLevel(S, c.clan), mul = dmgMul(lv);
+// 보드 아래 무리 줄: [아이콘 Lv(+공명)] [서로 다른 등급 유닛 슬롯 4칸, 4종 달성 후 6칸] [⬆💎비용(🎫N)]
+function clanRowsHtml() {
+  return CLANS.map((c, i) => {
+    const have = []; for (let g = 0; g < GRADES.length; g++) if (S.slots.some((s) => s && !s.hero && s.ch === g * 4 + i)) have.push(g);
+    const n = have.length, rb = resonanceBonus(S.slots, i), cap = n >= 4 ? 6 : 4, shown = have.slice(-cap);
+    const slots = []; for (let k = 0; k < cap; k++) {
+      if (k < shown.length) { const ci = shown[k] * 4 + i; slots.push(`<i class="sl on"><canvas data-i="${ci}" width="44" height="44" title="${esc(gname(shown[k]) + " " + CHARS[ci].name)}"></canvas></i>`); }
+      else slots.push(k === shown.length && (n === 3 || n === 5) ? `<i class="sl nx">?</i>` : `<i class="sl"></i>`);
+    }
+    const up = S.up[i], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), ok = !maxed && S.minerals >= cost && !S.over;
+    const lv = S.lv && S.lv[i] != null ? S.lv[i] : clanLevel(S, i);
+    return `<div class="cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">+${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span><span class="uc${ok ? " ok" : ""}" data-up="${i}">${maxed ? "MAX" : "⬆💎" + cost}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span></div>`;
+  }).join("");
+}
+// 정보 패널: 기본/히어로 선택 = 히어로 규칙 + 진행도(+보관 선택권), 유닛 선택 = 상세
+function infoText(u) {
+  if (!u || u.hero) {
+    if (!S.hero) return "";
+    const hs = S.heroState && S.heroState.progress;
+    const tk = {}; (S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
+    const tks = Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="color:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join(" ");
+    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${tks ? "보관 선택권: " + tks : u ? "이동·판매·합성 불가" : "유닛을 누르면 상세가 나와요"}</div>`;
+  }
+  const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = dmgMul(lv);
   const dps = (c.atk / c.cd) * mul * u.n;
   const fxn = FX_NAME[c.fx] || c.fx;
-  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico}${cl.name} x${u.n} · 공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)}</div><div class="ln sm">${cl.ico}공업 Lv${lv} (x${mul.toFixed(2)}) · ${fxn} · 사거리 ${c.range}${u.lock ? " · 🔒" : ""} · 판매 💎${GRADES[g].sell}</div>`;
+  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico}${cl.name} 공업 Lv${lv} (x${mul.toFixed(2)}) · 사거리 ${c.range}${u.lock ? " · 🔒" : ""}</div>`;
 }
 const FX_NAME = { shot: "투척", tongue: "혀 공격", slash: "할퀴기", wave: "음파", roar: "포효(광역)", beam: "광선(관통)", breath: "숨결(광역)", chain: "연쇄", lob: "포물선 폭탄", nova: "전체 파동", meteor: "유성", storm: "폭풍" };
-function drawHeroCard() {
-  if (typeof drawHero !== "function" || !S || !S.hero) return;
-  const hc = $("heroIco").getContext("2d");
-  hc.setTransform(2, 0, 0, 2, 0, 0); hc.clearRect(0, 0, 38, 38);
-  try { hc.save(); hc.translate(19, 21); hc.scale(0.85, 0.85); drawHero(hc, S.hero.id, 0, 0, S.time || 0, {}); hc.restore(); } catch {}
-  setText("heroName", S.hero.name); setText("heroDesc", S.hero.rule);
-}
-function setCards() {
-  setTimeout(fitCanvas, 0); for (const k of ["heroName", "heroDesc"]) delete _txt[k]; drawHeroCard(); }
 
 // ---------- 확률표 ----------
 function paintPortraits(root, px) {
@@ -574,43 +577,39 @@ function uiTicket(grade) {
     }));
   });
 }
+// 보스 처치 공업권: 모달 없이 알리고 보관(무리 줄의 ⬆ 칩 🎫 뱃지로 사용). game.js 가 S.paused=true 로 부르므로 여기서 푼다.
 function uiUpTicket() {
   queueModal(() => {
-    if (!S || !(S.upTickets > 0)) { closeModal(); return; }
-    sfx("ticket");
-    const opts = CLANS.map((c, i) => `<div class="opt" data-c="${i}" style="--gc:${c.color}"><div style="font-size:34px">${c.ico}</div><b>${c.name}</b><br>Lv ${clanLevel(S, i)} -> ${Math.min(CONST.UP_LV_CAP, clanLevel(S, i) + 1)}<br><small>${c.role || ""}</small></div>`).join("");
-    modal(`<h2>⬆ 공업 선택권</h2><p>공격력을 올릴 무리를 고르세요 (+1 Lv, 무료)</p><div class="pk">${opts}</div><button class="wide mini" id="later" style="flex-direction:row;padding:9px">나중에 쓸게요 (보관)</button>`);
-    $("later").onclick = closeModal;
-    $("box").querySelectorAll(".opt").forEach((el) => (el.onclick = () => { closeModal(); GAME.useUpTicket(+el.dataset.c); sfx("ticket"); }));
+    if (S && !S.over && !TITLE_ON && !MODAL_ON && !CONFIRM_ON) S.paused = false;
+    if (S && S.upTickets > 0) { uiBanner(`⬆ 무료 공업권 +1! (무리 줄 ⬆칩 🎫${S.upTickets})`, "info"); sfx("ticket"); }
   });
 }
 
-// ---------- 공명 설명 시트 ----------
-function showReso() {
-  const R = CONST.RESONANCE;
-  const rows = CLANS.map((c, i) => {
-    const n = resonanceCount(S.slots, i), b = resonanceBonus(S.slots, i), nx = n >= 6 ? 0 : n >= 4 ? 6 : 4;
-    const have = {}; for (const s of S.slots) if (s && !s.hero && s.ch % 4 === i) have[s.ch >> 2] = 1;
-    const dots = GRADES.map((g, k) => (have[k] ? "●" : "○")).join("");
-    return `<div class="rc${b ? " on" : ""}" style="--cc:${c.color}"><span style="font-size:24px">${c.ico}</span><div><b>${c.name}</b> ${n}종 ${b ? `<b style="color:#d4182e">공명 +${b}Lv 발동중</b>` : nx ? `<small>${nx}종까지 ${nx - n}종 남음</small>` : ""}<br><small style="letter-spacing:2px">${dots}</small></div></div>`;
-  }).join("");
-  modal(`<h2>공명이 뭐예요?</h2><div class="rs"><p>같은 무리의 <b>서로 다른 등급</b> 유닛을 필드에 동시에 모으면, 그 무리의 공업 Lv이 <b>공짜로 올라요.</b> (같은 유닛 여러 기는 1종으로 쳐요)</p><table><tr><th>모은 종류</th><th>보너스</th></tr><tr><td>4종</td><td>공업 +${R[4]}Lv</td></tr><tr><td>6종</td><td>공업 +${R[6]}Lv</td></tr></table><p class="tiny" style="display:block">처음 발동하면 💎+${CONST.RESONANCE_FIRST}. 합성·판매로 종류가 줄면 보너스도 사라져요. 히어로는 세지 않아요.</p>${rows}</div><button class="wide" id="close">닫기</button>`);
-  $("close").onclick = closeModal;
+// ---------- 무리 줄 말풍선 (공업 구매 선택 / 공명 설명) ----------
+function hidePop() { const p = $("pop"); if (p) p.classList.remove("on"); clearTimeout(hidePop._t); }
+function showPop(html, row, x, ms) {
+  const p = $("pop"); p.innerHTML = html; p.classList.add("on");
+  const r = row.getBoundingClientRect(), W = window.innerWidth, pw = p.offsetWidth;
+  const right = Math.max(6, W - r.right);
+  p.style.right = right + "px"; p.style.left = "auto";
+  p.style.bottom = (window.innerHeight - r.top + 9) + "px"; p.style.top = "auto";
+  const popRight = W - right, ax = Math.max(10, Math.min(pw - 22, popRight - x - 6));
+  p.style.setProperty("--ax", ax + "px");
+  clearTimeout(hidePop._t); if (ms) hidePop._t = setTimeout(hidePop, ms);
 }
-
-// ---------- 강화(공업) 시트 ----------
-function showUpg() {
-  const pw = clanPower(S.slots);
-  const rows = CLANS.map((c, i) => {
-    const up = S.up[i], lv = clanLevel(S, i), maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), can = !maxed && S.minerals >= cost;
-    const rc = resonanceCount(S.slots, i), rb = resonanceBonus(S.slots, i);
-    return `<div class="up" style="--cc:${c.color}"><div class="e">${c.ico}</div><div class="m"><b>${c.name}</b> Lv ${lv}${up.bonus ? ` <small>(구매${up.bought}+보너스${up.bonus})</small>` : ""} · 공격 x${dmgMul(lv).toFixed(2)}<br><small>${maxed ? "최대 단계" : `다음 💎${cost} · +${Math.round(CONST.UP_STEP * 100)}%`} · 공명 ${rc}종${rb ? " +" + rb : ""}</small><br><small>화력 비중 ${Math.round(pw[i] * 100)}%</small><i><u style="width:${Math.round(pw[i] * 100)}%"></u></i></div>
-      <div style="display:flex;flex-direction:column;gap:4px"><button data-c="${i}" class="${can ? "green" : ""}" ${can ? "" : "disabled"}>${maxed ? "MAX" : "강화"}</button>${S.upTickets > 0 ? `<button data-t="${i}" class="mini" style="flex-direction:row;padding:5px">🎫+1</button>` : ""}</div></div>`;
-  }).join("");
-  modal(`<h2>⬆ 무리 강화</h2><p class="tiny">💎 ${S.minerals} 보유 · 많이 뽑힌 무리에 투자하세요! 무리 공업은 필드의 모든 유닛에 즉시 적용돼요</p>${rows}<button class="wide" id="resoHelp" style="margin-bottom:6px">공명이 뭐예요?</button><button class="wide" id="probHelp" style="margin-bottom:6px">ℹ 뽑기 확률표</button><button class="wide" id="close">닫기</button>`);
-  $("close").onclick = closeModal; $("resoHelp").onclick = () => { closeModal(); showReso(); }; $("probHelp").onclick = () => showProb();
-  $("box").querySelectorAll("button[data-c]").forEach((b) => (b.onclick = () => { if (GAME.upgrade(+b.dataset.c) === false) sfx("deny"); const sc = $("box").scrollTop; showUpg(); $("box").scrollTop = sc; }));
-  $("box").querySelectorAll("button[data-t]").forEach((b) => (b.onclick = () => { GAME.useUpTicket(+b.dataset.t); sfx("ticket"); const sc = $("box").scrollTop; if (S.upTickets > 0 || true) showUpg(); $("box").scrollTop = sc; }));
+function resoHint(c, row, x) {
+  const R = CONST.RESONANCE, n = resonanceCount(S.slots, c), cl = CLANS[c];
+  showPop(`<div>다른 등급 4종 → 공업 <b>+${R[4]}Lv</b>, 6종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 히어로 제외</small>`, row, x, 3200);
+}
+function upChoice(c, row, x) {
+  const cl = CLANS[c], up = S.up[c], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), lv = S.lv[c];
+  showPop(`<div><b>${cl.ico} ${cl.name}</b> Lv${lv} → Lv${Math.min(CONST.UP_LV_CAP, lv + 1)}</div><button class="free" data-pick="t">🎫 무료 · ${S.upTickets}장</button><button class="paid" data-pick="m" ${!maxed && S.minerals >= cost ? "" : "disabled"}>${maxed ? "구매 MAX" : "💎 " + cost}</button>`, row, x, 6000);
+  $("pop").onclick = (e) => {
+    const b = e.target.closest("button[data-pick]"); if (!b || b.disabled) return;
+    hidePop();
+    if (b.dataset.pick === "t") { if (GAME.useUpTicket(c) === false) sfx("deny"); }
+    else if (GAME.upgrade(c) === false) sfx("deny");
+  };
 }
 
 // ---------- 랭킹 ----------
@@ -1072,9 +1071,10 @@ function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 �
 function startRun(mode, seed, rules) { // seed/rules: 프라이빗 시즌 판(seasons.js)만 넘긴다
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
   if (!rules && window.SeasonMod) SeasonMod.clear();
-  GAME.start(mode, seed, rules); uiReset(); sfx("wave");
-  if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 1200);
-    setTimeout(() => uiBanner("같은 무리 4종이면 공명 보너스! (공명? 눌러요)", "info"), 4600); }
+  GAME.start(mode, seed, rules); uiReset(); sfx("wave"); setTimeout(fitCanvas, 60);
+  if (S && S.hero) setTimeout(() => { if (!TITLE_ON && S && S.hero) uiBanner(`👑 ${S.hero.name}\n${S.hero.rule}`, "hi"); }, 400);
+  if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 3000);
+    setTimeout(() => uiBanner("같은 무리 다른 등급 4종이면 공명 보너스! (무리 줄을 눌러요)", "info"), 6200); }
 }
 
 // ---------- 버튼 바인딩 ----------
@@ -1135,23 +1135,35 @@ function bindUi() {
   mg.onclick = () => { if (_lpDone) { _lpDone = false; return; } initAudio(); doMerge(false); };
   $("sell").onclick = () => { if (S.sel >= 0) GAME.sell(S.sel); };
   $("spd").onclick = () => GAME.setSpeed(S.speed >= 3 ? 1 : S.speed + 1);
-  $("upg").onclick = () => { initAudio(); showUpg(); };
+  // ☰ 메뉴: 랭킹·소리·확률표·홈 (바깥을 누르면 닫힘)
+  const menu = $("menu"), menuOff = () => { menu.classList.remove("on"); $("menuBtn").classList.remove("on"); };
+  $("menuBtn").onclick = (e) => { e.stopPropagation(); hidePop(); const on = !menu.classList.contains("on"); menu.classList.toggle("on", on); $("menuBtn").classList.toggle("on", on); };
+  menu.addEventListener("click", (e) => { if (e.target.closest("button") && !e.target.closest("#snd")) menuOff(); }); // 소리 외 항목은 누르면 메뉴 닫힘
   $("rank").onclick = () => { initAudio(); showRanks("season"); }; // 모달이 열리면 modal() 이 S.paused 를 켜고 닫으면 풀림(시뮬 틱 불변)
   $("home").onclick = () => uiConfirm("홈으로 나갈까요?\n진행 중인 게임은 종료돼요.", goHome);
+  $("prob").onclick = () => showProb();
   $("snd").onclick = () => sndCycle();
   sndLabel();
+  document.addEventListener("click", (e) => {
+    if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
+    if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows")) hidePop();
+  }, true);
   // 타이틀 버튼: 모달이 열려 있거나 방금 열리고 닫힌 직후(유령 클릭/이중 탭)에는 시작 계열 버튼을 무시한다.
   const guard = (fn) => (e) => { if (e) e.stopPropagation(); if (MODAL_ON || CONFIRM_ON || Date.now() - _modalAt < 600) return; fn(); };
   $("start").onclick = guard(() => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick("", () => startRun("daily")); return; } startRun("daily"); });
   $("startP").onclick = guard(() => startRun("practice"));
   $("rank2").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) showRanks("season"); };
   $("seasons").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) SeasonMod.open(); };
-  $("tickets").onclick = (e) => {
-    const t = e.target.closest(".tk"); if (!t) return;
-    if (t.dataset.reso) { showReso(); return; }
-    if (t.dataset.up) uiUpTicket(); else uiTicket(+t.dataset.g);
+  // 무리 줄: ⬆칩 = 공업 구매(공업권 있으면 말풍선에서 무료/💎 선택, 자동 소비 없음), 나머지 = 공명 한 줄 설명
+  $("clanRows").onclick = (e) => {
+    const row = e.target.closest(".cr"); if (!row || !S || S.over) return;
+    const c = +row.dataset.c; initAudio();
+    if (e.target.closest(".uc")) {
+      if (S.upTickets > 0) upChoice(c, row, e.clientX);
+      else { hidePop(); if (GAME.upgrade(c) === false) sfx("deny"); }
+    } else resoHint(c, row, e.clientX);
   };
-  $("clanChips").onclick = (e) => { if (e.target.closest(".rp")) { showReso(); return; } if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
+  $("infoCard").onclick = (e) => { const t = e.target.closest(".tk"); if (t && S && !S.over) uiTicket(+t.dataset.g); };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
   setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot());
 }
