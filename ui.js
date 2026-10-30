@@ -433,6 +433,7 @@ const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.h
 function updateHud() {
   if (typeof S === "undefined" || !S) return;
   if (_S !== S) { _S = S; uiReset(); S.dispMin = S.minerals; }
+  $("menuBtn").classList.toggle("dot", (S.tickets || []).length > 0);
   const info = roundInfo(S.round || 1);
   // 미네랄
   const lastMin = S.dispMin;
