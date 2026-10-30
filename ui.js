@@ -811,20 +811,20 @@ async function finishRank(P) {
 }
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
-function showNick(msg) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
+function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
   modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요.<br>한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
-  $("nkImp").onclick = () => showImport(() => showNick());
+  $("nkImp").onclick = () => showImport(() => showNick(msg, then));
   if ($("nkKk")) $("nkKk").onclick = () => AUTH.login();
   $("nkOk").onclick = async () => {
     const c = checkName($("nk").value);
     if (!c.ok) { say(NAME_ERR_MSG[c.err]); sfx("deny"); return; }
     lsSet(NAME_KEY, c.name);
-    if (!remote()) { lsSet(NAME_OK, ""); closeModal(); refreshTitle(); return; }
+    if (!remote()) { lsSet(NAME_OK, ""); closeModal(); refreshTitle(); if (then) then(); return; }
     $("nkOk").disabled = true; say("확인 중…");
     const rr = await ensureRegistered();
     if (rr === "taken" || rr === "bad") { lsSet(NAME_KEY, ""); lsSet(NAME_OK, ""); $("nkOk").disabled = false; say(rr === "taken" ? SRV_ERR_MSG.name_taken : NAME_ERR_MSG.bad); sfx("deny"); return; }
-    closeModal(); refreshTitle(); // offline 이면 이 기기에만 저장해 두고 나중에 첫 제출 때 다시 등록 시도
+    closeModal(); refreshTitle(); if (then) then(); // offline 이면 이 기기에만 저장해 두고 나중에 첫 제출 때 다시 등록 시도
   };
 }
 function showRename(back) {
@@ -1142,7 +1142,7 @@ function bindUi() {
   sndLabel();
   // 타이틀 버튼: 모달이 열려 있거나 방금 열리고 닫힌 직후(유령 클릭/이중 탭)에는 시작 계열 버튼을 무시한다.
   const guard = (fn) => (e) => { if (e) e.stopPropagation(); if (MODAL_ON || CONFIRM_ON || Date.now() - _modalAt < 600) return; fn(); };
-  $("start").onclick = guard(() => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick(); return; } startRun("daily"); });
+  $("start").onclick = guard(() => { if (!dailyOpen()) { showSeasonClosed(); return; } if (!myName()) { showNick("", () => startRun("daily")); return; } startRun("daily"); });
   $("startP").onclick = guard(() => startRun("practice"));
   $("rank2").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) showRanks("season"); };
   $("seasons").onclick = (e) => { e.stopPropagation(); e.preventDefault(); if (!MODAL_ON) SeasonMod.open(); };
