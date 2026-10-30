@@ -31,6 +31,10 @@ function newGame(mode, forceSeed) {
   const rng = makeRngs(seed);
   const hero = heroOfDay(rng.hero);
   const hx = hero.fx || {};
+  UP_MUL = hx.upCost || 1; // 히어로가 바꾸는 상수는 매 판 기준값에서 다시 계산 (판매가·뽑기 비용)
+  if (CONST.DRAW_COST0 == null) CONST.DRAW_COST0 = CONST.DRAW_COST;
+  CONST.DRAW_COST = CONST.DRAW_COST0 - (hx.drawCost || 0);
+  for (const g of GRADES) { if (g.sell0 == null) g.sell0 = g.sell; g.sell = g.sell0 > 0 ? Math.round(g.sell0 * (hx.sellMul || 1)) : 0; }
   S = {
     mode, seed, rng, hero, minerals: CONST.START_MIN + (hx.startMin || 0), dispMin: 0, draws: 0,
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
@@ -88,11 +92,13 @@ const gstyle = (g) => GRADES[g].style;
 function hitMob(m, d, pierce, st, hero, noPop) {
   if (m.hp <= 0) return 0;
   d *= armorFactor(m.armor, pierce);
+  const hx = S.hero.fx;
+  if (m.boss && hx.bossDmg) d *= hx.bossDmg;
   m.hp -= d; m.flash = 0.1;
   if (st) {
-    if (st.burn) { const b = (st.burn * d) / st.dur; if (b > m.burn) m.burn = b; m.burnT = st.dur; }
-    if (st.slow) { if (st.slow > m.slow) m.slow = st.slow; m.slowT = st.dur; }
-  }
+    if (st.burn) { const b = (st.burn * d) / st.dur; if (b > m.burn) m.burn = b; m.burnT = st.dur * (hx.burnDur || 1); }
+    if (st.slow || hx.slowPlus) { const sl = Math.min(0.75, (st.slow || 0) + (hx.slowPlus || 0)); if (sl > m.slow) m.slow = sl; m.slowT = st.dur; }
+  } else if (hx.slowPlus) { if (hx.slowPlus > m.slow) m.slow = hx.slowPlus; m.slowT = 1.5; }
   if (!noPop && !HEADLESS) { const q = trackPoint(m.d); pop(q.x + Math.random() * 12 - 6, q.y - 20, Math.round(d), 0.6, hero ? "#ff7a00" : "#ff5c8a", hero ? 14 : 11); }
   return d;
 }
@@ -209,13 +215,14 @@ function startRound() {
   S.round++; S.roundT = 0; S.nextT = -1;
   const info = S.info = roundInfo(S.round);
   S.queue = info.n; S.spawnT = 0;
-  S.bossT = info.boss ? info.time : 0;
+  S.bossT = info.boss ? info.time + ((S.hero.fx || {}).bossTime || 0) : 0;
   const ch = CHAPTERS[info.ch - 1];
   S.banner = { txt: info.boss ? `⚠ 보스 ${S.round}` : `라운드 ${S.round}`, sub: info.boss ? info.name : ch.name, t: 1.6, max: 1.6, boss: info.boss };
   if (S.round > 1 || !S.paused) sfx(info.boss ? "boss" : "round");
   if (info.boss) log(`보스 등장! ${info.name}`, "#ff5c8a");
   else if (info.r === ch.from) log(`챕터 ${ch.id}. ${ch.name}`, "#7a5fd0");
   const hx = S.hero.fx || {};
+  if (hx.interest) S.minerals += Math.min(hx.interest.max, Math.floor(S.minerals / hx.interest.per) * hx.interest.gain);
   if (hx.roundMin) { S.minerals += hx.roundMin; }
   if (hx.roundHidden && S.round > 1 && S.rng.misc() < hx.roundHidden) {
     const ci = rollChar(S.rng.misc, 4);
@@ -227,7 +234,7 @@ function startRound() {
 function spawn() {
   const info = S.info;
   const hp = Math.round(info.hp * hpMul(info.r)), boss = info.boss;
-  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed, slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === 50, rew: info.rew });
+  S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === 50, rew: info.rew });
 }
 
 // ---------- 유닛 보관 ----------
@@ -274,6 +281,9 @@ function updateProgress() {
   if (hx.collect) { let best = 0; for (let g = 0; g < 8; g++) { if (fl["c" + g]) continue; const n = [0, 1, 2, 3].filter((c) => countOf(g * 4 + c) > 0).length; if (n > best) best = n; } t = `컬렉션 ${fl.cn || 0}/8 (진행 ${best}/4)`; }
   else if (hx.hold) t = fl.hold ? "달성 완료 +" + hx.hold.bonus : `${CHARS[hx.hold.ch].name} ${Math.min(countOf(hx.hold.ch), hx.hold.n)}/${hx.hold.n}`;
   else if (hx.drawBonus) t = `${CHARS[hx.drawBonus.ch].name} 뽑기 ${fl.db || 0}회 (+${(fl.db || 0) * hx.drawBonus.bonus})`;
+  else if (hx.interest) t = `이자 최대 +${hx.interest.max}`;
+  else if (hx.mergeMin) t = `합성 +${hx.mergeMin}`;
+  else if (hx.mergeTwin) t = "합성 8% 쌍둥이";
   else if (hx.roundMin) t = `라운드 수입 +${hx.roundMin}`;
   else if (hx.killLuck) t = `대박 ${fl.kl || 0}회`;
   else if (hx.roundHidden) t = `히든 선물 ${fl.rh || 0}기`;
@@ -335,6 +345,9 @@ const GAME = {
       s.n -= 3; const p = slotPos(i);
       if (s.n <= 0) S.slots[i] = null;
       const si = placeUnit(ci, i);
+      const hxm = S.hero.fx;
+      if (hxm.mergeMin) S.minerals += hxm.mergeMin;
+      if (hxm.mergeTwin && S.rng.misc() < hxm.mergeTwin && freeSlot() >= 0 && addUnit(ci, true)) { log(`쌍둥이 다람쥐! ${CHARS[ci].name} 한 기 더!`, GRADES[ci >> 2].color); sfx("drawHi"); }
       afterChange(); if (!S.inAuto) inp("merge", i); done++;
       const gr = GRADES[ci >> 2], c = CHARS[ci];
       if (!HEADLESS) { burst(p.x, p.y, gr.color, 14 + g * 4, 110, 3.4, 0.6); ring(p.x, p.y, gr.color, 44, 0.45); }

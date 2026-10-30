@@ -132,7 +132,7 @@ t("시즌 종료 후 제출 거부", await post({ ...base, seed: seedOf("2026-11
 const pAfter = await call({ action: "profile", device_id: dev });
 tb("시즌 종료 후 프로필은 phase=after", pAfter[2].phase === "after");
 setNow("2026-11-15", 23); // 마지막 날(양끝 포함)
-t("시즌 마지막 날은 허용", await post({ ...base, seed: seedOf("2026-11-15") }), [200, "ok"]);
+t("시즌 마지막 날은 허용", await (async () => { const sd = seedOf("2026-11-15"), r2 = replay(sd, inputs).result; return post({ ...base, seed: sd, claimedScore: r2.score, claimedRound: r2.round, win: r2.win }); })(), [200, "ok"]);
 
 // ---- 시즌 최고점만 반영 + 순위 ----
 setNow("2026-10-27");

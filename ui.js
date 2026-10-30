@@ -412,7 +412,21 @@ function setText(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).textContent 
 function setHtml(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).innerHTML = v; } }
 function setCls(id, cls, on) { const k = id + "." + cls; if (_txt[k] !== on) { _txt[k] = on; $(id).classList.toggle(cls, on); } }
 let _S = null, _hudFrame = 0, _lastRound = 0, _mobLv = 0, _lastSec = -1;
-function uiReset() { _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
+// 공명 상태 추적(표시 전용): 발동/해제 순간 배너, 종류 수 증가 시 칩 강조, 단계 1종 전 힌트
+let _resoPrev = null, _resoPulse = [0, 0, 0, 0], _resoSeen = [0, 0, 0, 0]; // _resoSeen: 첫 발동음은 uiLog("공명!")가 담당
+function trackReso() {
+  const cur = CLANS.map((_, i) => [resonanceCount(S.slots, i), resonanceBonus(S.slots, i)]);
+  const prev = _resoPrev; _resoPrev = cur;
+  if (!prev) return;
+  cur.forEach(([n, b], i) => {
+    const [pn, pb] = prev[i], c = CLANS[i];
+    if (n > pn) { _resoPulse[i] = 1; setTimeout(() => { _resoPulse[i] = 0; delete _txt.clanChips; }, 1900); delete _txt.clanChips; }
+    if (b > pb) { uiBanner(`${c.ico} ${c.name} 공명 +${b}Lv!`, "epic"); vib(60); if (_resoSeen[i]) sfx("reso"); _resoSeen[i] = 1; }
+    else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
+    else if (n > pn && (n === 3 || n === 5)) uiLog(`${c.ico} ${c.name} ${n === 3 ? 4 : 6}종까지 1종 남음`, c.color);
+  });
+}
+function uiReset() { _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
 const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.hero && s.ch === ch && s.n < CONST.STACK_MAX);
 
 function updateHud() {
@@ -492,25 +506,22 @@ function updateHud() {
   setHtml("clanChips", CLANS.map((c, i) => {
     const up = S.up[i], can = up.bought < CONST.UP_MAX && S.minerals >= upgradeCost(up.bought);
     let cnt = 0; for (const sl of S.slots) if (sl && !sl.hero && CHARS[sl.ch].clan === i) cnt += sl.n;
-    return `<div class="cc${can ? " buy" : ""}${S.upTickets > 0 ? " ut" : ""}" data-c="${i}" style="--cc:${c.color}" title="${c.name} 유닛 ${cnt}기 · 공업 Lv${clanLevel(S, i)}">${c.ico}<b>${cnt}</b><small>공업${clanLevel(S, i)}</small></div>`;
+    const rn = resonanceCount(S.slots, i), rb = resonanceBonus(S.slots, i), nx = rn >= 6 ? 0 : rn >= 4 ? 6 : 4;
+    const rtxt = rb ? `공명+${rb}${nx ? " " + rn + "/" + nx : " MAX"}` : `공명 ${rn}/${nx}`;
+    return `<div class="cc${can ? " buy" : ""}${S.upTickets > 0 ? " ut" : ""}${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}" title="${c.name} 유닛 ${cnt}기 · 공업 Lv${clanLevel(S, i)} · ${rtxt}">${c.ico}<b>${cnt}</b><small>공업${clanLevel(S, i)}</small><span class="rp${rb ? " on" : nx && nx - rn === 1 ? " near" : ""}" data-reso="1">${rtxt}</span></div>`;
   }).join(""));
+  trackReso();
   const tk = {}; (S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
-  setHtml("tickets", Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="--tc:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join("") + (S.upTickets > 0 ? `<span class="tk" data-up="1" style="--tc:#ffb703">⬆공업 x${S.upTickets}</span>` : ""));
+  setHtml("tickets", Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="--tc:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join("") + (S.upTickets > 0 ? `<span class="tk" data-up="1" style="--tc:#ffb703">⬆공업 x${S.upTickets}</span>` : "") + `<span class="tk q" data-reso="1">공명?</span>`);
   if (_hudFrame++ % 20 === 0) drawHeroCard();
 }
 function infoText(u, mg) {
-  if (!u) return "칸을 탭하면 사거리가 보여요 · 같은 유닛 <b>3기</b>가 모이면 [🔀 합성]!";
+  if (!u) return "";
   if (u.hero) return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)</div><div class="ln sm">${esc(S.hero.rule)} · 이동/판매/합성 불가</div>`;
   const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = clanLevel(S, c.clan), mul = dmgMul(lv);
   const dps = (c.atk / c.cd) * mul * u.n;
-  let nx = "";
-  if (g >= 6) nx = "레전더리부터는 합성할 수 없어요";
-  else {
-    const cands = [0, 1, 2, 3].map((k) => `${CLANS[k].ico}${CHARS[(g + 1) * 4 + k].name}`).join(" ");
-    nx = (u.n >= 3 ? `<b>합성 가능!</b> ` : `3기 필요 (${u.n}/3) · `) + `다음 [${gname(g + 1)}]: ${cands}`;
-  }
   const fxn = FX_NAME[c.fx] || c.fx;
-  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico}${cl.name} x${u.n} · 공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)}</div><div class="ln sm">${cl.ico}공업 Lv${lv} (x${mul.toFixed(2)}) · ${fxn} · 사거리 ${c.range}${u.lock ? " · 🔒" : ""} · 판매 💎${GRADES[g].sell}</div><div class="ln sm">${nx}</div>`;
+  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico}${cl.name} x${u.n} · 공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)}</div><div class="ln sm">${cl.ico}공업 Lv${lv} (x${mul.toFixed(2)}) · ${fxn} · 사거리 ${c.range}${u.lock ? " · 🔒" : ""} · 판매 💎${GRADES[g].sell}</div>`;
 }
 const FX_NAME = { shot: "투척", tongue: "혀 공격", slash: "할퀴기", wave: "음파", roar: "포효(광역)", beam: "광선(관통)", breath: "숨결(광역)", chain: "연쇄", lob: "포물선 폭탄", nova: "전체 파동", meteor: "유성", storm: "폭풍" };
 function drawHeroCard() {
@@ -573,6 +584,19 @@ function uiUpTicket() {
   });
 }
 
+// ---------- 공명 설명 시트 ----------
+function showReso() {
+  const R = CONST.RESONANCE;
+  const rows = CLANS.map((c, i) => {
+    const n = resonanceCount(S.slots, i), b = resonanceBonus(S.slots, i), nx = n >= 6 ? 0 : n >= 4 ? 6 : 4;
+    const have = {}; for (const s of S.slots) if (s && !s.hero && s.ch % 4 === i) have[s.ch >> 2] = 1;
+    const dots = GRADES.map((g, k) => (have[k] ? "●" : "○")).join("");
+    return `<div class="rc${b ? " on" : ""}" style="--cc:${c.color}"><span style="font-size:24px">${c.ico}</span><div><b>${c.name}</b> ${n}종 ${b ? `<b style="color:#d4182e">공명 +${b}Lv 발동중</b>` : nx ? `<small>${nx}종까지 ${nx - n}종 남음</small>` : ""}<br><small style="letter-spacing:2px">${dots}</small></div></div>`;
+  }).join("");
+  modal(`<h2>공명이 뭐예요?</h2><div class="rs"><p>같은 무리의 <b>서로 다른 등급</b> 유닛을 필드에 동시에 모으면, 그 무리의 공업 Lv이 <b>공짜로 올라요.</b> (같은 유닛 여러 기는 1종으로 쳐요)</p><table><tr><th>모은 종류</th><th>보너스</th></tr><tr><td>4종</td><td>공업 +${R[4]}Lv</td></tr><tr><td>6종</td><td>공업 +${R[6]}Lv</td></tr></table><p class="tiny" style="display:block">처음 발동하면 💎+${CONST.RESONANCE_FIRST}. 합성·판매로 종류가 줄면 보너스도 사라져요. 히어로는 세지 않아요.</p>${rows}</div><button class="wide" id="close">닫기</button>`);
+  $("close").onclick = closeModal;
+}
+
 // ---------- 강화(공업) 시트 ----------
 function showUpg() {
   const pw = clanPower(S.slots);
@@ -582,8 +606,8 @@ function showUpg() {
     return `<div class="up" style="--cc:${c.color}"><div class="e">${c.ico}</div><div class="m"><b>${c.name}</b> Lv ${lv}${up.bonus ? ` <small>(구매${up.bought}+보너스${up.bonus})</small>` : ""} · 공격 x${dmgMul(lv).toFixed(2)}<br><small>${maxed ? "최대 단계" : `다음 💎${cost} · +${Math.round(CONST.UP_STEP * 100)}%`} · 공명 ${rc}종${rb ? " +" + rb : ""}</small><br><small>화력 비중 ${Math.round(pw[i] * 100)}%</small><i><u style="width:${Math.round(pw[i] * 100)}%"></u></i></div>
       <div style="display:flex;flex-direction:column;gap:4px"><button data-c="${i}" class="${can ? "green" : ""}" ${can ? "" : "disabled"}>${maxed ? "MAX" : "강화"}</button>${S.upTickets > 0 ? `<button data-t="${i}" class="mini" style="flex-direction:row;padding:5px">🎫+1</button>` : ""}</div></div>`;
   }).join("");
-  modal(`<h2>⬆ 무리 강화</h2><p class="tiny">💎 ${S.minerals} 보유 · 많이 뽑힌 무리에 투자하세요! 무리 공업은 필드의 모든 유닛에 즉시 적용돼요</p>${rows}<button class="wide" id="close">닫기</button>`);
-  $("close").onclick = closeModal;
+  modal(`<h2>⬆ 무리 강화</h2><p class="tiny">💎 ${S.minerals} 보유 · 많이 뽑힌 무리에 투자하세요! 무리 공업은 필드의 모든 유닛에 즉시 적용돼요</p>${rows}<button class="wide" id="resoHelp" style="margin-bottom:6px">공명이 뭐예요?</button><button class="wide" id="close">닫기</button>`);
+  $("close").onclick = closeModal; $("resoHelp").onclick = () => { closeModal(); showReso(); };
   $("box").querySelectorAll("button[data-c]").forEach((b) => (b.onclick = () => { if (GAME.upgrade(+b.dataset.c) === false) sfx("deny"); const sc = $("box").scrollTop; showUpg(); $("box").scrollTop = sc; }));
   $("box").querySelectorAll("button[data-t]").forEach((b) => (b.onclick = () => { GAME.useUpTicket(+b.dataset.t); sfx("ticket"); const sc = $("box").scrollTop; if (S.upTickets > 0 || true) showUpg(); $("box").scrollTop = sc; }));
 }
@@ -592,7 +616,7 @@ function showUpg() {
 const LS_KEY = "malang-ranks2";
 const remote = () => CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
 const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Content-Type": "application/json" }; if (String(k).startsWith("eyJ")) h.Authorization = "Bearer " + k; return h; }; // sb_publishable_ 키는 JWT 가 아니므로 Bearer 로 보내지 않는다
-const GAME_VER = "3";
+const GAME_VER = "4";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
 function scoreParts(res) {
@@ -976,6 +1000,8 @@ function setupTitle() {
 function startRun(mode) {
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
   GAME.start(mode); uiReset(); sfx("wave");
+  if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 1200);
+    setTimeout(() => uiBanner("같은 무리 4종이면 공명 보너스! (공명? 눌러요)", "info"), 4600); }
 }
 
 // ---------- 버튼 바인딩 ----------
@@ -984,6 +1010,10 @@ function fitCanvas() { // 캔버스 외 영역의 실제 높이를 재서 남는
   try {
     const app = $("app"), wrap = $("cvWrap"); if (!app || !wrap) return;
     const cs = getComputedStyle(app), gap = parseFloat(cs.rowGap || cs.gap) || 0;
+    if (cs.display === "grid") { // 가로 모드: 높이 기준으로 캔버스, 남는 폭은 오른쪽 조작부
+      const h = app.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 8;
+      wrap.style.width = Math.max(150, Math.min(h * 0.9, app.clientWidth * 0.58)) + "px"; return;
+    }
     let used = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom), n = 0;
     for (const c of app.children) { if (c === wrap || getComputedStyle(c).position === "fixed" || getComputedStyle(c).display === "none") continue; used += c.getBoundingClientRect().height; n++; }
     used += gap * n;
@@ -992,21 +1022,38 @@ function fitCanvas() { // 캔버스 외 영역의 실제 높이를 재서 남는
   } catch {}
 }
 function fitVh() { try { const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight); document.documentElement.style.setProperty("--vh", h / 100 + "px"); } catch {} fitCanvas(); }
-function tryFullscreen() { // 안드로이드 크롬 등에서만 동작(아이폰 사파리는 미지원 → 홈 화면에 추가 시 전체화면)
-  try { const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone; const el = document.documentElement; if (!standalone && !document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); } catch {}
+function isStandalone() { try { return matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || !!navigator.standalone; } catch { return false; } }
+function tryFullscreen() { // 안드로이드 크롬 일반 탭에서만 동작(아이폰 사파리는 미지원 → 홈 화면에 추가해야 전체화면). 실패해도 무시, 다음 터치에 재시도
+  try {
+    if (isStandalone() || document.fullscreenElement) return;
+    const el = document.documentElement, rf = el.requestFullscreen || el.webkitRequestFullscreen; if (!rf) return;
+    const r = rf.call(el, { navigationUI: "hide" }); if (r && r.catch) r.catch(() => {});
+    try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("portrait").catch(() => {}); } catch {}
+  } catch {}
+}
+let _installEv = null;
+function setupA2hs() { // 홈 화면 추가 안내 (설치/전체화면 상태면 숨김, 닫으면 다시 안 보임)
+  const box = $("a2hs"); if (!box || isStandalone() || lsGet("malrang_a2hs")) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const show = () => { setText("a2hsTxt", ios ? "공유(⬆) → 홈 화면에 추가하면 전체화면으로 즐겨요" : _installEv ? "탭해서 앱으로 설치하면 전체화면!" : "메뉴(⋮) → 홈 화면에 추가하면 전체화면으로 즐겨요"); box.classList.add("on"); };
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); _installEv = e; show(); });
+  window.addEventListener("appinstalled", () => box.classList.remove("on"));
+  show();
+  $("a2hsX").onclick = (e) => { e.stopPropagation(); lsSet("malrang_a2hs", "1"); box.classList.remove("on"); };
+  $("a2hsTxt").onclick = () => { if (_installEv) { _installEv.prompt(); _installEv = null; } };
 }
 function bindUi() {
   fitVh(); window.addEventListener("resize", fitVh); window.addEventListener("orientationchange", fitVh); if (window.visualViewport) window.visualViewport.addEventListener("resize", fitVh);
-  document.addEventListener("pointerdown", function once() { tryFullscreen(); document.removeEventListener("pointerdown", once); });
+  for (const ev of ["click", "touchend"]) document.addEventListener(ev, () => { if (!document.fullscreenElement) tryFullscreen(); }, { passive: true });
+  document.addEventListener("fullscreenchange", () => setTimeout(fitVh, 100));
+  setupA2hs();
   if (_bound) return; _bound = true;
   $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < CONST.DRAW_COST) sfx("deny"); };
-  // 합성: 탭 = 선택 칸 합성(경고 시 확인), 길게 = 가능한 만큼 일괄
+  // 합성: 탭 = 선택 칸 합성(확인창 없음), 길게 = 가능한 만큼 일괄
   const doMerge = (all) => {
     const i = S.sel; if (i < 0) return;
     const run = () => { if (!GAME.canMerge(i).ok) { sfx("deny"); return; } GAME.merge(i, all); };
-    const w = GAME.mergeWarning(i);
-    const lvs = CLANS.map((c, k) => c.name.replace("무리", "") + clanLevel(S, k)).join(" ");
-    if (w) uiConfirm(`${w}\n(무리는 랜덤 · 현재 공업 Lv: ${lvs})`, run); else run();
+    run();
   };
   let _lp = null, _lpDone = false;
   const mg = $("merge");
@@ -1024,9 +1071,10 @@ function bindUi() {
   $("rank2").onclick = () => showRanks("season");
   $("tickets").onclick = (e) => {
     const t = e.target.closest(".tk"); if (!t) return;
+    if (t.dataset.reso) { showReso(); return; }
     if (t.dataset.up) uiUpTicket(); else uiTicket(+t.dataset.g);
   };
-  $("clanChips").onclick = (e) => { if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
+  $("clanChips").onclick = (e) => { if (e.target.closest(".rp")) { showReso(); return; } if (e.target.closest(".cc")) { if (S.upTickets > 0) uiUpTicket(); else showUpg(); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
   setupTitle(); renderSeasonBox(); refreshTitle(); initPlayer();
 }
