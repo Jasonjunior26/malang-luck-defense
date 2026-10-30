@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="말랑디펜스">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=block" rel="stylesheet">
 <title>말랑 운빨 디펜스</title>
 <style>
   :root { --ink:#5b3a1e; --card:#fffaf0; --pink:#ff7fa8; --pink2:#e0558a; --green:#6fd48a; --green2:#3fa95f; --gold:#ffb703; --blue:#7cc4ff; --blue2:#4a9be0; }
@@ -221,6 +221,15 @@
   #bar button.big { padding:6px; font-size:18px; } #merge { font-size:17px; }
   @media (max-height:700px) { #clanRows { min-height:125px; } .cr { height:29px; } .cr .sl { width:22px; height:22px; } .cr .sl canvas { width:20px; height:20px; } #infoCard { height:48px; min-height:48px; } #bar button.big { font-size:16px; padding:4px; } }
   #banner { white-space:pre-line; }
+  /* iOS Safari 방어: 글자 자동 확대 차단, 폰트 교체 시 줄바꿈/삐져나옴 방지 */
+  html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body { -webkit-font-smoothing:antialiased; word-break:keep-all; overflow-wrap:anywhere; font-synthesis:none; }
+  button, .chip, .cr { font-family:inherit; }
+  button { -webkit-appearance:none; appearance:none; }
+  .cr { overflow:hidden; } .cr .lv { width:auto; min-width:58px; } .cr .sls { overflow:hidden; }
+  .cr .sl { flex:0 1 24px; min-width:12px; width:auto; aspect-ratio:1; height:auto; max-height:24px; }
+  #bar button { white-space:nowrap; overflow:hidden; text-overflow:clip; min-width:0; }
+  #menu button small, #hud .chip small { white-space:nowrap; }
 </style>
 </head>
 <body>
