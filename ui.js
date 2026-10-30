@@ -527,9 +527,7 @@ function infoText(u) {
   if (!u || u.hero) {
     if (!S.hero) return "";
     const hs = S.heroState && S.heroState.progress;
-    const tk = {}; (S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
-    const tks = Object.keys(tk).map((g) => `<span class="tk" data-g="${g}" style="color:${GCOL(+g)}">🎫${gname(+g)}${tk[g] > 1 ? " x" + tk[g] : ""}</span>`).join(" ");
-    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${tks ? "보관 선택권: " + tks : u ? "이동·판매·합성 불가" : "유닛을 누르면 상세가 나와요"}</div>`;
+    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? "이동·판매·합성 불가" : ""}</div>`;
   }
   const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = dmgMul(lv);
   const dps = (c.atk / c.cd) * mul * u.n;
@@ -559,6 +557,10 @@ function showProb() {
 
 // ---------- 선택권 ----------
 function dpsOf(c) { return fmt(c.atk / c.cd); }
+function renderMenuTk() {
+  const tk = {}; (S && S.tickets || []).forEach((g) => (tk[g] = (tk[g] || 0) + 1));
+  $("menuTk").innerHTML = Object.keys(tk).map((g) => `<button class="mini tk" data-g="${g}" style="color:${GCOL(+g)}">🎫<small>${gname(+g)} 선택권${tk[g] > 1 ? " x" + tk[g] : ""}</small></button>`).join("");
+}
 function uiTicket(grade) {
   queueModal(() => {
     if (!S || !(S.tickets || []).includes(grade)) { closeModal(); return; }
@@ -1137,7 +1139,7 @@ function bindUi() {
   $("spd").onclick = () => GAME.setSpeed(S.speed >= 3 ? 1 : S.speed + 1);
   // ☰ 메뉴: 랭킹·소리·확률표·홈 (바깥을 누르면 닫힘)
   const menu = $("menu"), menuOff = () => { menu.classList.remove("on"); $("menuBtn").classList.remove("on"); };
-  $("menuBtn").onclick = (e) => { e.stopPropagation(); hidePop(); const on = !menu.classList.contains("on"); menu.classList.toggle("on", on); $("menuBtn").classList.toggle("on", on); };
+  $("menuBtn").onclick = (e) => { e.stopPropagation(); hidePop(); renderMenuTk(); const on = !menu.classList.contains("on"); menu.classList.toggle("on", on); $("menuBtn").classList.toggle("on", on); };
   menu.addEventListener("click", (e) => { if (e.target.closest("button") && !e.target.closest("#snd")) menuOff(); }); // 소리 외 항목은 누르면 메뉴 닫힘
   $("rank").onclick = () => { initAudio(); showRanks("season"); }; // 모달이 열리면 modal() 이 S.paused 를 켜고 닫으면 풀림(시뮬 틱 불변)
   $("home").onclick = () => uiConfirm("홈으로 나갈까요?\n진행 중인 게임은 종료돼요.", goHome);
@@ -1163,7 +1165,7 @@ function bindUi() {
       else { hidePop(); if (GAME.upgrade(c) === false) sfx("deny"); }
     } else resoHint(c, row, e.clientX);
   };
-  $("infoCard").onclick = (e) => { const t = e.target.closest(".tk"); if (t && S && !S.over) uiTicket(+t.dataset.g); };
+  $("menuTk").onclick = (e) => { const t = e.target.closest(".tk"); if (t && S && !S.over) { menuOff(); uiTicket(+t.dataset.g); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
   setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot());
 }
