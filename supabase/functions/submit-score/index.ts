@@ -5,6 +5,7 @@
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
 import { replay, validateInputs, ENGINE_VER } from "./replay.js";
 import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
+import { handleFriends } from "./friends.ts"; // 친구(fr*) 액션
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -77,6 +78,7 @@ Deno.serve(async (req: Request) => {
 
   const action = b.action ?? "submit";
   if (typeof action === "string" && action.startsWith("ps")) return handlePrivate(req, b); // 프라이빗 시즌: JWT 인증, device_id 불필요
+  if (typeof action === "string" && action.startsWith("fr")) return handleFriends(action, b, req); // 친구: JWT 인증, device_id 불필요
   if (!["submit", "register", "rename", "profile", "import", "me", "link"].includes(action)) return fail(400, "bad_action");
   const { device_id } = b;
   if (typeof device_id !== "string" || !UUID_RE.test(device_id)) return fail(400, "bad_device");
