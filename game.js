@@ -3,6 +3,21 @@
 const cv = $("cv"), ctx = cv.getContext("2d");
 const W = CONST.W, H = CONST.H;
 const HEADLESS = typeof window === "undefined"; // 시뮬 검증 모드에서 FX 호출 생략용
+var GFX_SC = 1; // 렌더 배율(cv.width / W). graphics.js 가 typeof 검사 후 읽음
+var GFX_LOW = false; // 저사양 모드. graphics.js 가 읽음
+var GFX_AUTO = false;
+(function () {
+  let pref = null;
+  if (typeof window === "undefined") return;
+  try { pref = localStorage.getItem("malrang_gfx"); } catch (e) {}
+  if (pref === "low") GFX_LOW = true;
+  else if (pref === "high") GFX_LOW = false;
+  else {
+    const nv = typeof navigator !== "undefined" ? navigator : {};
+    if ((nv.hardwareConcurrency && nv.hardwareConcurrency <= 4) || (nv.deviceMemory && nv.deviceMemory <= 2)) GFX_LOW = true;
+  }
+  GFX_AUTO = pref !== "low" && pref !== "high"; // 런타임 자동 하향 허용 여부
+})();
 const SLOT_COLS = CONST.COLS, SLOT_ROWS = CONST.ROWS;
 
 // ---------- 지형 ----------
@@ -569,12 +584,13 @@ cv.addEventListener("pointerdown", (e) => {
 
 // ---------- 그리기 ----------
 function fit(c) {
-  const r = c.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
   if (w && h && (c.width !== w || c.height !== h)) { c.width = w; c.height = h; }
 }
 function render() {
   fit(cv);
+  GFX_SC = cv.width / W;
   ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
   ctx.imageSmoothingQuality = "high";
   ctx.save();
@@ -589,12 +605,12 @@ function render() {
   S.slots.forEach((u, i) => {
     if (!u) return;
     const p = slotPos(i);
-    if (u.hero) drawHero(ctx, S.hero.id, p.x, p.y, S.time, { anim: u.anim, hero: true, selected: S.sel === i });
-    else drawUnit(ctx, u.ch, p.x, p.y, S.time, { anim: u.anim, count: u.n, selected: S.sel === i, lock: u.lock });
+    if (u.hero) drawHero(ctx, S.hero.id, p.x, p.y, S.time, { anim: u.anim, hero: true, selected: S.sel === i, bake: true });
+    else drawUnit(ctx, u.ch, p.x, p.y, S.time, { anim: u.anim, count: u.n, selected: S.sel === i, lock: u.lock, bake: true });
   });
   for (const m of S.mobs) {
     const q = trackPoint(m.d), s = m.boss ? (m.final ? 34 : 26) : 12;
-    drawMob(ctx, q.x, q.y, s, S.time, m);
+    drawMob(ctx, q.x, q.y, s, S.time, m, true);
     const bw = s * 2, bx = q.x - s, by = q.y - s - 12;
     ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.roundRect(bx, by, bw, 5, 2.5); ctx.fill();
     ctx.fillStyle = m.burn > 0 ? "#ff8a3d" : m.slow > 0 ? "#4aa8ff" : "#ff6b8b"; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(0, (bw * m.hp) / m.max), 5, 2.5); ctx.fill();
@@ -633,16 +649,33 @@ function render() {
 
 // ---------- 메인 루프 (고정 타임스텝 1/60) ----------
 let last = performance.now(), acc = 0, parade = null;
+let lastR = 0, forceR = false, stateKey = "", fpsT = 0, fpsN = 0;
+function requestRenderNow() { forceR = true; }
+if (typeof window !== "undefined") window.requestRenderNow = requestRenderNow;
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   acc += dt * S.speed * (S.slowmo > 0 ? 0.35 : 1);
   let steps = 0;
   while (acc >= CONST.DT && steps < 12) { update(CONST.DT); acc -= CONST.DT; steps++; }
   if (steps >= 12) acc = 0;
-  render();
-  if (typeof TITLE_ON !== "undefined" && TITLE_ON) { // 타이틀 퍼레이드
-    if (!parade) { const c = $("parade"); c.width = 680; c.height = 300; parade = c.getContext("2d"); parade.setTransform(2, 0, 0, 2, 0, 0); }
-    drawParade(parade, 340, 150, now / 1000);
+  const title = typeof TITLE_ON !== "undefined" && TITLE_ON;
+  const idle = !!(S.paused || S.over || (typeof MODAL_ON !== "undefined" && MODAL_ON) || (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON));
+  const key = (title ? "t" : "") + (S.paused ? "p" : "") + (S.over ? "o" : "") + (typeof MODAL_ON !== "undefined" && MODAL_ON ? "m" : "") + (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON ? "c" : "");
+  if (key !== stateKey) { stateKey = key; forceR = true; fpsT = 0; fpsN = 0; }
+  const slow = title ? 30 : idle ? 15 : GFX_LOW ? 30 : 60;
+  const gap = now - lastR;
+  if (forceR || gap >= 1000 / slow - 1.5) {
+    forceR = false; lastR = now;
+    // 런타임 자동 하향: 평상시(60fps 목표) 2초 평균 fps < 40 이면 저사양 고정
+    if (!title && !idle && !GFX_LOW && GFX_AUTO && !(typeof document !== "undefined" && document.hidden) && gap < 500) {
+      fpsT += gap; fpsN++;
+      if (fpsT >= 2000) { if (fpsN * 1000 / fpsT < 40) GFX_LOW = true; fpsT = 0; fpsN = 0; }
+    } else { fpsT = 0; fpsN = 0; }
+    render();
+    if (title) { // 타이틀 퍼레이드
+      if (!parade) { const c = $("parade"); c.width = 680; c.height = 300; parade = c.getContext("2d"); parade.setTransform(2, 0, 0, 2, 0, 0); }
+      drawParade(parade, 340, 150, now / 1000);
+    }
   }
   requestAnimationFrame(loop);
 }

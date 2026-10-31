@@ -173,6 +173,50 @@ function gradeColorOf(gs) { if (gs.gcol) return gs.gcol; const g = gradeIdOf(gs)
 const EMB_COL = ["#4caf50", "#ff5a36", "#29b6f6", "#ffd54f"];
 const CLAN_BODY = EMB_COL;
 
+// ---------- 오프스크린 굽기(bake) 공용 ----------
+// 계약: 전역 GFX_SC(렌더 배율), GFX_LOW 는 game.js 가 정의. 시간버킷(기본 20fps, LOW 12fps)마다 세대를 갈아끼우고 캔버스는 풀에서 재사용.
+const GFX_BAKE_FPS = 20;
+const _MO0 = { ox: 0, oy: 0, tilt: 0, hop: 0, sqa: 1 };
+const BK_POOL_PX = 14e6; // 풀 총 픽셀 상한
+const _bakeGen = new Map(), _bkPool = new Map();
+let _bkB = -1, _bkSC = 0, _bkFps = 0, _bkPoolPx = 0;
+const _ba = {}; // 굽기 함수에 넘기는 재사용 파라미터 (동기 호출 전용)
+const _gfxSC = () => { const v = typeof GFX_SC !== "undefined" ? GFX_SC : 1; return v > 0 ? v : 1; };
+const _canBake = () => typeof document !== "undefined";
+function _bkResetAll() { _bakeGen.clear(); _bkPool.clear(); _bkPoolPx = 0; _bkB = -1; _boardCache = null; }
+function _bkRelease() {
+  for (const e of _bakeGen.values()) {
+    const P = e.cv.width, px = P * P; if (px > BK_POOL_PX / 4) continue; // 너무 큰 캔버스는 버림
+    while (_bkPoolPx + px > BK_POOL_PX && _bkPool.size) { const k0 = _bkPool.keys().next().value, a0 = _bkPool.get(k0); _bkPoolPx -= a0.length * k0 * k0; _bkPool.delete(k0); }
+    let a = _bkPool.get(P); if (!a) { a = []; _bkPool.set(P, a); } a.push(e.cv); _bkPoolPx += px;
+  }
+  _bakeGen.clear();
+}
+// key: 문자열, E: 논리 반폭(원점=캔버스 중앙), fn(ctx, bucketTime, A). 반환 {cv,E} 또는 null(굽기 불가)
+function _bake(t, key, E, fn, A) {
+  if (!_canBake()) return null;
+  const sc = _gfxSC(), fps = _LOW() ? 12 : GFX_BAKE_FPS;
+  if (sc !== _bkSC || fps !== _bkFps) { _bkResetAll(); _bkSC = sc; _bkFps = fps; }
+  const b = Math.floor(t * fps); if (b !== _bkB) { _bkRelease(); _bkB = b; }
+  let e = _bakeGen.get(key); if (e) return e;
+  const P = Math.max(2, Math.ceil(2 * E * sc)); let cv;
+  const pa = _bkPool.get(P);
+  if (pa && pa.length) { cv = pa.pop(); _bkPoolPx -= P * P; if (!pa.length) _bkPool.delete(P); }
+  else { cv = document.createElement("canvas"); cv.width = cv.height = P; }
+  const g = cv.getContext("2d"); e = { cv, E: P / (2 * sc) };
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, P, P); g.save(); g.setTransform(sc, 0, 0, sc, P / 2, P / 2);
+  try { fn(g, b / fps, A); } catch (err) { /* 렌더가 죽지 않게 */ }
+  try { g.restore(); } catch (err) { /* noop */ }
+  _bakeGen.set(key, e); return e;
+}
+// (x,y) 중심에 구운 레이어를 찍는다. 굽기 불가 시 라이브로 그림.
+function _bakeAt(c, t, key, E, x, y, fn, A) {
+  const e = _bake(t, key, E, fn, A);
+  if (e) c.drawImage(e.cv, x - e.E, y - e.E, 2 * e.E, 2 * e.E);
+  else { c.save(); c.translate(x, y); fn(c, t, A); c.restore(); }
+}
+let _boardCache = null;
+
 // ---------- 캐릭터 코어 ----------
 const _layerCache = new WeakMap();
 function _layers(look) {
@@ -201,15 +245,16 @@ function drawVectorChar(c, look, gs, x, y, r, t, opt) {
   opt = opt || {};
   const sat = gs.sat, g = gradeIdOf(gs), sh = look.shape || [1, 1], rx = r * sh[0], ry = r * 0.95 * sh[1];
   const seed = opt.seed != null ? opt.seed : (x * 0.37) % 6.28;
-  const bob = Math.sin(t * 4 + seed) * r * 0.05, sq = 1 + Math.sin(t * 4 + seed) * 0.03;
-  const { ox, oy, tilt, hop, sqa } = motionOf(opt.anim, r), sy = sq * sqa;
+  const nb = !!opt.nobob;
+  const bob = nb ? 0 : Math.sin(t * 4 + seed) * r * 0.05, sq = nb ? 1 : 1 + Math.sin(t * 4 + seed) * 0.03;
+  const { ox, oy, tilt, hop, sqa } = nb ? _MO0 : motionOf(opt.anim, r), sy = sq * sqa;
   const out = _outColor(look, gs, t, sat), lw = gs.outlineW;
   const s = (h) => satHex(h, sat);
   const L = _layers(look), lite = !!opt.lite;
   const k = { R: r, ry, t, lw, out, s, seed, hasHat: L.hasHat, g };
   c.save(); c.translate(x + ox, y + bob + oy - hop); c.rotate(tilt); c.scale(1 / sy, sy);
   if (opt.dim) c.globalAlpha = 0.45;
-  if (opt.img) { const sz = r * 2.7; c.drawImage(opt.img, -sz / 2, -sz * 0.56, sz, sz); c.restore(); return; }
+  if (opt.img) { if (opt.imgK) { const sz = r * opt.imgK; c.drawImage(opt.img, -sz / 2, -sz / 2, sz, sz); } else { const sz = r * 2.7; c.drawImage(opt.img, -sz / 2, -sz * 0.56, sz, sz); } c.restore(); return; }
   const run = (list) => { for (const [ty, st, col] of list) { const fn = PART_LIB[ty] && PART_LIB[ty][st]; if (fn) fn(c, col ? s(col) : "#fff", k); } };
   if (!lite) run(L.back);
   // 귀(몸 뒤)
@@ -424,8 +469,43 @@ function loadSprites() {
   const keys = []; if (typeof CHARS !== "undefined") CHARS.forEach((ch) => keys.push(ch.key)); if (typeof HEROES !== "undefined") HEROES.forEach((h) => keys.push(h.id));
   for (const k of keys) { const im = new Image(); im.onload = () => { SPRITES[k] = im; }; im.onerror = () => {}; im.src = `assets/sprites/${k}.png`; }
 }
+// ----- 구운 유닛/히어로 -----
+function _bkBack(g, bt, A) { if (!A.lite) { drawPlate(g, 0, 0, A.r, A.gs, bt); drawAura(g, 0, 0, A.r, A.gs, bt, "back"); } _ellipse(g, 0, A.r * 0.95, A.r * 0.8, A.r * 0.18, "rgba(0,0,0,.15)"); }
+function _bkFront(g, bt, A) { drawAura(g, 0, 0, A.r, A.gs, bt, "front"); }
+function _bkBody(g, bt, A) { drawVectorChar(g, A.look, A.gs, 0, 0, A.r, bt, { lite: A.lite, seed: A.seed, dim: A.dim, crown: A.crown, nobob: true }); }
+function _bkStack(g, bt, A) {
+  const r = A.r, rr = r * 0.78;
+  drawVectorChar(g, A.look, A.gs, -r * 0.62, -r * 0.1, rr, bt, { lite: true, seed: A.idx + 1, dim: A.dim });
+  if (A.n >= 3) drawVectorChar(g, A.look, A.gs, r * 0.62, -r * 0.1, rr, bt, { lite: true, seed: A.idx + 2, dim: A.dim });
+}
+// 몸통: 구운 이미지에 라이브 bob/스쿼시/공격모션 변환만 적용
+function _blitBody(c, e, x, y, t, r, seed, anim) {
+  const bob = Math.sin(t * 4 + seed) * r * 0.05, sq = 1 + Math.sin(t * 4 + seed) * 0.03, mo = motionOf(anim, r), sy = sq * mo.sqa;
+  c.save(); c.translate(x + mo.ox, y + bob + mo.oy - mo.hop); c.rotate(mo.tilt); c.scale(1 / sy, sy);
+  c.drawImage(e.cv, -e.E, -e.E, 2 * e.E, 2 * e.E); c.restore();
+}
+function _unitBaked(c, kid, look, gs, r, n, x, y, t, opt, idx, seed, img, crown) {
+  const lite = !!opt.lite, E = r * 3.2, dim = opt.dim ? 1 : 0, A = _ba; A.r = r; A.gs = gs; A.look = look; A.lite = lite; A.dim = opt.dim; A.crown = crown; A.idx = idx; A.n = n;
+  if (lite) _ellipse(c, x, y + r * 0.95, r * 0.8, r * 0.18, "rgba(0,0,0,.15)"); else _bakeAt(c, t, "p|" + kid, E, x, y, _bkBack, A);
+  if (opt.preBody) opt.preBody(c); // 히어로 발밑 표시 등 (뒤 레이어 위, 몸 아래)
+  if (n >= 2 && !img && !crown) _bakeAt(c, t, "s|" + kid + "|" + (n >= 3 ? 3 : 2) + "|" + dim, E, x, y, _bkStack, A);
+  if (img) drawVectorChar(c, look, gs, x, y, r, t, { anim: opt.anim, dim: opt.dim, img, seed });
+  else {
+    A.seed = crown ? 3.3 : idx * 1.7; // 굽기용 시드(phase 무시: 같은 종은 캐시 공유)
+    const e = _bake(t, "b|" + kid + "|" + (lite ? 1 : 0) + "|" + dim, r * 3.5, _bkBody, A);
+    if (e) _blitBody(c, e, x, y, t, r, seed, opt.anim);
+    else drawVectorChar(c, look, gs, x, y, r, t, { anim: opt.anim, dim: opt.dim, seed, crown });
+  }
+  if (!lite) _bakeAt(c, t, "f|" + kid, E, x, y, _bkFront, A);
+}
 function drawUnit(c, idx, x, y, t, opt) {
   opt = opt || {}; const ch = CHARS[idx], gs = GRADES[ch.grade].style, r = 13 * gs.scale, n = opt.count || 1;
+  if (opt.bake && _canBake()) {
+    const img = SPRITES[ch.key];
+    _unitBaked(c, "u" + idx, ch.look, gs, r, n, x, y, t, opt, idx, idx * 1.7 + (opt.phase || 0), img, false);
+    if (opt.selected) { c.strokeStyle = `rgba(255,255,255,${0.6 + 0.3 * Math.sin(t * 6)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y + r * 0.9, r * 1.2, r * 0.36, 0, 0, 7); c.stroke(); }
+    return;
+  }
   if (!opt.lite) { drawPlate(c, x, y, r, gs, t); drawAura(c, x, y, r, gs, t, "back"); }
   _ellipse(c, x, y + r * 0.95, r * 0.8, r * 0.18, "rgba(0,0,0,.15)");
   const img = SPRITES[ch.key];
@@ -438,8 +518,18 @@ function drawUnit(c, idx, x, y, t, opt) {
   if (opt.selected) { c.strokeStyle = `rgba(255,255,255,${0.6 + 0.3 * Math.sin(t * 6)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y + r * 0.9, r * 1.2, r * 0.36, 0, 0, 7); c.stroke(); }
 }
 function _heroOf(id) { if (typeof id === "object" && id) return id; if (typeof id === "number") return HEROES[id]; return HEROES.find((h) => h.id === id) || HEROES[0]; }
+function _heroShots(c, x, y, r, t, sh) {
+  for (let i = 0; i < 4; i++) { const on = i < sh, last = i === 3, px = x + (i - 1.5) * 7, py = y + r * 1.22; c.beginPath(); c.arc(px, py, last ? 3.2 + (sh === 3 ? Math.sin(t * 10) : 0) : 2.2, 0, 7); c.fillStyle = on ? "#ff7a2e" : "rgba(255,255,255,.7)"; c.fill(); c.strokeStyle = last ? "#ffb703" : "#8a6a3a"; c.lineWidth = 1.2; c.stroke(); }
+}
 function drawHero(c, heroId, x, y, t, opt) {
   opt = opt || {}; const h = _heroOf(heroId), gs = HERO_STYLE, r = 13 * gs.scale;
+  if (opt.bake && _canBake()) {
+    const sh = opt.shots != null ? opt.shots % 4 : -1;
+    const o2 = { lite: false, anim: opt.anim, dim: opt.dim, preBody: sh >= 0 ? (g) => _heroShots(g, x, y, r, t, sh) : null };
+    _unitBaked(c, "h" + h.id, h.look, gs, r, 1, x, y, t, o2, 0, 3.3, SPRITES[h.id], true);
+    if (sh === 3) { c.strokeStyle = `rgba(255,120,40,${0.5 + 0.4 * Math.sin(t * 10)})`; c.lineWidth = 3; c.beginPath(); c.arc(x, y, r * 1.15, 0, 7); c.stroke(); }
+    return;
+  }
   drawPlate(c, x, y, r, gs, t); drawAura(c, x, y, r, gs, t, "back");
   _ellipse(c, x, y + r * 0.95, r * 0.8, r * 0.18, "rgba(0,0,0,.15)");
   // 4번째 공격 강조: 발밑 4칸 표시, 3번 쌓이면 4번째가 맥동
@@ -525,12 +615,26 @@ function _bolt(c, x, y, s, col) { c.fillStyle = col; c.strokeStyle = "#a8741a"; 
 function _crownMob(c, r, y, big) { c.beginPath(); c.moveTo(-r * 0.55, y); c.lineTo(-r * 0.6, y - r * 0.55); c.lineTo(-r * 0.25, y - r * 0.25); c.lineTo(0, y - r * 0.7); c.lineTo(r * 0.25, y - r * 0.25); c.lineTo(r * 0.6, y - r * 0.55); c.lineTo(r * 0.55, y); c.closePath(); c.fillStyle = "#ffd54f"; c.fill(); c.strokeStyle = "#a8741a"; c.lineWidth = 2; c.stroke(); _ellipse(c, 0, y - r * 0.2, r * 0.09, r * 0.09, "#ff6b8b"); }
 
 // m: {kind, hue, boss, id, flash, deco[], slow, burn, name}
-function drawMob(c, x, y, r, t, m) {
-  const kind = m.kind, h = m.hue, fl = m.flash > 0, boss = !!m.boss, id = m.id || 0;
-  const w = Math.sin(t * 6 + id * 1.7) * 0.07, base = MOB_BASE[kind] || kind, ghost = base === "ghost", flier = base === "bat" || base === "ufo" || base === "cloud";
+function _mobFy(base, r, t, id) { return base === "ghost" ? Math.sin(t * 3 + id) * r * 0.12 - r * 0.2 : base === "bat" || base === "ufo" || base === "cloud" ? Math.sin(t * 4 + id) * r * 0.12 - r * 0.25 : 0; }
+function _bkMob(g, bt, A) { _mobDraw(g, 0, 0, A.r, bt, A.m, A.h, A.id); }
+function drawMob(c, x, y, r, t, m, bake) {
+  const id0 = m.id || 0, base = MOB_BASE[m.kind] || m.kind;
+  if (bake && _canBake()) {
+    const h = Math.round(m.hue), id = id0 % 4, rr = Math.round(r * 2) / 2, A = _ba; A.r = rr; A.m = m; A.h = h; A.id = id;
+    const key = "m|" + m.kind + "|" + h + "|" + (m.flash > 0 ? 1 : 0) + "|" + (m.boss ? 1 : 0) + "|" + rr + "|" + (m.deco ? m.deco.join(",") : "") + "|" + id;
+    const e = _bake(t, key, rr * 2.9, _bkMob, A);
+    if (e) { c.drawImage(e.cv, x - e.E, y - e.E, 2 * e.E, 2 * e.E); if (m.slow > 0 || m.burn > 0) _mobStatus(c, x, y, r, t, m, _mobFy(base, r, t, id)); return; }
+  }
+  _mobDraw(c, x, y, r, t, m, m.hue, id0);
+  _mobStatus(c, x, y, r, t, m, _mobFy(base, r, t, id0));
+}
+// 몸 본체(상태이상 오버레이 제외). h/id 는 호출자가 정함(굽기 시 정수 hue, id%4)
+function _mobDraw(c, x, y, r, t, m, h, id) {
+  const kind = m.kind, fl = m.flash > 0, boss = !!m.boss;
+  const w = Math.sin(t * 6 + id * 1.7) * 0.07, base = MOB_BASE[kind] || kind, ghost = base === "ghost";
   const edge = hsl(h, 55, 28), dark = base === "golem" || base === "robo";
   c.save();
-  const fy = ghost ? Math.sin(t * 3 + id) * r * 0.12 - r * 0.2 : flier ? Math.sin(t * 4 + id) * r * 0.12 - r * 0.25 : 0;
+  const fy = _mobFy(base, r, t, id);
   _ellipse(c, x, y + r * 0.95, r * 0.8, r * 0.17, "rgba(0,0,0,.16)");
   if (boss) { // 보스 바닥 오라
     const bg = c.createRadialGradient(x, y + r * 0.2, r * 0.5, x, y + r * 0.2, r * 1.9); const bc = kind === "demon" ? "160,40,200" : "255,90,60"; bg.addColorStop(0, `rgba(${bc},${0.28 + 0.1 * Math.sin(t * 4)})`); bg.addColorStop(1, `rgba(${bc},0)`); c.fillStyle = bg; c.beginPath(); c.arc(x, y + r * 0.2, r * 1.9, 0, 7); c.fill();
@@ -637,7 +741,10 @@ function drawMob(c, x, y, r, t, m) {
     else if (d === "crown") _crownMob(c, r * 0.8, -r * 1.0);
   }
   c.restore();
-  // 상태이상: 둔화(얼음), 화상(불꽃)
+}
+// 상태이상: 둔화(얼음), 화상(불꽃) — 항상 라이브. fy = 몸 부유 오프셋(_mobFy)
+function _mobStatus(c, x, y, r, t, m, fy) {
+  const id = m.id || 0;
   if (m.slow > 0) {
     c.save(); c.globalAlpha = 0.9; c.fillStyle = "rgba(150,220,255,.32)"; c.beginPath(); c.arc(x, y + fy * 0.5, r * 1.08, 0, 7); c.fill(); c.strokeStyle = "rgba(255,255,255,.9)"; c.lineWidth = 1.6; c.stroke();
     c.fillStyle = "#bfe9ff"; c.strokeStyle = "#5aa8e8"; c.lineWidth = 1.2; for (let i = 0; i < 3; i++) { const a = -0.5 + i * 0.55 + Math.PI * 0.75; c.save(); c.translate(x + Math.cos(a) * r * 0.95, y + Math.sin(a) * r * 0.9 + r * 0.1); c.rotate(a + Math.PI / 2); _poly(c, r, [-0.1, 0, 0, -0.36, 0.1, 0], "#bfe9ff", "#5aa8e8", 1.2); c.restore(); }
@@ -805,8 +912,8 @@ function drawGallery(c, w, h, t) {
 // ---------- 배경 / 보드 ----------
 const CH_BG = [["#c5f0ae", "#a6e195"], ["#b9dca0", "#8fc17a"], ["#ddd5c0", "#c2b79c"], ["#d3dce0", "#b2c0c8"], ["#cfe8ff", "#a9d2f5"], ["#ddd3f7", "#bba9ea"], ["#c8f0f0", "#9edcdc"], ["#f7e6bd", "#e8cb8c"], ["#ffdcee", "#ffb9db"], ["#a59bcb", "#7a6fa3"]];
 // slots[i] = {ch,n,lock,hero} | null.  S 전역(읽기 전용)에서 round/resonance 를 참고한다.
-function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
-  const Sx = typeof S !== "undefined" ? S : null, ci = Sx && Sx.round ? Math.min(9, Math.floor((Sx.round - 1) / 5)) : 0, bgc = CH_BG[ci];
+function _bkTile(g, bt, A) { const k = _ba; drawSlotTile(g, 0, 0, k.grade, k.sel, k.lock, bt, k.clan); }
+function _boardStatic(c, W, H, T, bgc) {
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, bgc[0]); g.addColorStop(1, bgc[1]);
   c.fillStyle = g; c.fillRect(0, 0, W, H);
   c.fillStyle = "rgba(255,255,255,.12)"; for (let i = 0; i < 8; i += 2) c.fillRect(0, (i * H) / 8, W, H / 8);
@@ -821,6 +928,19 @@ function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
   for (let i = 0; i < 70; i++) { const d = (i * 47.3) % (2 * (tw + th)); let px, py; if (d < tw) { px = T.x0 + d; py = T.y0; } else if (d < tw + th) { px = T.x1; py = T.y0 + d - tw; } else if (d < 2 * tw + th) { px = T.x1 - (d - tw - th); py = T.y1; } else { px = T.x0; py = T.y1 - (d - 2 * tw - th); } c.beginPath(); c.arc(px + ((i * 7) % 9) - 4, py + ((i * 11) % 9) - 4, 1.5 + (i % 3) * 0.5, 0, 7); c.fill(); }
   const flowers = [[48, 62, "#ff9ec0"], [300, 340, "#fff"], [90, 350, "#ffe27a"], [320, 80, "#ff9ec0"], [180, 62, "#fff"], [180, 345, "#ffe27a"], [50, 210, "#fff"], [312, 215, "#ffe27a"], [100, 62, "#ffe27a"], [262, 62, "#ff9ec0"]];
   flowers.forEach(([fx, fy, col]) => { c.fillStyle = col; for (let k = 0; k < 5; k++) { const a = (k * Math.PI * 2) / 5; c.beginPath(); c.arc(fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.2, 0, 7); c.fill(); } c.fillStyle = "#ffb703"; c.beginPath(); c.arc(fx, fy, 1.6, 0, 7); c.fill(); });
+}
+function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
+  const Sx = typeof S !== "undefined" ? S : null, ci = Sx && Sx.round ? Math.min(9, Math.floor((Sx.round - 1) / 5)) : 0, bgc = CH_BG[ci];
+  // 정적 배경은 챕터/크기/배율이 같으면 오프스크린 1장으로 재사용 (S, t 에 의존하지 않음)
+  const sc = _gfxSC(), bk = ci + "|" + W + "|" + H + "|" + T.x0 + "," + T.y0 + "," + T.x1 + "," + T.y1 + "|" + sc;
+  if (_canBake() && !(_boardCache && _boardCache.k === bk)) {
+    try {
+      const cw = Math.ceil(W * sc), ch = Math.ceil(H * sc), cv = _boardCache && _boardCache.cv.width === cw && _boardCache.cv.height === ch ? _boardCache.cv : document.createElement("canvas");
+      cv.width = cw; cv.height = ch; const g = cv.getContext("2d"); g.setTransform(cw / W, 0, 0, ch / H, 0, 0); _boardStatic(g, W, H, T, bgc); _boardCache = { k: bk, cv };
+    } catch (err) { _boardCache = null; }
+  }
+  if (_boardCache && _boardCache.k === bk) { c.drawImage(_boardCache.cv, 0, 0, W, H); c.lineCap = "round"; c.lineJoin = "round"; }
+  else _boardStatic(c, W, H, T, bgc);
   const px = T.x0, py = T.y0, sp = t * 2;
   const pg = c.createRadialGradient(px, py, 2, px, py, 22); pg.addColorStop(0, "#fff"); pg.addColorStop(0.4, "#d28bff"); pg.addColorStop(1, "rgba(150,80,220,0)");
   c.fillStyle = pg; c.beginPath(); c.arc(px, py, 22, 0, 7); c.fill();
@@ -829,7 +949,8 @@ function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
   const res = Sx && Sx.resonance;
   for (let i = 0; i < slotCount; i++) {
     const p = slotPos(i), s = slots ? slots[i] : null, grade = s ? (s.hero ? -2 : CHARS[s.ch].grade) : -1, clan = s && !s.hero ? CHARS[s.ch].clan : -1;
-    drawSlotTile(c, p.x, p.y, grade, sel === i, !!(s && s.lock), t, clan);
+    _ba.grade = grade; _ba.sel = sel === i; _ba.lock = !!(s && s.lock); _ba.clan = clan;
+    _bakeAt(c, t, "t|" + grade + "|" + (sel === i ? 1 : 0) + "|" + (s && s.lock ? 1 : 0) + "|" + clan, 36, p.x, p.y, _bkTile, _ba);
     if (res && clan >= 0 && res[clan] >= 4) { // 무리 공명: 같은 무리 칸에 맥동하는 무리색 테두리 (6종 이상은 이중)
       const pu = 0.5 + 0.5 * Math.sin(t * 4); c.save(); c.strokeStyle = EMB_COL[clan]; c.globalAlpha = 0.45 + pu * 0.35; c.lineWidth = 2; c.setLineDash([5, 4]); c.lineDashOffset = -t * 14; _rrect(c, p.x - 31, p.y - 31, 62, 62, 19); c.stroke(); if (res[clan] >= 6) { _rrect(c, p.x - 34, p.y - 34, 68, 68, 22); c.stroke(); } c.restore();
     }
