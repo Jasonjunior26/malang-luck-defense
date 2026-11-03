@@ -9,13 +9,13 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } }
 // ---- 1. 검증 ----
 const good = [
   {}, { rounds: 100 }, { rounds: 200, hpMul: 0.9 }, { hpMul: 1.8, mobSpeed: 1.2, bossTime: -5 }, { noGrade: 2, gradeCap: 4, drawLimit: 60 },
-  { noSell: true, clanBan: [0, 3], heroPool: ["buung"] }, { startMin: 0, killReward: 2, drawCost: 25 }, { luckyWeek: true, mobCount: 1.6, bossTime: 15 },
+  { noSell: true, clanBan: [0, 3], heroPool: ["owlsage"] }, { startMin: 0, killReward: 2, drawCost: 25 }, { luckyWeek: true, mobCount: 1.6, bossTime: 15 },
 ];
 good.forEach((r, i) => ok(vr(r).ok, "good#" + i));
 const bad = [
   null, [], "x", { foo: 1 }, { rounds: 49 }, { rounds: 201 }, { rounds: 60.5 }, { hpMul: 0.69 }, { hpMul: 2.6 }, { mobSpeed: 1.6 }, { mobCount: 0.7 },
   { bossTime: -11 }, { bossTime: 16 }, { noGrade: 3 }, { gradeCap: 3 }, { gradeCap: 7 }, { drawLimit: 59 }, { drawLimit: 301 }, { noSell: "yes" },
-  { clanBan: [0, 1, 2] }, { clanBan: [4] }, { heroPool: ["nope"] }, { heroPool: "buung" }, { startMin: 201 }, { startMin: -1 }, { killReward: 0.4 },
+  { clanBan: [0, 1, 2] }, { clanBan: [4] }, { heroPool: ["nope"] }, { heroPool: "owlsage" }, { startMin: 201 }, { startMin: -1 }, { killReward: 0.4 },
   { drawCost: 9 }, { drawCost: 26 }, { luckyWeek: 2 }, { hpMul: "1" },
   { hpMul: 1, mobSpeed: 1, mobCount: 1, bossTime: 0 }, // 모디파이어 4개
   { rounds: 100, hpMul: 1, mobSpeed: 1, mobCount: 1, bossTime: 0 },
@@ -62,7 +62,7 @@ function runCase(name, rules, seed) {
 
 const mods = {
   hpMul: { hpMul: 2 }, mobSpeed: { mobSpeed: 1.4 }, mobCount: { mobCount: 1.5 }, bossTime: { bossTime: -8 }, noGrade1: { noGrade: 1 }, noGrade2: { noGrade: 2 },
-  gradeCap4: { gradeCap: 4 }, drawLimit: { drawLimit: 60 }, noSell: { noSell: true }, clanBan: { clanBan: [1, 2] }, heroPool: { heroPool: ["buung"] },
+  gradeCap4: { gradeCap: 4 }, drawLimit: { drawLimit: 60 }, noSell: { noSell: true }, clanBan: { clanBan: [1, 2] }, heroPool: { heroPool: ["owlsage"] },
   startMin: { startMin: 0 }, killReward: { killReward: 2 }, drawCost: { drawCost: 25 }, luckyWeek: { luckyWeek: true },
 };
 for (const [k, r] of Object.entries(mods)) {
@@ -72,7 +72,7 @@ for (const [k, r] of Object.entries(mods)) {
   if (k === "drawLimit") ok(S.draws <= 60, "drawLimit 초과 " + S.draws);
   if (k === "gradeCap4") ok(S.slots.every((s) => !s || s.hero || (s.ch >> 2) <= 4 || true), "cap");
   if (k === "clanBan") ok(c.b.banned === 0, "금지 무리 유닛 등장 " + c.b.banned);
-  if (k === "heroPool") ok(S.hero.id === "buung", "heroPool 영웅 " + S.hero.id);
+  if (k === "heroPool") ok(S.hero.id === "owlsage", "heroPool 영웅 " + S.hero.id);
   if (k === "drawCost") ok(c.b.e.CONST.DRAW_COST === 25 - (S.hero.fx.drawCost || 0), "drawCost");
 }
 // gradeCap: cap 등급 유닛은 합성 불가 / noGrade: 하위 등급 뽑기 안 나옴
@@ -95,7 +95,7 @@ for (const [k, r] of Object.entries(mods)) {
 const presets = {
   "맨몸 서바이벌": { noGrade: 1, startMin: 0, noSell: true }, "하드코어": { hpMul: 1.8, mobSpeed: 1.2, bossTime: -5 },
   "운빨 파티": { luckyWeek: true, drawCost: 20, killReward: 1.5 }, "마라톤": { rounds: 100, hpMul: 0.9 },
-  "한 우물": { clanBan: [1, 2], heroPool: ["buung"] }, "엔드리스": { rounds: 200 },
+  "한 우물": { clanBan: [1, 2], heroPool: ["owlsage"] }, "엔드리스": { rounds: 200 },
 };
 for (const [n, r] of Object.entries(presets)) {
   ok(vr(r).ok, "preset valid " + n);

@@ -35,7 +35,7 @@
     { n: "하드코어", r: { hpMul: 1.8, mobSpeed: 1.2, bossTime: -5 } },
     { n: "운빨 파티", r: { luckyWeek: true, drawCost: 20, killReward: 1.5 } },
     { n: "마라톤", r: { rounds: 100, hpMul: 0.9 } },
-    { n: "한 우물", r: { clanBan: [1, 2], heroPool: ["buung"] } },
+    { n: "한 우물", r: { clanBan: [1, 2], heroPool: ["owlsage"] } },
     { n: "엔드리스", r: { rounds: 200 } },
   ];
   function ruleChips(rules) { // 규칙 -> 짧은 칩 문구 배열
@@ -306,7 +306,7 @@
     if (k in W.mods) { delete W.mods[k]; return ""; }
     if (modCount(W) >= 3) return "모디파이어는 최대 3개예요";
     const m = MOD[k], hs = g("HEROES") || [];
-    W.mods[k] = m.t === "bool" ? true : m.t === "clans" ? [1] : m.t === "hero" ? [hs[0] ? hs[0].id : "buung"] : m.def;
+    W.mods[k] = m.t === "bool" ? true : m.t === "clans" ? [1] : m.t === "hero" ? [hs[0] ? hs[0].id : "bee"] : m.def;
     return "";
   }
   function step2(msg) {

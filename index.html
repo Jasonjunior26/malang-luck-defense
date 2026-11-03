@@ -232,6 +232,12 @@
   #menu button small, #hud .chip small { white-space:nowrap; }
   #banner.on { will-change:transform,opacity; }
   @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-iteration-count:1 !important; animation-duration:.01s !important; } }
+  /* 사거리 강화 칩 (무리 줄 🎯) + 좁은 화면(320~360) 줄 넘침 방지 */
+  .cr .uc.rg { min-width:44px; padding:0 4px; }
+  .cr .uc.rg.ok { background:linear-gradient(#8fd3ff,#3b9dff); box-shadow:0 2px 0 #1f6fc0; }
+  .cr .uc.rg.mx { opacity:.7; }
+  .cr .uc.rg u { top:-3px; right:-3px; background:#1f6fc0; }
+  @media (max-width:360px) { .cr { gap:3px; padding:0 3px 0 4px; } .cr .ci { width:16px; font-size:14px; } .cr .lv { min-width:44px; font-size:12px; } .cr .uc { min-width:48px; padding:0 4px; font-size:11px; } .cr .uc.rg { min-width:36px; padding:0 3px; } }
 </style>
 </head>
 <body>

@@ -33,7 +33,7 @@ eq(T.buildRules({ mods: { noSell: true }, rounds: 200 }), { noSell: true, rounds
 eq(T.ruleChips({ rounds: 200 }), ["엔드리스"], "chip endless");
 eq(T.ruleChips({ rounds: 100, hpMul: 0.9 }), ["100라운드", "체력 ×0.9"], "chip marathon");
 eq(T.ruleChips({ noGrade: 1, startMin: 0, noSell: true }), ["커먼 제외", "판매 금지", "시작 💎0"], "chip bare");
-ok(T.ruleChips({ clanBan: [1, 2], heroPool: ["buung"] }).length === 2, "chip clan+hero");
+ok(T.ruleChips({ clanBan: [1, 2], heroPool: ["owlsage"] }).length === 2, "chip clan+hero");
 
 // 3. 검증 사유
 const bad = (R) => T.checkRules(R);

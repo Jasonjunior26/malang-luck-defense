@@ -32,7 +32,8 @@ function clientRun(botSeed, opts) {
         if (rnd() < 0.05) GAME.toggleLock(Math.floor(rnd() * 20));
         if (S.upTickets) GAME.useUpTicket(best());
         if (S.round >= __opts.up) GAME.upgrade(best());
-        for (let k = 0; k < 5; k++) GAME.draw();
+        const sv = S.round >= 6 && S.rangeUp[best()] < 1 && !GAME.rangeUp(best()); // 사거리 강화 입력(rng)도 재생되는지: 1단계까지 모아서 구매
+        if (!sv) for (let k = 0; k < 5; k++) GAME.draw();
         for (let i = 0; i < 20; i++) { const s = S.slots[i]; if (s && !s.hero && s.n >= 3 && (s.ch >> 2) < 6 && rnd() < 0.7) GAME.merge(i, rnd() < 0.5); }
         if (S.tickets.length) { const g = S.tickets[0]; for (let c = 0; c < 4; c++) if (GAME.useTicket(g * 4 + c)) break; }
         if (!S.slots.some((x) => !x)) for (let i = 0; i < 20; i++) { const s = S.slots[i]; if (s && !s.hero && (s.ch >> 2) < 2 && s.n < 3) { GAME.sell(i); break; } }
@@ -53,6 +54,7 @@ for (let i = 0; i < N; i++) {
   const same = v.ok && v.result.score === g.r.score && v.result.round === g.r.round && v.result.win === g.r.win && v.result.kills === g.r.kills && v.result.hero === g.r.hero;
   console.log(`run${i} seed=${g.seed} hero=${g.r.hero} round=${g.r.round} win=${g.r.win} score=${g.r.score} inputs=${g.inputs.length} replay=${v.ok ? v.result.score : v.error} ${dt}ms ${same ? "MATCH" : "MISMATCH"}`);
   check(`determinism run${i}`, same);
+  if (i === 0) check("rng(사거리 강화) 입력 기록", g.inputs.some((x) => x[1] === "rng"));
   if (i === 0) {
     // 변조 테스트 (첫 판 기준)
     const inp = g.inputs, m = (f) => { const c = JSON.parse(JSON.stringify(inp)); f(c); return c; };

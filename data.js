@@ -63,26 +63,16 @@ const CHARS = [
 ];
 
 const HEROES = [
- {"id":"darami","name":"도토리 대장 다람이","prob":9.6,"rule":"시작 미네랄 +30, 숲무리 공업 +3","fx":{"startMin":30,"lv":[3,0,0,0]},"look":{"shape":[1,0.95],"c1":"#d9a066","c2":"#fbeedd","c3":"#8b5a2b","base":[["ear","round","#f2a7a7"],["mark","stripes","#8b5a2b"],["tail","fluffy","#d9a066"]],"face":["dot","smile"],"parts":[["hat","acorncap","#9b6a3c"],["acc","scarf","#58c26a"]]}},
- {"id":"hwarang","name":"불꽃 대장 화랑이","prob":8.4,"rule":"불꽃무리 공업 +5","fx":{"lv":[0,5,0,0]},"look":{"shape":[1,0.95],"c1":"#d9663a","c2":"#fff0dc","c3":"#ffd24d","base":[["ear","round","#fff0dc"],["mark","cheek","#fff0dc"],["tail","flame","#ff9f43"]],"face":["dot","smile"],"parts":[["hat","headband","#e8442e"],["acc","scarf","#ffd24d"]]}},
- {"id":"duduk","name":"두더지 상인 두둑이","prob":7.8,"rule":"라운드 시작마다 미네랄 +8","fx":{"roundMin":8},"look":{"shape":[1.05,0.92],"c1":"#8a6a58","c2":"#d9c0ae","c3":"#ffd54f","base":[["ear","nub","#d9c0ae"],["nose","pink","#ffb3c6"]],"face":["sleepy","smile"],"parts":[["hat","minerhelmet","#ffd54f"],["acc","coinbag","#ffd54f"]]}},
- {"id":"banjjak","name":"수집가 까치 반짝이","prob":6.6,"rule":"한 등급의 4무리를 다 모으면 미네랄 +70","fx":{"collect":{"bonus":70}},"look":{"shape":[1,0.95],"c1":"#4a5a7a","c2":"#ffffff","c3":"#3b9dff","base":[["ear","tuft","#3b9dff"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","monocle","#ffd54f"],["acc","gem","#ff4f81"]]}},
- {"id":"bongbong","name":"저금통 토끼 봉봉이","prob":6.6,"rule":"솜토끼 10기를 모으면 미네랄 +200 (1회)","fx":{"hold":{"ch":4,"n":10,"bonus":200}},"look":{"shape":[1.05,1],"c1":"#ffd9e6","c2":"#ffffff","c3":"#ff9ec0","base":[["ear","long","#ff9ec0"],["tail","puff","#ffffff"]],"face":["dot","smile"],"parts":[["hat","piggybank","#ff9ec0"],["acc","coin","#ffd54f"]]}},
- {"id":"buung","name":"부엉박사","prob":6,"rule":"뽑기로 달부엉이가 나올 때마다 미네랄 +20","fx":{"drawBonus":{"ch":7,"bonus":20}},"look":{"shape":[1.05,0.98],"c1":"#c9b6f2","c2":"#f1eaff","c3":"#ffd54f","base":[["ear","tuft","#a58be0"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","glasses","#3a3a5a"]]}},
- {"id":"lucky","name":"행운 고양이 럭키","prob":4.8,"rule":"히든 이상 등급이 2배 더 잘 나와요","fx":{"probMod":"lucky"},"look":{"shape":[1.02,0.95],"c1":"#fffaf0","c2":"#ffffff","c3":"#ffd54f","base":[["ear","point","#ffb3c6"],["whisker"],["tail","puff","#ffffff"]],"face":["dot","cat"],"parts":[["acc","bell","#ffd54f"],["acc","coinpaw","#ffd54f"]]}},
- {"id":"nulgul","name":"도박꾼 너구리 너굴","prob":4.2,"rule":"처치 보상 7% 확률로 3배, 보스 처치 +100","fx":{"killLuck":{"p":0.07,"mul":3},"bossBonus":100},"look":{"shape":[1.08,0.95],"c1":"#8a7a6a","c2":"#e9dccb","c3":"#3a3030","base":[["ear","round","#3a3030"],["mark","mask","#3a3030"],["tail","striped","#5a4a40"]],"face":["sharp","smile"],"parts":[["hat","tophat","#3a3a5a"],["acc","dice","#ffffff"]]}},
- {"id":"moonseer","name":"달토끼 점쟁이","prob":3.6,"rule":"라운드 시작 때 8% 확률로 히든 1기 선물","fx":{"roundHidden":0.08},"look":{"shape":[1,1],"c1":"#e8e0ff","c2":"#ffffff","c3":"#8a7bff","base":[["ear","long","#c9b6f2"],["tail","puff","#ffffff"]],"face":["sleepy","smile"],"parts":[["hat","moonhat","#8a7bff"],["acc","crystalball","#bfe6ff"]]}},
- {"id":"firstmalang","name":"첫 말랑","prob":2.4,"rule":"시작 미네랄 +50, 모든 무리 공업 +2","fx":{"startMin":50,"lv":[2,2,2,2]},"look":{"shape":[1,0.98],"c1":"#ffffff","c2":"#fff6d6","c3":"#ffd54f","base":[["ear","none"]],"face":["star","smile"],"parts":[["halo","ring","#ffef9a"],["acc","gem","#ff9ec0"]]}},
- {"id":"durumi","name":"대장장이 두루미","prob":4,"rule":"공업 강화 비용 15% 할인","fx":{"upCost":0.85},"look":{"shape":[1,1],"c1":"#f4f4f8","c2":"#ffffff","c3":"#e8442e","base":[["ear","tuft","#e8442e"],["beak","#ffb347"]],"face":["big","beak"],"parts":[["hat","headband","#e8442e"],["acc","armor","#8a97a8"]]}},
- {"id":"oduck","name":"에누리 오리","prob":4,"rule":"유닛 판매가 +50%","fx":{"sellMul":1.5},"look":{"shape":[1.08,0.95],"c1":"#ffe066","c2":"#fff6c2","c3":"#ff9f1c","base":[["ear","none"],["beak","#ff9f1c"],["tail","puff","#ffe066"]],"face":["dot","beak"],"parts":[["hat","tophat","#c0392b"],["acc","coinbag","#ffd54f"]]}},
- {"id":"fairy","name":"반딧 요정","prob":4,"rule":"뽑기 비용 💎2 할인","fx":{"drawCost":2},"look":{"shape":[0.95,1],"c1":"#b8f27a","c2":"#f4ffd6","c3":"#fff59d","base":[["ear","leaf","#7ed957"],["tail","ember","#fff59d"]],"face":["star","smile"],"parts":[["hat","sprout","#58c26a"],["acc","wand","#fff59d"]]}},
- {"id":"compound","name":"복리 햄스터","prob":4,"rule":"라운드마다 이자: 미네랄 100당 +2 (최대 +20)","fx":{"interest":{"per":100,"gain":2,"max":20}},"look":{"shape":[1.1,0.95],"c1":"#ffcf9e","c2":"#fff1e0","c3":"#ffd54f","base":[["ear","round","#ff9ec0"],["mark","cheek","#ff9ec0"]],"face":["dot","smile"],"parts":[["hat","ring","#ffd54f"],["acc","coin","#ffd54f"]]}},
- {"id":"turtle","name":"느릿 거북","prob":5,"rule":"적 이동 속도 -10%","fx":{"mobSlow":0.1},"look":{"shape":[1.1,0.92],"c1":"#7fc48a","c2":"#d9f2dc","c3":"#4e8f5a","base":[["ear","nub","#7fc48a"],["mark","spots","#4e8f5a"]],"face":["sleepy","smile"],"parts":[["acc","shell","#a0724a"],["acc","bamboo","#58c26a"]]}},
- {"id":"hawk","name":"사냥꾼 매","prob":4,"rule":"보스에게 주는 피해 +20%","fx":{"bossDmg":1.2},"look":{"shape":[1,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a4a6a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["sharp","beak"],"parts":[["hat","headband","#3a4a6a"],["acc","cape","#3a4a6a"]]}},
- {"id":"twinsq","name":"쌍둥이 다람쥐","prob":3,"rule":"합성하면 8% 확률로 결과 유닛 1기 더","fx":{"mergeTwin":0.08},"look":{"shape":[1,0.95],"c1":"#c98a52","c2":"#fbeedd","c3":"#58c26a","base":[["ear","point","#8b5a2b"],["tail","fluffy","#c98a52"]],"face":["dot","smile"],"parts":[["hat","flowerpair","#ffb3c6"],["acc","clover","#58c26a"]]}},
- {"id":"frostfox","name":"서리 여우","prob":4,"rule":"모든 공격에 둔화 15%p 추가","fx":{"slowPlus":0.15},"look":{"shape":[1,0.95],"c1":"#bfe8ff","c2":"#ffffff","c3":"#4aa8ff","base":[["ear","point","#ffffff"],["tail","fluffy","#ffffff"],["mark","cheek","#9fd8ff"]],"face":["dot","smile"],"parts":[["hat","star","#9fd8ff"],["acc","scarf","#4aa8ff"]]}},
- {"id":"ember","name":"불씨 도깨비","prob":4,"rule":"보스 제한시간 +10초, 화상 지속 +30%","fx":{"bossTime":10,"burnDur":1.3},"look":{"shape":[1.05,0.98],"c1":"#ff7043","c2":"#ffe0b2","c3":"#ffb300","base":[["ear","bump","#ff7043"],["tail","ember","#ffb300"]],"face":["sharp","fang"],"parts":[["hat","crown","#ffb300"],["acc","lavadrip","#ff5722"]]}},
- {"id":"moleart","name":"합성 장인 두더쥐","prob":4,"rule":"합성할 때마다 미네랄 +3","fx":{"mergeMin":3},"look":{"shape":[1.05,0.92],"c1":"#6d5b6a","c2":"#d9c8d6","c3":"#7ad0c8","base":[["ear","nub","#d9c8d6"],["nose","pink","#ffb3c6"],["mark","belly","#d9c8d6"]],"face":["sleepy","smile"],"parts":[["hat","headband","#ffd54f"],["acc","gem","#7ad0c8"]]}},
+ {"id":"bee","name":"꿀벌 일꾼 붕붕","prob":10,"rule":"라운드마다 미네랄 +6, 보스 처치 +40","fx":{"roundMin":6,"bossBonus":40},"look":{"shape":[1.05,0.95],"c1":"#ffd54f","c2":"#fff6c2","c3":"#3a3030","base":[["ear","antenna","#3a3030"],["mark","stripes","#3a3030"],["wing","nub","#ffffff"]],"face":["dot","smile"],"parts":[["acc","coinbag","#ffb300"]]}},
+ {"id":"goose","name":"황금 거위 꽥순","prob":10,"rule":"뽑기 6번째마다 무료","fx":{"freeDraw":6},"look":{"shape":[1.05,1],"c1":"#fff3c4","c2":"#ffffff","c3":"#ffb300","base":[["beak","#ff9f1c"],["tail","puff","#fff3c4"]],"face":["dot","beak"],"parts":[["hat","crown","#ffd54f"],["acc","coin","#ffd54f"]]}},
+ {"id":"weasel","name":"번개 족제비 찌릿","prob":10,"rule":"모든 유닛 공격 속도 +12%","fx":{"atkSpd":1.12},"look":{"shape":[0.95,1],"c1":"#c98a52","c2":"#fff1e0","c3":"#ffe14d","base":[["ear","round","#fff1e0"],["tail","thin","#c98a52"],["mark","belly","#fff1e0"]],"face":["sharp","smile"],"parts":[["hat","headband","#3b9dff"],["acc","lightning","#ffe14d"]]}},
+ {"id":"whale","name":"고래 장로 둥실","prob":10,"rule":"라운드마다 모든 피해 +0.8% 누적","fx":{"roundDmg":0.008},"look":{"shape":[1.12,0.92],"c1":"#6aa8e8","c2":"#e6f4ff","c3":"#2f6db0","base":[["ear","fin","#6aa8e8"],["tail","fin","#6aa8e8"],["mark","belly","#e6f4ff"]],"face":["sleepy","smile"],"parts":[["acc","spout","#bfe6ff"],["acc","glasses","#3a3a5a"]]}},
+ {"id":"hedgehog","name":"고슴도치 대장 따끔","prob":10,"rule":"보스 3마리 처치마다 모든 무리 공업 +1","fx":{"bossUp":1,"bossUpEvery":3},"look":{"shape":[1.05,0.95],"c1":"#8a6a58","c2":"#f0dcc8","c3":"#5a4632","base":[["ear","nub","#f0dcc8"],["mane","needle","#5a4632"],["nose","pink","#ffb3c6"]],"face":["sharp","fang"],"parts":[["hat","headband","#e8442e"],["acc","armor","#8a97a8"]]}},
+ {"id":"chameleon","name":"카멜레온 알록","prob":10,"rule":"공명에 필요한 종류 1 줄임","fx":{"resoEase":1},"look":{"shape":[1,0.95],"c1":"#7ed957","c2":"#e9ffd6","c3":"#ff9ec0","base":[["ear","none"],["tail","lizard","#58c26a"],["mark","spots","#ff9ec0"]],"face":["big","smile"],"parts":[["hat","flowerpair","#ffb3c6"],["acc","scarf","#3b9dff"]]}},
+ {"id":"frog","name":"개구리 연금술사 퐁","prob":10,"rule":"합성 6% 확률로 한 등급 더 위","fx":{"mergeUp":0.06},"look":{"shape":[1.1,0.9],"c1":"#58c26a","c2":"#d9f5c8","c3":"#7a5fd0","base":[["ear","bump","#58c26a"],["mark","cheek","#ff9ec0"]],"face":["big","smile"],"parts":[["hat","moonhat","#7a5fd0"],["acc","crystalball","#bfe6ff"]]}},
+ {"id":"penguin","name":"펭귄 얼음술사 뽀득","prob":10,"rule":"보스 체력 -15%","fx":{"bossHp":0.85},"look":{"shape":[1,1],"c1":"#3a4a6a","c2":"#ffffff","c3":"#9fd8ff","base":[["ear","none"],["beak","#ffb347"],["mark","belly","#ffffff"],["back","icespikes","#bfe8ff"]],"face":["dot","beak"],"parts":[["hat","star","#9fd8ff"],["acc","wand","#9fd8ff"]]}},
+ {"id":"fennec","name":"사막여우 망원","prob":10,"rule":"모든 유닛 사거리 +15%","fx":{"rangeMul":0.15},"look":{"shape":[1,0.95],"c1":"#f2c98a","c2":"#fff4e0","c3":"#e8442e","base":[["ear","big","#f2c98a"],["tail","fluffy","#f2c98a"]],"face":["sharp","smile"],"parts":[["hat","monocle","#ffd54f"],["acc","scarf","#e8442e"]]}},
+ {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"히어로 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
 ];
 
 // [r, chapter, name, kind, hue, hp, armor%, count, gap, speed, timeLimit, rewMul]  (개체 HP·보상은 구 표 대비 총량 유지: 수 N배 → 개체 1/N)
@@ -160,7 +150,8 @@ const CONST = {
  MOB_LOSE: 160, MOB_WARN: [130, 145],
  HP_MUL0: 2, HP_MUL1: 8, HP_POW: 1.6, // 몹 체력 배율: 1라운드 HP_MUL0 -> 50라운드 HP_MUL1 로 거듭제곱 곡선(HP_POW)으로 상승
  HP_K: 11, HP_GAMMA: 0.66,
- UP_STEP: 0.35, UP_COST0: 25, UP_COSTK: 5, UP_MAX: 25, UP_LV_CAP: 35,
+ UP_STEP: 0.35, UP_STEP2: 0.008, UP_COST0: 25, UP_COSTK: 5, UP_MAX: 25, UP_LV_CAP: 35,
+ RANGE_UP: { STEP: 0.08, MAX: 3, COST: [60, 120, 200] }, // 무리별 사거리 강화(단계당 +8%)
  BOSS_UP: [10, 20, 30, 40],
  RESONANCE: { 4: 2, 6: 4 }, RESONANCE_FIRST: 50,
  TICKET_GRADE: { 5: 2, 10: 2, 15: 2, 20: 3, 25: 3, 30: 3, 35: 4, 40: 4, 45: 4, 50: 5 },
@@ -303,9 +294,9 @@ function pickClan(r, ban) { // 규칙 clanBan: 금지 무리를 뺀 목록에서
 function rollChar(r, grade, ban) { return grade * 4 + pickClan(r, ban); }
 function mergeResult(r, grade, ban) { return (grade + 1) * 4 + pickClan(r, ban); }
 function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((r - 1) / (K.ROUNDS_BASE - 1), K.HP_POW); } // 50 초과는 같은 거듭제곱 곡선 연장
-let UP_MUL = 1; // 히어로(대장장이 두루미)의 강화 비용 배율. newGame 이 설정
+let UP_MUL = 1; // 히어로 fx.upCost 의 강화 비용 배율(현재 쓰는 히어로 없음). newGame 이 설정
 function upgradeCost(bought) { const c = CONST.UP_COST0 + CONST.UP_COSTK * bought; return UP_MUL === 1 ? c : Math.round(c * UP_MUL); }
-function dmgMul(lv) { return 1 + CONST.UP_STEP * lv; }
+function dmgMul(lv) { return 1 + CONST.UP_STEP * lv + CONST.UP_STEP2 * lv * lv; } // 후반 가속(2차항)
 function armorFactor(armorPct, pierce) { return 1 - (armorPct / 100) * (1 - (pierce || 0)); }
 function charAt(grade, clan) { return CHARS[grade * 4 + clan]; }
 function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : (round > CONST.ROUNDS_BASE && round % 10 === 0 ? CONST.TICKET_GRADE[CONST.ROUNDS_BASE] : -1); } // 50 초과 보스는 마지막 값 유지
@@ -324,15 +315,16 @@ function clanLevel(S, c) {
  const u = S.up[c];
  return Math.min(CONST.UP_LV_CAP, u.bought + u.bonus);
 }
-// 필드에 같은 무리의 서로 다른 등급이 몇 종 있는가 -> 공명 보너스(4종 +2, 6종 +4)
+// 필드에 같은 무리의 서로 다른 등급이 몇 종 있는가 -> 공명 보너스(4종 +2, 6종 +4; ease 만큼 필요 종류 감소)
 function resonanceCount(slots, c) {
  const seen = {};
  let n = 0;
  for (const s of slots) if (s && s.ch % 4 === c && !s.hero && !seen[s.ch >> 2]) { seen[s.ch >> 2] = 1; n++; }
  return n;
 }
-function resonanceBonus(slots, c) {
- const n = resonanceCount(slots, c);
+function resonanceNeed(ease) { return [4 - (ease || 0), 6 - (ease || 0)]; } // 공명 단계별 필요 종류 수 (카멜레온 fx.resoEase 만큼 완화)
+function resonanceBonus(slots, c, ease) {
+ const n = resonanceCount(slots, c) + (ease || 0);
  return n >= 6 ? CONST.RESONANCE[6] : n >= 4 ? CONST.RESONANCE[4] : 0;
 }
 // 무리별 화력(유닛 점수 x 스택) 비중 [0..1] x4

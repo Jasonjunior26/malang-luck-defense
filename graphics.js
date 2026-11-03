@@ -946,18 +946,18 @@ function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
   c.fillStyle = pg; c.beginPath(); c.arc(px, py, 22, 0, 7); c.fill();
   c.strokeStyle = "#fff"; c.lineWidth = 2; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(px, py, 6 + i * 4, sp + i, sp + i + 3.6); c.stroke(); }
   // 칸: 등급별 타일 + 코너 표시
-  const res = Sx && Sx.resonance;
+  const res = Sx && Sx.resonance, rez = (Sx && Sx.hero && Sx.hero.fx && Sx.hero.fx.resoEase) || 0; // 카멜레온: 공명 필요 종류 완화
   for (let i = 0; i < slotCount; i++) {
     const p = slotPos(i), s = slots ? slots[i] : null, grade = s ? (s.hero ? -2 : CHARS[s.ch].grade) : -1, clan = s && !s.hero ? CHARS[s.ch].clan : -1;
     _ba.grade = grade; _ba.sel = sel === i; _ba.lock = !!(s && s.lock); _ba.clan = clan;
     _bakeAt(c, t, "t|" + grade + "|" + (sel === i ? 1 : 0) + "|" + (s && s.lock ? 1 : 0) + "|" + clan, 36, p.x, p.y, _bkTile, _ba);
-    if (res && clan >= 0 && res[clan] >= 4) { // 무리 공명: 같은 무리 칸에 맥동하는 무리색 테두리 (6종 이상은 이중)
-      const pu = 0.5 + 0.5 * Math.sin(t * 4); c.save(); c.strokeStyle = EMB_COL[clan]; c.globalAlpha = 0.45 + pu * 0.35; c.lineWidth = 2; c.setLineDash([5, 4]); c.lineDashOffset = -t * 14; _rrect(c, p.x - 31, p.y - 31, 62, 62, 19); c.stroke(); if (res[clan] >= 6) { _rrect(c, p.x - 34, p.y - 34, 68, 68, 22); c.stroke(); } c.restore();
+    if (res && clan >= 0 && res[clan] + rez >= 4) { // 무리 공명: 같은 무리 칸에 맥동하는 무리색 테두리 (6종 이상은 이중)
+      const pu = 0.5 + 0.5 * Math.sin(t * 4); c.save(); c.strokeStyle = EMB_COL[clan]; c.globalAlpha = 0.45 + pu * 0.35; c.lineWidth = 2; c.setLineDash([5, 4]); c.lineDashOffset = -t * 14; _rrect(c, p.x - 31, p.y - 31, 62, 62, 19); c.stroke(); if (res[clan] + rez >= 6) { _rrect(c, p.x - 34, p.y - 34, 68, 68, 22); c.stroke(); } c.restore();
     }
     if (s) drawSlotOverlay(c, p.x, p.y, s, t);
   }
   if (sel >= 0 && slots && slots[sel]) { // 사거리 표시
-    const s = slots[sel], rg = s.hero ? 170 : CHARS[s.ch].range, p = slotPos(sel), gc = s.hero ? "#ffc400" : GRADES[CHARS[s.ch].grade].color;
+    const s = slots[sel], rg = typeof defOf === "function" ? defOf(s).range : s.hero ? 170 : CHARS[s.ch].range, p = slotPos(sel), gc = s.hero ? "#ffc400" : GRADES[CHARS[s.ch].grade].color;
     c.save(); c.strokeStyle = `rgba(255,140,60,${0.55 + Math.sin(t * 6) * 0.2})`; c.lineWidth = 2.5; c.setLineDash([8, 7]); c.lineDashOffset = -t * 20;
     c.fillStyle = "rgba(255,200,80,.12)"; c.beginPath(); c.arc(p.x, p.y, rg, 0, 7); c.fill(); c.stroke(); c.restore();
   } else if (sel >= 0) { const p = slotPos(sel); c.save(); c.strokeStyle = "rgba(255,140,60,.5)"; c.lineWidth = 2.5; c.setLineDash([8, 7]); c.beginPath(); c.arc(p.x, p.y, 150, 0, 7); c.stroke(); c.restore(); }

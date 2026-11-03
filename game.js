@@ -58,6 +58,7 @@ function newGame(mode, forceSeed, rules) {
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
     slots: Array(CONST.SLOTS).fill(null), sel: -1,
     up: [0, 1, 2, 3].map((c) => ({ bought: 0, bonus: (hx.lv && hx.lv[c]) || 0 })),
+    rangeUp: [0, 0, 0, 0], // 무리별 사거리 강화 단계 (CONST.RANGE_UP)
     upTickets: 0, tickets: [], autoMerge: false, heroState: { progress: "", flags: {} },
     resonance: [0, 0, 0, 0], reso: [0, 0, 0, 0], lv: [0, 0, 0, 0], heroLv: 0, resoGot: [false, false, false, false],
     mobs: [], mobId: 0, queue: 0, spawnT: 0, info: null,
@@ -77,17 +78,24 @@ function inp(op, arg) { S.inputs.push([S.tick, op, arg === undefined ? 0 : arg])
 // ---------- 공업 레벨 / 공명 ----------
 function refreshLevels() {
   let mx = 0;
+  const hx = S.hero.fx || {};
   for (let c = 0; c < 4; c++) {
     S.reso[c] = resonanceCount(S.slots, c); // 서로 다른 등급 종류 수
-    const rb = resonanceBonus(S.slots, c);
+    const rb = resonanceBonus(S.slots, c, hx.resoEase);
     S.resonance[c] = S.reso[c];
     S.lv[c] = Math.min(CONST.UP_LV_CAP, clanLevel(S, c) + rb);
     if (S.lv[c] > mx) mx = S.lv[c];
     if (rb > 0 && !S.resoGot[c]) { S.resoGot[c] = true; S.minerals += CONST.RESONANCE_FIRST; log(`${CLANS[c].name} 공명! +${CONST.RESONANCE_FIRST}`, CLANS[c].color); }
   }
-  S.heroLv = Math.floor(mx * 0.5);
+  S.heroLv = Math.floor(mx * (hx.heroLvK || 0.5)); // 히어로 유닛 Lv = 최고 무리 Lv x 50% (부엉이 군사 100%)
 }
-const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]);
+// 피해 배율 = 공업 배율 x 히어로 라운드 누적(고래 장로)
+const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]) * (S.hero.fx.roundDmg ? 1 + S.hero.fx.roundDmg * (S.round - 1) : 1);
+// 사거리 배율 = 1 + 무리 사거리 강화 x STEP + 히어로(사막여우). 히어로 유닛은 히어로 보정만
+const rangeMul = (u) => 1 + (u.hero ? 0 : S.rangeUp[u.ch % 4] * CONST.RANGE_UP.STEP) + (S.hero.fx.rangeMul || 0);
+const rangeCost = (c) => S.rangeUp[c] >= CONST.RANGE_UP.MAX ? -1 : CONST.RANGE_UP.COST[S.rangeUp[c]];
+// 이번 뽑기 비용 (황금 거위: freeDraw 번째마다 0)
+const drawCostNow = () => { const f = S.hero.fx.freeDraw; return f && (S.draws + 1) % f === 0 ? 0 : CONST.DRAW_COST; };
 
 // ---------- 로그 / 이펙트 ----------
 function log(txt, col) {
@@ -138,8 +146,9 @@ function segDist(px, py, ax, ay, bx, by) {
 // ---------- 발사 ----------
 // 유닛 정의 (일반 유닛은 CHARS, 히어로는 고정 수치)
 function defOf(u) {
-  if (u.hero) return { fx: "shot", atk: HERO_UNIT.atk, cd: HERO_UNIT.cd, range: HERO_UNIT.range, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
-  const c = CHARS[u.ch]; return { fx: c.fx, atk: c.atk, cd: c.cd, range: c.range, aoe: c.aoe, pierce: c.pierce || 0, st: c.st, shot: c.shot, grade: c.grade };
+  const rm = rangeMul(u), sp = S.hero.fx.atkSpd || 1; // 사거리 강화·히어로 보정, 공격 속도(번개 족제비)
+  if (u.hero) return { fx: "shot", atk: HERO_UNIT.atk, cd: HERO_UNIT.cd / sp, range: HERO_UNIT.range * rm, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
+  const c = CHARS[u.ch]; return { fx: c.fx, atk: c.atk, cd: c.cd / sp, range: c.range * rm, aoe: c.aoe, pierce: c.pierce || 0, st: c.st, shot: c.shot, grade: c.grade };
 }
 function launch(u, i, f) {
   const p = slotPos(i), d = defOf(u);
@@ -242,18 +251,12 @@ function startRound() {
   if (info.boss) log(`보스 등장! ${info.name}`, "#ff5c8a");
   else if (info.r === ch.from) log(`챕터 ${ch.id}. ${ch.name}`, "#7a5fd0");
   const hx = S.hero.fx || {};
-  if (hx.interest) S.minerals += Math.min(hx.interest.max, Math.floor(S.minerals / hx.interest.per) * hx.interest.gain);
   if (hx.roundMin) { S.minerals += hx.roundMin; }
-  if (hx.roundHidden && S.round > 1 && S.rng.misc() < hx.roundHidden) {
-    const ci = rollChar(S.rng.misc, 4);
-    if (addUnit(ci, true)) log(`달토끼 점쟁이의 선물! [히든] ${CHARS[ci].name}`, GRADES[4].color);
-    else { S.tickets.push(4); log("점쟁이의 선물! 히든 선택권을 보관해요", GRADES[4].color); }
-    sfx("drawHi");
-  }
+  if (hx.roundDmg && S.round > 1) updateProgress();
 }
 function spawn() {
   const info = S.info;
-  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1)), boss = info.boss;
+  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1) * (info.boss && S.hero.fx.bossHp ? S.hero.fx.bossHp : 1)), boss = info.boss;
   S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)) * (S.rules.mobSpeed || 1), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === CONST.ROUNDS, rew: info.rew * (S.rewK || 1) });
 }
 
@@ -283,31 +286,20 @@ function addUnit(ch, silent, pref) {
 }
 
 // ---------- 히어로 규칙 ----------
-function countOf(ch) { let n = 0; for (const s of S.slots) if (s && !s.hero && s.ch === ch) n += s.n; return n; }
 function afterChange() {
   refreshLevels();
-  const hx = S.hero.fx || {}, fl = S.heroState.flags;
-  if (hx.collect) {
-    for (let g = 0; g < 8; g++) {
-      if (fl["c" + g]) continue;
-      if ([0, 1, 2, 3].every((c) => countOf(g * 4 + c) > 0)) { fl["c" + g] = 1; fl.cn = (fl.cn || 0) + 1; S.minerals += hx.collect.bonus; log(`컬렉션 완성! ${GRADES[g].name} 4종 +${hx.collect.bonus}`, "#3b9dff"); sfx("ticket"); }
-    }
-  }
-  if (hx.hold && !fl.hold && countOf(hx.hold.ch) >= hx.hold.n) { fl.hold = 1; S.minerals += hx.hold.bonus; log(`${CHARS[hx.hold.ch].name} ${hx.hold.n}기 보유 보너스 +${hx.hold.bonus}!`, "#ff9ec0"); sfx("ticket"); }
   updateProgress();
 }
+// 정보 패널의 히어로 진행 문구 (표시 전용)
 function updateProgress() {
   const hx = S.hero.fx || {}, fl = S.heroState.flags;
   let t = "";
-  if (hx.collect) { let best = 0; for (let g = 0; g < 8; g++) { if (fl["c" + g]) continue; const n = [0, 1, 2, 3].filter((c) => countOf(g * 4 + c) > 0).length; if (n > best) best = n; } t = `컬렉션 ${fl.cn || 0}/8 (진행 ${best}/4)`; }
-  else if (hx.hold) t = fl.hold ? "달성 완료 +" + hx.hold.bonus : `${CHARS[hx.hold.ch].name} ${Math.min(countOf(hx.hold.ch), hx.hold.n)}/${hx.hold.n}`;
-  else if (hx.drawBonus) t = `${CHARS[hx.drawBonus.ch].name} 뽑기 ${fl.db || 0}회 (+${(fl.db || 0) * hx.drawBonus.bonus})`;
-  else if (hx.interest) t = `이자 최대 +${hx.interest.max}`;
-  else if (hx.mergeMin) t = `합성 +${hx.mergeMin}`;
-  else if (hx.mergeTwin) t = "합성 8% 쌍둥이";
+  if (hx.freeDraw) { const k = hx.freeDraw - (S.draws % hx.freeDraw); t = k === 1 ? "다음 뽑기 무료!" : `무료 뽑기까지 ${k}회`; }
+  else if (hx.roundDmg) t = `피해 +${(hx.roundDmg * (S.round - 1) * 100).toFixed(1)}%`;
+  else if (hx.bossUp) t = `보스 보너스 공업 +${fl.bu || 0}`;
+  else if (hx.mergeUp) t = `연금 성공 ${fl.mu || 0}회`;
+  else if (hx.heroLvK) t = `히어로 Lv${S.heroLv}`;
   else if (hx.roundMin) t = `라운드 수입 +${hx.roundMin}`;
-  else if (hx.killLuck) t = `대박 ${fl.kl || 0}회`;
-  else if (hx.roundHidden) t = `히든 선물 ${fl.rh || 0}기`;
   S.heroState.progress = t;
 }
 
@@ -316,12 +308,12 @@ const GAME = {
   draw() {
     if (S.over || S.paused) return false;
     if (S.rules.drawLimit && S.draws >= S.rules.drawLimit) { return false; }
-    if (S.minerals < CONST.DRAW_COST) { return false; }
+    const cost = drawCostNow();
+    if (S.minerals < cost) { return false; }
     if (freeSlot() < 0) { log("자리가 없어요! 판매하거나 합성하세요", "#e0558a"); sfx("deny"); return false; }
-    S.minerals -= CONST.DRAW_COST; S.draws++; inp("draw");
+    S.minerals -= cost; S.draws++; inp("draw");
+    if (cost === 0) log("황금 거위의 무료 뽑기!", "#e0a000");
     const probs = gradeProbs(S.hero, S.rules), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g, S.rules.clanBan), c = CHARS[ci];
-    const hx = S.hero.fx || {};
-    if (hx.drawBonus && ci === hx.drawBonus.ch) { S.minerals += hx.drawBonus.bonus; S.heroState.flags.db = (S.heroState.flags.db || 0) + 1; }
     const si = placeUnit(ci);
     afterChange();
     const gr = GRADES[g];
@@ -348,14 +340,8 @@ const GAME = {
     return { ok: false, reason: "자리가 없어요" };
   },
   mergeWarning(i) {
-    const s = S.slots[i], hx = S.hero.fx || {}, fl = S.heroState.flags;
+    const s = S.slots[i]; // 자동합성 보류 사유(현재 히어로 중 해당 없음, 자리만 유지)
     if (!s || s.hero) return null;
-    const left = s.n - 3;
-    if (hx.hold && !fl.hold && s.ch === hx.hold.ch && s.n >= 5 && left < hx.hold.n) return `봉봉이 보너스까지 ${hx.hold.n - s.n}기 남았어요. 그래도 합성할까요?`;
-    if (hx.collect && left === 0 && !fl["c" + (s.ch >> 2)]) {
-      const g = s.ch >> 2, have = [0, 1, 2, 3].filter((c) => countOf(g * 4 + c) > 0).length;
-      if (have >= 3) return `${GRADES[g].name} 컬렉션 보너스(+${hx.collect.bonus})가 눈앞이에요. 그래도 합성할까요?`;
-    }
     return null;
   },
   merge(i, all) {
@@ -363,13 +349,13 @@ const GAME = {
     for (let guard = 0; guard < 40; guard++) {
       const s = S.slots[i];
       if (!this.canMerge(i).ok) break;
-      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
+      const g = s.ch >> 2; let ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
+      // 개구리 연금술사: 결과가 합성 상한(레전더리, 시즌 gradeCap) 미만일 때만 misc 난수 1회 -> 한 등급 위(같은 무리)
+      const hxm = S.hero.fx;
+      if (hxm.mergeUp && (ci >> 2) < (S.rules.gradeCap || 6) && S.rng.misc() < hxm.mergeUp) { ci += 4; S.heroState.flags.mu = (S.heroState.flags.mu || 0) + 1; log(`연금술 성공! 한 등급 위 [${GRADES[ci >> 2].name}]`, GRADES[ci >> 2].color); sfx("drawHi"); }
       s.n -= 3; const p = slotPos(i);
       if (s.n <= 0) S.slots[i] = null;
       const si = placeUnit(ci, i);
-      const hxm = S.hero.fx;
-      if (hxm.mergeMin) S.minerals += hxm.mergeMin;
-      if (hxm.mergeTwin && S.rng.misc() < hxm.mergeTwin && freeSlot() >= 0 && addUnit(ci, true)) { log(`쌍둥이 다람쥐! ${CHARS[ci].name} 한 기 더!`, GRADES[ci >> 2].color); sfx("drawHi"); }
       afterChange(); if (!S.inAuto) inp("merge", i); done++;
       const gr = GRADES[ci >> 2], c = CHARS[ci];
       if (!HEADLESS) { burst(p.x, p.y, gr.color, 14 + g * 4, 110, 3.4, 0.6); ring(p.x, p.y, gr.color, 44, 0.45); }
@@ -400,6 +386,15 @@ const GAME = {
     S.minerals -= cost; u.bought++; inp("up", c); refreshLevels(); updateProgress();
     log(`${CLANS[c].name} 강화 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
   },
+  rangeUp(c) { // 무리별 사거리 강화 (입력 로그 "rng")
+    if (S.over || !(c >= 0 && c < 4)) return false;
+    const cost = rangeCost(c);
+    if (cost < 0 || S.minerals < cost) return false;
+    S.minerals -= cost; S.rangeUp[c]++; inp("rng", c);
+    log(`${CLANS[c].name} 사거리 +${Math.round(S.rangeUp[c] * CONST.RANGE_UP.STEP * 100)}%!`, CLANS[c].color); sfx("upgrade"); return true;
+  },
+  rangeCost(c) { return rangeCost(c); }, // -1 = 최대
+  drawCost() { return drawCostNow(); },
   useTicket(chIdx) { // chIdx = 고른 유닛(CHARS 인덱스). 같은 등급 선택권 1장을 소모한다.
     const g = chIdx >> 2, k = S.tickets.indexOf(g);
     if (k < 0 || S.over) return false;
@@ -445,7 +440,6 @@ function killMob(m) {
   let r = CONST.KILL_REWARD * (S.rules.killReward || 1);
   if (S.slots.some((s) => s && !s.hero && s.ch === 28)) r += 1; // 숲신 패시브
   r *= m.rew; // 라운드 몹 수가 늘어난 만큼 개체 보상 비례 감소(라운드 총 보상 유지)
-  if (hx.killLuck && S.rng.misc() < hx.killLuck.p) { r *= hx.killLuck.mul; S.heroState.flags.kl = (S.heroState.flags.kl || 0) + 1; const q = trackPoint(m.d); pop(q.x, q.y - 8, `대박 +${Math.max(1, Math.round(r))}`, 0.9, "#e0a000", 14); }
   S.rewAcc = (S.rewAcc || 0) + r; const rg = Math.floor(S.rewAcc + 1e-9); S.rewAcc -= rg; S.minerals += rg; // 소수 보상은 누적 후 정수 지급
   const q = trackPoint(m.d);
   if (!HEADLESS) {
@@ -456,6 +450,10 @@ function killMob(m) {
   ring(q.x, q.y, "#ffd54f", 70, 0.6); S.shake = Math.max(S.shake, 9); vib(60); sfx("kill");
   S.minerals += CONST.BOSS_REWARD + (hx.bossBonus || 0);
   log(`${m.name} 처치! 미네랄 +${CONST.BOSS_REWARD + (hx.bossBonus || 0)}`, "#e0a000");
+  if (hx.bossUp && (S.heroState.flags.bk = (S.heroState.flags.bk || 0) + 1) % (hx.bossUpEvery || 1) === 0) { // 고슴도치 대장: 보스 bossUpEvery 마리마다 모든 무리 공업 보너스 (상한 UP_LV_CAP 안에서만)
+    for (let c = 0; c < 4; c++) if (clanLevel(S, c) < CONST.UP_LV_CAP) S.up[c].bonus += hx.bossUp;
+    S.heroState.flags.bu = (S.heroState.flags.bu || 0) + hx.bossUp; log(`따끔 대장! 모든 무리 공업 +${hx.bossUp}`, "#e8442e");
+  }
   const rd = S.round;
   if (rd < CONST.ROUNDS) {
     S.nextT = CONST.BOSS_DELAY; S.bossT = 0;
