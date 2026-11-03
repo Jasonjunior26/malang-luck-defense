@@ -6,18 +6,32 @@ const HEADLESS = typeof window === "undefined"; // 시뮬 검증 모드에서 FX
 var GFX_SC = 1; // 렌더 배율(cv.width / W). graphics.js 가 typeof 검사 후 읽음
 var GFX_LOW = false; // 저사양 모드. graphics.js 가 읽음
 var GFX_AUTO = false;
+var GFX_IOS = false; // iPhone/iPad(iPadOS 의 MacIntel+터치 포함)
+var GFX_SAVE = false; // 절전: 게임 렌더 30fps. iOS 기본 켬, ☰ 메뉴 "절전" 토글(malrang_gfx low=켬·저사양 / high=끔)
+var GFX_RFPS = 60; // 게임 중 렌더 목표 fps(30/60). graphics.js 가 굽기 fps 를 여기에 맞춤
 (function () {
   let pref = null;
   if (typeof window === "undefined") return;
   try { pref = localStorage.getItem("malrang_gfx"); } catch (e) {}
-  if (pref === "low") GFX_LOW = true;
+  const nv = typeof navigator !== "undefined" ? navigator : {};
+  GFX_IOS = /iP(hone|ad|od)/.test(nv.userAgent || "") || (nv.platform === "MacIntel" && nv.maxTouchPoints > 1);
+  if (pref === "low") { GFX_LOW = true; GFX_SAVE = true; }
   else if (pref === "high") GFX_LOW = false;
   else {
-    const nv = typeof navigator !== "undefined" ? navigator : {};
     if ((nv.hardwareConcurrency && nv.hardwareConcurrency <= 4) || (nv.deviceMemory && nv.deviceMemory <= 2)) GFX_LOW = true;
+    if (GFX_IOS) GFX_SAVE = true;
   }
   GFX_AUTO = pref !== "low" && pref !== "high"; // 런타임 자동 하향 허용 여부
+  GFX_RFPS = GFX_SAVE || GFX_LOW ? 30 : 60;
+  try { document.documentElement.classList.toggle("save", GFX_SAVE); } catch (e) {}
 })();
+// ☰ 메뉴 절전 토글(ui.js). 켬 = 30fps + 저사양, 끔 = 60fps(자동 하향 없음)
+function gfxSetSave(on) {
+  GFX_SAVE = !!on; GFX_LOW = !!on; GFX_AUTO = false;
+  try { localStorage.setItem("malrang_gfx", on ? "low" : "high"); } catch (e) {}
+  try { document.documentElement.classList.toggle("save", GFX_SAVE); } catch (e) {}
+  if (typeof requestRenderNow === "function") requestRenderNow();
+}
 const SLOT_COLS = CONST.COLS, SLOT_ROWS = CONST.ROWS;
 
 // ---------- 지형 ----------
@@ -581,13 +595,21 @@ cv.addEventListener("pointerdown", (e) => {
 });
 
 // ---------- 그리기 ----------
+// 캔버스 크기는 resize/orientation/ResizeObserver 때만 다시 잰다(매 프레임 getBoundingClientRect 강제 레이아웃 방지)
+let fitDirty = true;
 function fit(c) {
   const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
   if (w && h && (c.width !== w || c.height !== h)) { c.width = w; c.height = h; }
+  return !!(w && h);
+}
+if (!HEADLESS) {
+  const dirty = () => { fitDirty = true; if (typeof requestRenderNow === "function") requestRenderNow(); };
+  try { window.addEventListener("resize", dirty); window.addEventListener("orientationchange", dirty); } catch (e) {}
+  try { new ResizeObserver(dirty).observe(cv); } catch (e) {}
 }
 function render() {
-  fit(cv);
+  if (fitDirty && fit(cv)) fitDirty = false;
   GFX_SC = cv.width / W;
   ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
   ctx.imageSmoothingQuality = "high";
@@ -618,13 +640,16 @@ function render() {
   for (const e of S.efx) drawEfx(ctx, e);
   for (const pr of S.projs) drawProj(ctx, pr, S.time);
   for (const p of S.parts) drawPart(ctx, p);
-  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
-  for (const f of S.fx) {
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = "#fff";
+  let fSize = -1, fCol = "";
+  for (const f of S.fx) { // font/색은 바뀔 때만 설정(Safari 폰트 문자열 파싱 비용)
     const k = 1 - f.t / f.max, y = f.y - 30 - k * 24;
     ctx.globalAlpha = Math.min(1, (f.t / f.max) * 2);
-    ctx.font = `${f.size}px Jua,system-ui,sans-serif`; ctx.lineWidth = 3.5; ctx.strokeStyle = "#fff"; ctx.fillStyle = f.col;
-    ctx.strokeText(f.txt, f.x, y); ctx.fillText(f.txt, f.x, y); ctx.globalAlpha = 1;
+    if (f.size !== fSize) { fSize = f.size; ctx.font = `${f.size}px Jua,system-ui,sans-serif`; }
+    if (f.col !== fCol) { fCol = f.col; ctx.fillStyle = f.col; }
+    ctx.strokeText(f.txt, f.x, y); ctx.fillText(f.txt, f.x, y);
   }
+  ctx.globalAlpha = 1;
   ctx.restore();
   const n = S.mobs.length;
   if (n >= CONST.MOB_WARN[0]) { // 80기 노랑 점멸, 90기 빨강 비네트
@@ -646,33 +671,61 @@ function render() {
 }
 
 // ---------- 메인 루프 (고정 타임스텝 1/60) ----------
+// 시뮬 틱은 rAF dt 누적으로만 진행하고 렌더 fps(타이틀 20 / 게임 30·60)는 그리기만 거른다(게임 속도·틱 수는 렌더 fps 와 무관).
+// 정지 상태(일시정지·모달·확인창·게임오버)에서는 남은 연출이 끝나면 rAF 를 멈추고 250ms setTimeout 으로 상태만 확인한다.
+// 정지 중에는 update 가 paused/over 에서 return 하므로 시뮬 틱(S.tick)·결과는 같다.
 let last = performance.now(), acc = 0, parade = null;
-let lastR = 0, forceR = false, stateKey = "", fpsT = 0, fpsN = 0;
-function requestRenderNow() { forceR = true; }
-if (typeof window !== "undefined") window.requestRenderNow = requestRenderNow;
+let lastR = 0, lastP = 0, forceR = false, stateKey = "", fpsT = 0, fpsN = 0, sleeping = false, sleepT = 0, idleSig = "";
+const isTitle = () => typeof TITLE_ON !== "undefined" && TITLE_ON;
+const isIdle = () => !!(S.paused || S.over || (typeof MODAL_ON !== "undefined" && MODAL_ON) || (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON));
+const curKey = () => (isTitle() ? "t" : "") + (S.paused ? "p" : "") + (S.over ? "o" : "") + (typeof MODAL_ON !== "undefined" && MODAL_ON ? "m" : "") + (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON ? "c" : "");
+const curSig = () => curKey() + "|" + S.minerals + "|" + S.sel + "|" + S.speed + "|" + (S.inputs ? S.inputs.length : 0) + "|" + (S.tickets ? S.tickets.length : 0) + "|" + S.slots.reduce((a, u) => a + (u ? 1 + u.n + (u.lock ? 100 : 0) : 0), 0);
+const simStopped = () => !!(S.paused || S.over); // 시뮬이 멈춘 상태에서만 잠든다(모달이 떠도 시뮬이 도는 경우는 기존 15fps 유지)
+const fxBusy = () => !!(S.fx.length || S.efx.length || S.parts.length || S.banner || S.flash > 0 || S.shake > 0 || S.dispMin !== S.minerals);
+function sleepTick() {
+  sleepT = 0;
+  if (!sleeping) return;
+  if (!simStopped() || isTitle() || curSig() !== idleSig) { forceR = true; wakeLoop(); }
+  else sleepT = setTimeout(sleepTick, 250);
+}
+function wakeLoop() {
+  if (!sleeping) return;
+  sleeping = false; if (sleepT) { clearTimeout(sleepT); sleepT = 0; }
+  last = performance.now(); requestAnimationFrame(loop);
+}
+// 상태 변경/입력 시 한 번 그리기(잠든 루프도 깨운다)
+function requestRenderNow() { forceR = true; wakeLoop(); }
+if (!HEADLESS) try { for (const ev of ["pointerdown", "pointerup", "keydown"]) document.addEventListener(ev, () => { if (sleeping) setTimeout(requestRenderNow, 0); }, { capture: true, passive: true }); } catch (e) {}
 function loop(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const dt = Math.min(0.1, Math.max(0, now - last) / 1000); last = now;
   acc += dt * S.speed * (S.slowmo > 0 ? 0.35 : 1);
   let steps = 0;
   while (acc >= CONST.DT && steps < 12) { update(CONST.DT); acc -= CONST.DT; steps++; }
   if (steps >= 12) acc = 0;
-  const title = typeof TITLE_ON !== "undefined" && TITLE_ON;
-  const idle = !!(S.paused || S.over || (typeof MODAL_ON !== "undefined" && MODAL_ON) || (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON));
-  const key = (title ? "t" : "") + (S.paused ? "p" : "") + (S.over ? "o" : "") + (typeof MODAL_ON !== "undefined" && MODAL_ON ? "m" : "") + (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON ? "c" : "");
+  const title = isTitle(), idle = isIdle(), key = curKey();
   if (key !== stateKey) { stateKey = key; forceR = true; fpsT = 0; fpsN = 0; }
-  const slow = title ? 30 : idle ? 15 : GFX_LOW ? 30 : 60;
-  const gap = now - lastR;
-  if (forceR || gap >= 1000 / slow - 1.5) {
-    forceR = false; lastR = now;
-    // 런타임 자동 하향: 평상시(60fps 목표) 2초 평균 fps < 40 이면 저사양 고정
-    if (!title && !idle && !GFX_LOW && GFX_AUTO && !(typeof document !== "undefined" && document.hidden) && gap < 500) {
-      fpsT += gap; fpsN++;
-      if (fpsT >= 2000) { if (fpsN * 1000 / fpsT < 40) GFX_LOW = true; fpsT = 0; fpsN = 0; }
-    } else { fpsT = 0; fpsN = 0; }
-    render();
-    if (title) { // 타이틀 퍼레이드
-      if (!parade) { const c = $("parade"); c.width = 680; c.height = 300; parade = c.getContext("2d"); parade.setTransform(2, 0, 0, 2, 0, 0); }
+  GFX_RFPS = GFX_SAVE || GFX_LOW ? 30 : 60;
+  if (title) { // 타이틀(전체 덮음): 보드/HUD 는 전환 때 1회만, 퍼레이드만 20fps
+    if (forceR) { forceR = false; render(); }
+    if (now - lastP >= 1000 / 20 - 1.5) {
+      lastP = now;
+      if (!parade) parade = $("parade").getContext("2d");
       drawParade(parade, 340, 150, now / 1000);
+    }
+  } else if (idle) { // 정지: 남은 연출(15fps)이 끝나면 잠든다
+    const busy = fxBusy() || !simStopped();
+    if (forceR || (busy && now - lastR >= 1000 / 15 - 1.5)) { forceR = false; lastR = now; render(); }
+    if (!busy) { sleeping = true; idleSig = curSig(); sleepT = setTimeout(sleepTick, 250); return; }
+  } else {
+    const gap = now - lastR;
+    if (forceR || gap >= 1000 / GFX_RFPS - 1.5) {
+      forceR = false; lastR = now;
+      // 런타임 자동 하향: 평상시(60fps 목표) 2초 평균 fps < 40 이면 저사양 고정
+      if (!GFX_LOW && !GFX_SAVE && GFX_AUTO && !(typeof document !== "undefined" && document.hidden) && gap < 500) {
+        fpsT += gap; fpsN++;
+        if (fpsT >= 2000) { if (fpsN * 1000 / fpsT < 40) GFX_LOW = true; fpsT = 0; fpsN = 0; }
+      } else { fpsT = 0; fpsN = 0; }
+      render();
     }
   }
   requestAnimationFrame(loop);

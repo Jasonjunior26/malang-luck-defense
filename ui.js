@@ -35,16 +35,31 @@ function initAudio() {
       try { const b = AC.createBuffer(1, 1, 22050), s = AC.createBufferSource(); s.buffer = b; s.connect(AC.destination); s.start(0); } catch {}
     } catch { AC = null; }
   }
-  if (AC && AC.state === "suspended" && !(typeof document !== "undefined" && document.hidden)) { try { AC.resume(); } catch {} }
-  if (AC) bgmApply();
+  if (AC) { if (SND_MODE === 1) _acKick(SFX_IDLE_MS); else _acSync(); bgmApply(); }
+}
+// [절전] AudioContext 를 필요할 때만 running 으로 둔다. 끔(2)=항상 suspend, 효과음만(1)=효과음 뒤 SFX_IDLE_MS 무음이면 suspend,
+// 효과음+BGM(0)=일시정지/타이틀/게임오버에서 입력 없이 BGM_IDLE_MS 지나면 BGM 페이드 후 suspend(_bgSleep), 입력/상태 변화 시 재개.
+const SFX_IDLE_MS = 1500, BGM_IDLE_MS = 20000;
+let _sfxUntil = 0, _acSusT = null, _bgSleep = false, _bgWaitFrom = 0, _lastInput = Date.now();
+const _docHidden = () => typeof document !== "undefined" && document.hidden;
+function _acNeed() { return !MUTED && !_docHidden() && ((SND_MODE === 0 && !_bgSleep) || Date.now() < _sfxUntil); }
+function _acSync() {
+  if (!AC) return;
+  try { if (_acNeed()) { if (AC.state === "suspended") AC.resume(); } else if (AC.state === "running") AC.suspend(); } catch {}
+}
+function _acKick(ms) { // 효과음 직전: 깨우고 ms 뒤 정책 재확인
+  _sfxUntil = Math.max(_sfxUntil, Date.now() + ms); _acSync();
+  if (_acSusT) clearTimeout(_acSusT);
+  _acSusT = setTimeout(() => { _acSusT = null; _acSync(); }, ms + 300);
 }
 // 첫 터치에서 AudioContext 해제 + UI 탭 틱 + 백그라운드 일시정지
 try {
-  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, () => { if (!AC || AC.state !== "running") initAudio(); }, { capture: true, passive: true });
+  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, () => { _lastInput = Date.now(); if (_bgSleep) _bgWake(); if (!AC || (AC.state !== "running" && !MUTED)) initAudio(); }, { capture: true, passive: true });
   document.addEventListener("pointerdown", (e) => { const t = e.target; if (t && t.closest && t.closest("button") && !t.closest("#draw")) sfx("tap"); }, { capture: true, passive: true });
   document.addEventListener("visibilitychange", () => {
     if (!AC) return;
-    if (document.hidden) { try { AC.suspend(); } catch {} } else if (!MUTED) { try { AC.resume(); } catch {} _bgNext = 0; }
+    if (document.hidden) { try { AC.suspend(); } catch {} if (_bgTimer) { clearInterval(_bgTimer); _bgTimer = null; } }
+    else { _acSync(); _bgNext = 0; if (_bgOn && !_bgTimer) _bgTimer = setInterval(_bgTick, 90); }
   });
 } catch {}
 
@@ -184,6 +199,7 @@ function sfx(n) {
   if (now - (_sfxT[k] || 0) < (_gap[k] || 0)) return;
   if (k === "atk") { if (now - _atkAny < 35) return; _atkAny = now; } // 동시 다발 공격음 압축
   _sfxT[k] = now; _sfxT[n] = now;
+  if (SND_MODE !== 0 || _bgSleep) _acKick(SFX_IDLE_MS);
   try { f(); } catch {}
 }
 function vib(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch {} }
@@ -314,8 +330,15 @@ function _bgEnding(win) { // 엔딩 스팅어: 효과음(over/win) 이 지나간
 function _bgTick() {
   if (!AC || !_bgOn) return;
   let over = false, paused = false, win = false;
-  try { over = !!(typeof S !== "undefined" && S && S.over) && !(typeof TITLE_ON !== "undefined" && TITLE_ON); paused = !!(typeof S !== "undefined" && S && S.paused); win = !!(typeof S !== "undefined" && S && S.win); } catch {}
-  try { BB.gain.setTargetAtTime(Math.max(0.0001, paused ? AUD.bgm * 0.45 : AUD.bgm), AC.currentTime, 0.25); } catch {}
+  let title = false;
+  try { title = typeof TITLE_ON !== "undefined" && TITLE_ON; over = !!(typeof S !== "undefined" && S && S.over) && !title; paused = !!(typeof S !== "undefined" && S && S.paused); win = !!(typeof S !== "undefined" && S && S.win); } catch {}
+  // 장시간 대기(일시정지/타이틀/게임오버 + 입력 없음): BGM 페이드 후 suspend
+  if (!(over || paused || title)) { _bgWaitFrom = 0; if (_bgSleep) _bgWake(); }
+  else {
+    const nowMs = Date.now(); if (!_bgWaitFrom) _bgWaitFrom = nowMs;
+    if (!_bgSleep && nowMs - Math.max(_bgWaitFrom, _lastInput) > BGM_IDLE_MS) { _bgSleep = true; _acKick(SFX_IDLE_MS); }
+  }
+  try { BB.gain.setTargetAtTime(Math.max(0.0001, _bgSleep ? 0.0001 : paused ? AUD.bgm * 0.45 : AUD.bgm), AC.currentTime, _bgSleep ? 0.3 : 0.25); } catch {}
   if (AC.state !== "running") { _bgNext = 0; return; }
   if (over) { // 게임 종료: 현재 곡 페이드아웃 후 짧은 엔딩 1회
     if (_bgCur) { _bgFade(_bgCur, 0, 1.0); _bgCur = ""; }
@@ -337,6 +360,7 @@ function _bgTick() {
     _bgNext += dur; _bgStep = (_bgStep + 1) % total;
   }
 }
+function _bgWake() { _bgSleep = false; _bgWaitFrom = 0; _bgNext = 0; _acSync(); }
 function bgmApply() {
   const want = !!AC && SND_MODE === 0;
   if (want && !_bgOn) { _bgOn = true; _bgNext = 0; _bgStep = 0; _bgCur = ""; if (!_bgTimer) _bgTimer = setInterval(_bgTick, 90); }
@@ -411,6 +435,8 @@ function uiMerged(fromGrade, toIdx) {
 const _txt = {};
 function setText(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).textContent = v; } }
 function setHtml(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).innerHTML = v; return true; } return false; }
+function setW(id, pct) { const v = (Math.round(pct * 10) / 10) + "%", k = id + ".w"; if (_txt[k] !== v) { _txt[k] = v; $(id).style.width = v; } } // 바 폭: 0.1% 단위로 바뀔 때만 쓰기
+function setDis(id, on) { const k = id + ".dis"; if (_txt[k] !== on) { _txt[k] = on; $(id).disabled = on; } }
 function setCls(id, cls, on) { const k = id + "." + cls; if (_txt[k] !== on) { _txt[k] = on; $(id).classList.toggle(cls, on); } }
 let _S = null, _hudFrame = 0, _lastRound = 0, _mobLv = 0, _lastSec = -1;
 // 공명 상태 추적(표시 전용): 발동/해제 순간 배너, 종류 수 증가 시 칩 강조, 단계 1종 전 힌트
@@ -433,7 +459,7 @@ const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.h
 function updateHud() {
   if (typeof S === "undefined" || !S) return;
   if (_S !== S) { _S = S; uiReset(); S.dispMin = S.minerals; }
-  $("menuBtn").classList.toggle("dot", (S.tickets || []).length > 0);
+  setCls("menuBtn", "dot", (S.tickets || []).length > 0);
   const info = roundInfo(S.round || 1);
   // 미네랄
   const lastMin = S.dispMin;
@@ -459,11 +485,11 @@ function updateHud() {
     setCls("cWave", "urgent", urgent);
     if (urgent && sec !== _lastSec) { sfx("tick"); }
     _lastSec = sec;
-    $("hWaveBar").style.width = Math.max(0, Math.min(100, (left / info.time) * 100)) + "%";
+    setW("hWaveBar", Math.max(0, Math.min(100, (left / info.time) * 100)));
   } else {
     setCls("cWave", "urgent", false);
     setText("hWave", `라운드 ${S.round}/${CONST.ROUNDS}`);
-    $("hWaveBar").style.width = Math.min(100, ((S.roundT || 0) / CONST.ROUND_SEC) * 100) + "%";
+    setW("hWaveBar", Math.min(100, ((S.roundT || 0) / CONST.ROUND_SEC) * 100));
   }
   const tl = boss ? left : Math.max(0, info.time - (S.roundT || 0)), ts = Math.ceil(tl);
   setText("hCh", `⏱ ${Math.floor(ts / 60)}:${String(ts % 60).padStart(2, "0")}${boss ? " 보스" : ""}`);
@@ -475,7 +501,7 @@ function updateHud() {
     const extra = S.round === CONST.ROUNDS ? ` · 남은 적 ${S.mobs.length}기 (보스와 모든 적을 처치!)` : "";
     setText("bossName", info.name + extra);
     setText("bossHp", Math.ceil(Math.max(0, bm.hp)) + "/" + Math.ceil(bm.max));
-    $("bossFill").style.width = Math.max(0, (bm.hp / bm.max) * 100) + "%";
+    setW("bossFill", Math.max(0, (bm.hp / bm.max) * 100));
   }
   // 몹 수: 상한의 80% 이상이면 점수 칸이 👾 N/상한 경고로 바뀐다 (130/145 배너·소리는 그대로)
   const n = S.mobs.length, W80 = CONST.MOB_WARN[0], W90 = CONST.MOB_WARN[1];
@@ -490,16 +516,16 @@ function updateHud() {
   _mobLv = lv;
   // 버튼
   const free = S.slots.some((s) => !s), dc = GAME.drawCost(), can = S.minerals >= dc && free && !S.over;
-  $("draw").disabled = !can; setCls("draw", "ready", can);
+  setDis("draw", !can); setCls("draw", "ready", can);
   setHtml("drawLbl", free ? "🎲 뽑기" : "자리가 없어요");
   setText("drawCost", dc === 0 ? "무료!" : "💎 " + dc);
   const u = S.slots[S.sel], uc = u && !u.hero ? CHARS[u.ch] : null;
   const sellable = !!uc && GRADES[uc.grade].sell > 0 && !S.rules.noSell;
   setCls("sell", "on", !!uc);
-  $("sell").disabled = !sellable || S.over;
+  setDis("sell", !sellable || S.over);
   setHtml("sell", sellable ? `판매 <small>💎${GRADES[uc.grade].sell}</small>` : "판매 불가");
   const mg = u && !S.over ? GAME.canMerge(S.sel) : { ok: false };
-  $("merge").disabled = !mg.ok; setCls("merge", "ready", !!mg.ok);
+  setDis("merge", !mg.ok); setCls("merge", "ready", !!mg.ok);
   setHtml("merge", `🔀<small>${mg.ok ? "합성" : u && !u.hero && uc && uc.grade >= 6 ? "불가" : "합성"}</small>`);
   setHtml("spd", `⏩<small>x${S.speed}</small>`);
   setHtml("info", infoText(u));
@@ -1149,6 +1175,10 @@ function bindUi() {
   $("prob").onclick = () => showProb();
   $("snd").onclick = () => sndCycle();
   sndLabel();
+  // 절전 토글: 켬 = 30fps + 저사양(iOS 기본 켬), 끔 = 기존 60fps. game.js gfxSetSave 가 malrang_gfx 에 저장
+  const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.classList.toggle("off", !on); const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 켬" : "절전 끔"; };
+  $("save").onclick = () => { if (typeof gfxSetSave === "function") gfxSetSave(!(typeof GFX_SAVE !== "undefined" && GFX_SAVE)); saveLabel(); };
+  saveLabel();
   document.addEventListener("click", (e) => {
     if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
     if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows")) hidePop();

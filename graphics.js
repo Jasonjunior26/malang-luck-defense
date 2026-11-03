@@ -181,9 +181,14 @@ const BK_POOL_PX = 14e6; // 풀 총 픽셀 상한
 const _bakeGen = new Map(), _bkPool = new Map();
 let _bkB = -1, _bkSC = 0, _bkFps = 0, _bkPoolPx = 0;
 const _ba = {}; // 굽기 함수에 넘기는 재사용 파라미터 (동기 호출 전용)
-const _gfxSC = () => { const v = typeof GFX_SC !== "undefined" ? GFX_SC : 1; return v > 0 ? v : 1; };
+let _bkScOv = 0; // 퍼레이드처럼 다른 배율 캔버스에 구울 때 잠깐 덮어쓰는 배율
+const _gfxSC = () => { if (_bkScOv > 0) return _bkScOv; const v = typeof GFX_SC !== "undefined" ? GFX_SC : 1; return v > 0 ? v : 1; };
+// 굽기 fps: 렌더 목표 fps 에 연동(60fps=20, 30fps=15, 저사양=12). 렌더 프레임 2장마다 같은 굽기 결과를 재사용한다.
+const _bkFpsNow = () => _LOW() ? 12 : (typeof GFX_RFPS !== "undefined" && GFX_RFPS < 60 ? 15 : GFX_BAKE_FPS);
+// 영구 캐시: 시간에 의존하지 않는 레이어(무지개·선택 아닌 칸 타일). 배율 변경 시만 비우고, 상한을 넘으면 통째로 비운다.
+const _bkStatic = new Map(), BK_STATIC_MAX = 160;
 const _canBake = () => typeof document !== "undefined";
-function _bkResetAll() { _bakeGen.clear(); _bkPool.clear(); _bkPoolPx = 0; _bkB = -1; _boardCache = null; }
+function _bkResetAll() { _bakeGen.clear(); _bkPool.clear(); _bkStatic.clear(); _bkPoolPx = 0; _bkB = -1; _boardCache = null; }
 function _bkRelease() {
   for (const e of _bakeGen.values()) {
     const P = e.cv.width, px = P * P; if (px > BK_POOL_PX / 4) continue; // 너무 큰 캔버스는 버림
@@ -195,8 +200,9 @@ function _bkRelease() {
 // key: 문자열, E: 논리 반폭(원점=캔버스 중앙), fn(ctx, bucketTime, A). 반환 {cv,E} 또는 null(굽기 불가)
 function _bake(t, key, E, fn, A) {
   if (!_canBake()) return null;
-  const sc = _gfxSC(), fps = _LOW() ? 12 : GFX_BAKE_FPS;
-  if (sc !== _bkSC || fps !== _bkFps) { _bkResetAll(); _bkSC = sc; _bkFps = fps; }
+  const sc = _gfxSC(), fps = _bkFpsNow();
+  if (sc !== _bkSC) { _bkResetAll(); _bkSC = sc; _bkFps = fps; }
+  else if (fps !== _bkFps) { _bkRelease(); _bkB = -1; _bkFps = fps; }
   const b = Math.floor(t * fps); if (b !== _bkB) { _bkRelease(); _bkB = b; }
   let e = _bakeGen.get(key); if (e) return e;
   const P = Math.max(2, Math.ceil(2 * E * sc)); let cv;
@@ -208,6 +214,18 @@ function _bake(t, key, E, fn, A) {
   try { fn(g, b / fps, A); } catch (err) { /* 렌더가 죽지 않게 */ }
   try { g.restore(); } catch (err) { /* noop */ }
   _bakeGen.set(key, e); return e;
+}
+// 시간 무관 레이어를 한 번만 굽는다(fn 에는 t=0 전달). 반환 {cv,E} 또는 null
+function _bakeStatic(key, E, fn, A) {
+  if (!_canBake()) return null;
+  const sc = _gfxSC(); if (sc !== _bkSC) { _bkResetAll(); _bkSC = sc; _bkFps = _bkFpsNow(); }
+  let e = _bkStatic.get(key); if (e) return e;
+  if (_bkStatic.size >= BK_STATIC_MAX) _bkStatic.clear();
+  const P = Math.max(2, Math.ceil(2 * E * sc)), cv = document.createElement("canvas"); cv.width = cv.height = P;
+  const g = cv.getContext("2d"); e = { cv, E: P / (2 * sc) };
+  g.setTransform(sc, 0, 0, sc, P / 2, P / 2);
+  try { fn(g, 0, A); } catch (err) { /* 렌더가 죽지 않게 */ }
+  _bkStatic.set(key, e); return e;
 }
 // (x,y) 중심에 구운 레이어를 찍는다. 굽기 불가 시 라이브로 그림.
 function _bakeAt(c, t, key, E, x, y, fn, A) {
@@ -886,7 +904,7 @@ function drawEfx(c, e) {
 // ---------- 타이틀 퍼레이드 (8등급 전부, 렌더 폭에 비례한 간격 배분) ----------
 const PARADE_W = 340, PARADE_H = 150;
 function drawParade(c, w, h, t) {
-  const cv = c.canvas, dpr = Math.min(3, (typeof window !== "undefined" && window.devicePixelRatio) || 1), W = PARADE_W, H = PARADE_H;
+  const cv = c.canvas, dpr = Math.min(2, (typeof window !== "undefined" && window.devicePixelRatio) || 1), W = PARADE_W, H = PARADE_H; // DPR 2 상한(발열)
   if (cv && (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr))) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   c.setTransform(cv ? cv.width / W : 1, 0, 0, cv ? cv.height / H : 1, 0, 0); c.clearRect(0, 0, W, H);
   const base = H * 0.76, g = c.createLinearGradient(0, base - 6, 0, H); g.addColorStop(0, "#c9f2b6"); g.addColorStop(1, "#9bdc8a");
@@ -895,13 +913,15 @@ function drawParade(c, w, h, t) {
   for (let gi = 0; gi < n; gi++) { const r = 13 * GRADES[gi].style.scale; rs.push(r); ws.push(r * (gi === 7 ? 4.1 : gi === 6 ? 2.9 : gi >= 4 ? 2.4 : 2.0)); }
   const sum = ws.reduce((a, b) => a + b, 0), minGap = 2, k = Math.min(1, (W - pad * 2 - minGap * (n - 1)) / sum);
   const gap = (W - pad * 2 - sum * k) / (n - 1); let x = pad;
+  _bkScOv = (cv ? cv.width / W : 1) * k; // 퍼레이드 배율로 굽기(유닛은 bake 사용)
   for (let gi = 0; gi < n; gi++) {
     const wi = ws[gi] * k, cx = x + (gi === 7 ? 1.55 * rs[gi] * k : wi / 2), idx = gi * 4 + (gi % 4), ch = CHARS[idx], ph = t * 3 + gi * 1.1, r = rs[gi] * k;
     const anim = Math.sin(ph) > 0.92 ? { t: 0.3, dur: 0.42, ang: 0.3, style: ATK[ch.key].mot } : null;
     c.save(); c.translate(cx, base - r * 0.95 - Math.abs(Math.sin(ph)) * 6); c.scale(k, k);
-    drawUnit(c, idx, 0, 0, t, { anim, lite: ch.grade < 2 }); c.restore();
+    try { drawUnit(c, idx, 0, 0, t, { anim, lite: ch.grade < 2, bake: true }); } finally { c.restore(); }
     x += wi + gap;
   }
+  _bkScOv = 0;
 }
 // 갤러리 (?gallery=1 / 개발 검증용): 8등급(행) x 4무리(열)
 function drawGallery(c, w, h, t) {
@@ -950,7 +970,10 @@ function drawBoard(c, W, H, T, slotPos, slotCount, sel, t, slots) {
   for (let i = 0; i < slotCount; i++) {
     const p = slotPos(i), s = slots ? slots[i] : null, grade = s ? (s.hero ? -2 : CHARS[s.ch].grade) : -1, clan = s && !s.hero ? CHARS[s.ch].clan : -1;
     _ba.grade = grade; _ba.sel = sel === i; _ba.lock = !!(s && s.lock); _ba.clan = clan;
-    _bakeAt(c, t, "t|" + grade + "|" + (sel === i ? 1 : 0) + "|" + (s && s.lock ? 1 : 0) + "|" + clan, 36, p.x, p.y, _bkTile, _ba);
+    const tk = "t|" + grade + "|" + (sel === i ? 1 : 0) + "|" + (s && s.lock ? 1 : 0) + "|" + clan;
+    const te = grade !== 7 && sel !== i ? _bakeStatic(tk, 36, _bkTile, _ba) : null; // 무지개(7)·선택 칸만 시간 의존
+    if (te) c.drawImage(te.cv, p.x - te.E, p.y - te.E, 2 * te.E, 2 * te.E);
+    else _bakeAt(c, t, tk, 36, p.x, p.y, _bkTile, _ba);
     if (res && clan >= 0 && res[clan] + rez >= 4) { // 무리 공명: 같은 무리 칸에 맥동하는 무리색 테두리 (6종 이상은 이중)
       const pu = 0.5 + 0.5 * Math.sin(t * 4); c.save(); c.strokeStyle = EMB_COL[clan]; c.globalAlpha = 0.45 + pu * 0.35; c.lineWidth = 2; c.setLineDash([5, 4]); c.lineDashOffset = -t * 14; _rrect(c, p.x - 31, p.y - 31, 62, 62, 19); c.stroke(); if (res[clan] + rez >= 6) { _rrect(c, p.x - 34, p.y - 34, 68, 68, 22); c.stroke(); } c.restore();
     }
