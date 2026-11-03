@@ -1,9 +1,9 @@
 // 입력 로그 리플레이 검증기 (Deno / Node 공용 ES 모듈).
 // 입력 로그 형식: [[tick, op, arg], ...]  (game.js inp() 가 기록. tick = 일시정지를 제외한 시뮬 틱)
 //   draw(0) merge(슬롯) sell(슬롯) up(무리0-3) ticket(CHARS 인덱스) upT(무리) auto(0/1) lock(슬롯)
-import { createEngine, ENGINE_VER, validateRules, rulesHash } from "./engine.js";
+import { createEngine, ENGINE_VER, validateRules, rulesHash, validateMine } from "./engine.js";
 
-export { ENGINE_VER, validateRules, rulesHash };
+export { ENGINE_VER, validateRules, rulesHash, validateMine };
 // 랭킹 표시용 빌드 요약 검증/정리: {clans:[{n,lv}]x4, top} 모양이 아니거나 범위를 벗어나면 null (저장은 하되 build 없음).
 export function cleanBuild(b) {
   const ok = (v, mx) => Number.isInteger(v) && v >= 0 && v <= mx;
@@ -31,13 +31,14 @@ export function validateInputs(inputs, maxTicks = LIMITS.MAX_TICKS) {
 
 // 반환: { ok:true, result:{score,round,win,kills,hero,units,unitPts,draws,ticks,bossLeft} } | { ok:false, error }
 // 호출: replay(seed, inputs, rules?) 또는 replay({ seed, log, rules })  (log = inputs)
-export function replay(seed, inputs, rules) {
-  if (seed && typeof seed === "object") ({ seed, log: inputs, rules } = seed);
+export function replay(seed, inputs, rules, mine) {
+  if (seed && typeof seed === "object") ({ seed, log: inputs, rules, mine } = seed);
+  if (mine != null) { const m = validateMine(mine); if (!m.ok) return { ok: false, error: m.err }; mine = rules != null ? null : m.mine; } // 내 영웅: 규칙 판에서는 무시(클라이언트와 동일)
   let rl = null;
   if (rules != null) { const v = validateRules(rules); if (!v.ok) return { ok: false, error: "rules: " + v.err }; rl = v.rules; }
   const bad = validateInputs(inputs, maxTicksFor(rl && rl.rounds));
   if (bad) return { ok: false, error: bad };
-  const e = createEngine(), S = e.start(seed, rl), G = e.GAME;
+  const e = createEngine(), S = e.start(seed, rl, mine || null), G = e.GAME;
   let i = 0, guard = 0;
   while (!S.over) {
     while (i < inputs.length && inputs[i][0] <= S.tick) {

@@ -26,20 +26,22 @@ let S;
 const sqr = (x) => x * x;
 
 // ---------- 상태 ----------
-function newGame(mode, forceSeed, rules) {
+function newGame(mode, forceSeed, rules, mine) {
   let R = {}; // 규칙(모디파이어). 없으면 {} -> 아래 분기는 전부 기본 동작
   if (rules) { const v = validateRules(rules); if (!v.ok) throw new Error(v.err); R = v.rules; }
   CONST.ROUNDS = R.rounds || CONST.ROUNDS_BASE;
   const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
-  const hero = heroOfDay(rng.hero, R.heroPool);
+  let hero = heroOfDay(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
+  let M = null;
+  if (mine && !rules) { const v = validateMine(mine); if (!v.ok) throw new Error(v.err); M = v.mine; hero = applyMine(HEROES.find((h) => h.id === M.hero), M); } // 규칙(시즌/프라이빗) 판에는 내 영웅 미적용
   const hx = hero.fx || {};
   UP_MUL = hx.upCost || 1; // 히어로가 바꾸는 상수는 매 판 기준값에서 다시 계산 (판매가·뽑기 비용)
   if (CONST.DRAW_COST0 == null) CONST.DRAW_COST0 = CONST.DRAW_COST;
   CONST.DRAW_COST = (R.drawCost != null ? R.drawCost : CONST.DRAW_COST0) - (hx.drawCost || 0);
   for (const g of GRADES) { if (g.sell0 == null) g.sell0 = g.sell; g.sell = g.sell0 > 0 ? Math.round(g.sell0 * (hx.sellMul || 1)) : 0; }
   S = {
-    mode, seed, rng, hero, rules: R, minerals: (R.startMin != null ? R.startMin : CONST.START_MIN) + (hx.startMin || 0), dispMin: 0, draws: 0,
+    mode, seed, rng, hero, mine: M, rules: R, minerals: (R.startMin != null ? R.startMin : CONST.START_MIN) + (hx.startMin || 0), dispMin: 0, draws: 0,
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
     slots: Array(CONST.SLOTS).fill(null), sel: -1,
     up: [0, 1, 2, 3].map((c) => ({ bought: 0, bonus: (hx.lv && hx.lv[c]) || 0 })),
@@ -72,7 +74,7 @@ function refreshLevels() {
   }
   S.heroLv = Math.floor(mx * 0.5);
 }
-const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]);
+const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]) * (S.hero.fx.atkMul || 1);
 
 // ---------- 로그 / 이펙트 ----------
 function log(txt, col) {
@@ -402,9 +404,9 @@ const GAME = {
   toggleLock(i) { const s = S.slots[i]; if (s && !s.hero) { s.lock = !s.lock; inp("lock", i); } },
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
-  start(mode, seed, rules) {
+  start(mode, seed, rules, mine) {
     if (!rules && !HEADLESS && mode === "practice") { try { const q = new URLSearchParams(location.search).get("rules"); if (q) rules = JSON.parse(q); } catch (e) { rules = null; } } // 개발용: ?rules={"hpMul":1.5} 연습 모드 전용(랭킹 제외)
-    newGame(mode === "practice" ? "practice" : "daily", seed, rules); S.paused = false; S.sel = -1; return S; },
+    newGame(mode === "practice" ? "practice" : "daily", seed, rules, mine); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 
@@ -429,6 +431,7 @@ function killMob(m) {
   const hx = S.hero.fx || {};
   let r = CONST.KILL_REWARD * (S.rules.killReward || 1);
   if (S.slots.some((s) => s && !s.hero && s.ch === 28)) r += 1; // 숲신 패시브
+  if (hx.killMul) r *= hx.killMul;
   r *= m.rew; // 라운드 몹 수가 늘어난 만큼 개체 보상 비례 감소(라운드 총 보상 유지)
   if (hx.killLuck && S.rng.misc() < hx.killLuck.p) { r *= hx.killLuck.mul; S.heroState.flags.kl = (S.heroState.flags.kl || 0) + 1; const q = trackPoint(m.d); pop(q.x, q.y - 8, `대박 +${Math.max(1, Math.round(r))}`, 0.9, "#e0a000", 14); }
   S.rewAcc = (S.rewAcc || 0) + r; const rg = Math.floor(S.rewAcc + 1e-9); S.rewAcc -= rg; S.minerals += rg; // 소수 보상은 누적 후 정수 지급

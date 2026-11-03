@@ -353,3 +353,46 @@ function unitPoints(slots) {
  for (const s of slots) if (s && !s.hero) u += GRADES[s.ch >> 2].pts * s.n;
  return u;
 }
+
+// MYHERO-BEGIN
+// ---------- '내 영웅': 기존 영웅 중 최대 3종을 등록하고 영웅별로 강화한다. 서버 리플레이도 같은 함수를 쓴다(단일 출처). docs/내영웅_진행.md ----------
+// 강화는 mine = {hero:"영웅id", up:{atk,rew,disc,start}} 로 판 시작 때만 주어지며 랜덤 영웅 판·규칙(시즌/프라이빗) 판에는 적용되지 않는다.
+const MY_HERO = {
+ MAX: 3, TOTAL_CAP: 10, // 영웅 1종당 강화 단계 총합 상한(폭주 방지)
+ COST: [60, 100, 160, 240, 340], // 방향별 n단계째 비용(코인). 1단계 60 -> 5단계 누적 900
+ DIRS: [
+  { k: "atk", name: "공격", ico: "⚔️", max: 5, per: 0.03, txt: (l) => `유닛 공격력 +${l * 3}%` },
+  { k: "rew", name: "보상", ico: "🎁", max: 5, per: 0.04, txt: (l) => `처치 보상 +${l * 4}% · 코인 +${l * 5}%` },
+  { k: "disc", name: "할인", ico: "🏷️", max: 3, per: 0.04, txt: (l) => `공업 강화 비용 -${l * 4}%` },
+  { k: "start", name: "시작 자원", ico: "💎", max: 5, per: 8, txt: (l) => `시작 미네랄 +${l * 8}` },
+ ],
+};
+const myUpSum = (up) => MY_HERO.DIRS.reduce((a, d) => a + ((up && up[d.k]) | 0), 0);
+// 검증/정리. 반환 {ok, mine} | {ok:false, err}
+function validateMine(m) {
+ if (m == null || typeof m !== "object" || Array.isArray(m)) return { ok: false, err: "mine 형식 오류" };
+ if (typeof m.hero !== "string" || !HEROES.some((h) => h.id === m.hero)) return { ok: false, err: "mine 영웅 오류" };
+ const up = {};
+ for (const d of MY_HERO.DIRS) {
+  const v = m.up && m.up[d.k] != null ? m.up[d.k] : 0;
+  if (!Number.isInteger(v) || v < 0 || v > d.max) return { ok: false, err: "mine 강화 범위 오류: " + d.k };
+  up[d.k] = v;
+ }
+ if (myUpSum(up) > MY_HERO.TOTAL_CAP) return { ok: false, err: "mine 강화 총합 초과" };
+ return { ok: true, mine: { hero: m.hero, up } };
+}
+// 영웅 복사본에 강화를 얹는다(원본 HEROES 는 건드리지 않음). fx 키: startMin(기존) upCost(기존) + killMul atkMul(신규)
+function applyMine(base, mine) {
+ const u = mine.up, fx = Object.assign({}, base.fx || {});
+ if (u.start) fx.startMin = (fx.startMin || 0) + 8 * u.start;
+ if (u.disc) fx.upCost = (fx.upCost || 1) * (1 - 0.04 * u.disc);
+ if (u.rew) fx.killMul = 1 + 0.04 * u.rew;
+ if (u.atk) fx.atkMul = 1 + 0.03 * u.atk;
+ return Object.assign({}, base, { fx });
+}
+// 판이 끝났을 때 받는 코인: 10라운드부터 라운드당 1, 처치 50기당 1, 클리어 +30, 보상 강화 단계당 +5% (봇 기준 R40 약 64, R45 약 74, 클리어 100+)
+function coinsFor(round, kills, win, rewLv) {
+ const base = Math.max(0, round - 9) + Math.floor(kills / 50) + (win ? 30 : 0);
+ return Math.floor(base * (1 + 0.05 * (rewLv | 0)));
+}
+// MYHERO-END

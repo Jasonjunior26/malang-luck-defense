@@ -3,7 +3,7 @@
 // action: submit(기본) | register | rename | profile | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
-import { replay, validateInputs, cleanBuild, ENGINE_VER } from "./replay.js";
+import { replay, validateInputs, cleanBuild, validateMine, ENGINE_VER } from "./replay.js";
 import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
 import { handleFriends } from "./friends.ts"; // 친구(fr*) 액션
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
     if (typeof b.code !== "string" || !UUID_RE.test(b.code.trim())) return fail(400, "bad_code");
     importId = b.code.trim().toLowerCase();
   }
-  let inputs: any, seed: any, claimedScore: any, claimedRound: any, win: any;
+  let inputs: any, seed: any, claimedScore: any, claimedRound: any, win: any, mine: any = null, heroName = "";
   if (action === "submit") {
     ({ inputs, seed, claimedScore, claimedRound, win } = b);
     if (b.mode !== "daily") return fail(400, "practice_not_ranked");          // 연습 모드는 랭킹 제외
@@ -114,6 +114,14 @@ Deno.serve(async (req: Request) => {
     if (typeof win !== "boolean") return fail(400, "bad_win");
     const bad = validateInputs(inputs);
     if (bad) return fail(400, "bad_inputs", { detail: bad });
+    // 내 영웅(선택): {hero, up:{atk,rew,disc,start}} + hero_name. 서버가 같은 강화를 적용해 재생하므로 상한 캡(단계 범위·총합)만 검증하면 된다. 없으면 기존 동작.
+    if (b.mine != null) {
+      const mv = validateMine(b.mine);
+      if (!mv.ok) return fail(400, "bad_mine", { detail: mv.err });
+      const hn: any = checkName(b.hero_name, EXTRA_BAD);
+      if (!hn.ok) return fail(400, NAME_ERR[hn.err] ?? "bad_name");
+      mine = mv.mine; heroName = hn.name;
+    }
   }
 
   // 3) rate limit (재생은 CPU 를 쓰므로 그 전에 검사). 닉네임 등록/변경/이전 코드는 더 촘촘하게.
@@ -170,7 +178,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // submit: 4) 리플레이 재계산
-    const v = replay(seed, inputs);
+    const v = replay(seed, inputs, null, mine);
     if (!v.ok) return fail(422, "replay_failed", { detail: v.error });
     const r = v.result;
     if (r.score !== claimedScore || r.round !== claimedRound || r.win !== win) {
@@ -185,6 +193,9 @@ Deno.serve(async (req: Request) => {
       p_ver: b.ver, p_inputs_hash: inputsHash, p_device_id: dev,
     }));
     if (row?.o_status === "no_player") return fail(409, "no_player");
+    if (mine && row?.o_saved) { // 랭킹에 보일 영웅 이름(007 마이그레이션 필요). 실패해도 점수 저장은 유지
+      try { await rpc("score_set_hero_name", { p_device: dev, p_mode: "daily", p_seed: seed, p_hero_name: heroName }); } catch (e) { console.warn("hero_name", e); }
+    }
     return json(200, {
       ok: true, saved: !!row?.o_saved, best: row?.o_best ?? r.score, score: r.score, name: row?.o_name,
       season: seasonInfo, season_best: row?.o_season_best, prev_best: row?.o_prev_best ?? null,
