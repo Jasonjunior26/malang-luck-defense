@@ -126,7 +126,17 @@ const ROUNDS = [
  [47,10,"그림자 도깨비","imp",285,7294,56,58,0.333,90,20,0.465],
  [48,10,"그림자 버섯","shroom",300,7976,57,58,0.333,90,20,0.483],
  [49,10,"그림자 눈알","cyclops",255,8762,56,58,0.333,90,20,0.483],
- [50,10,"어둠의 말랑신","demon",275,286440,71,1,0,25,75,1],
+ [50,10,"어둠의 말랑신","demon",275,150000,71,1,0,25,75,1],
+ [51,11,"서리 슬라임","blob",195,9600,57,58,0.333,90,20,0.49],
+ [52,11,"얼음 게","crab",200,10500,58,58,0.333,90,20,0.49],
+ [53,11,"눈보라 유령","ghost",205,11500,58,59,0.327,90,20,0.5],
+ [54,11,"서리 골렘","golem",190,12600,59,59,0.327,90,20,0.5],
+ [55,11,"빙결 성문 서리문","gate",200,190000,72,1,0,25,75,1],
+ [56,12,"별똥 박쥐","bat",290,14000,60,59,0.327,90,20,0.51],
+ [57,12,"혼돈 도깨비","imp",320,15400,60,60,0.32,90,20,0.51],
+ [58,12,"우주 해파리","ghost",300,16900,61,60,0.32,90,20,0.52],
+ [59,12,"블랙홀 눈알","cyclops",280,18500,61,60,0.32,90,20,0.52],
+ [60,12,"태초의 혼돈 말랑신","demon",320,235000,73,1,0,25,80,1],
 ];
 
 const CHAPTERS = [
@@ -140,21 +150,23 @@ const CHAPTERS = [
  {"id":8,"name":"태초의 알 둥지","from":36,"to":40,"boss":"어미알 태초"},
  {"id":9,"name":"별사탕 함대","from":41,"to":45,"boss":"황금 모선 쿠키마더"},
  {"id":10,"name":"말랑 왕국의 유산","from":46,"to":50,"boss":"어둠의 말랑신"},
+ {"id":11,"name":"얼어붙은 별빛 성채","from":51,"to":55,"boss":"빙결 성문 서리문"},
+ {"id":12,"name":"말랑 우주의 끝","from":56,"to":60,"boss":"태초의 혼돈 말랑신"},
 ];
 
 const CONST = {
  W: 360, H: 400, DT: 1 / 60,
- ROUNDS: 50, ROUNDS_BASE: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
+ ROUNDS: 60, ROUNDS_BASE: 60, HP_CURVE_R: 50, ROUND_SEC: 20, SPAWN_FRAC: 0.8, BOSS_DELAY: 3,
  DRAW_COST: 15, START_MIN: 50, KILL_REWARD: 2, BOSS_REWARD: 50,
  SLOTS: 20, COLS: 4, ROWS: 5, STACK_MAX: 12,
  MOB_LOSE: 160, MOB_WARN: [130, 145],
- HP_MUL0: 2, HP_MUL1: 8, HP_POW: 1.6, // 몹 체력 배율: 1라운드 HP_MUL0 -> 50라운드 HP_MUL1 로 거듭제곱 곡선(HP_POW)으로 상승
+ HP_MUL0: 2, HP_MUL1: 8, HP_POW: 1.6, // 몹 체력 배율: 1라운드 HP_MUL0 -> HP_CURVE_R(50)라운드 HP_MUL1 로 거듭제곱 곡선(HP_POW), 그 뒤는 같은 곡선 연장(60R 약 x10.1)
  HP_K: 11, HP_GAMMA: 0.66,
- UP_STEP: 0.35, UP_STEP2: 0.008, UP_COST0: 25, UP_COSTK: 5, UP_MAX: 25, UP_LV_CAP: 35,
- RANGE_UP: { STEP: 0.08, MAX: 3, COST: [60, 120, 200] }, // 무리별 사거리 강화(단계당 +8%)
- BOSS_UP: [10, 20, 30, 40],
+ UP_STEP: 0.385, UP_STEP2: 0.0088, UP_COST0: 25, UP_COSTK: 5, UP_MAX: 25, UP_LV_CAP: 35,
+ RANGE_UP: { STEP: 0.08, MAX: 3, COST: [20, 40, 60] }, // 무리별 사거리 강화(단계당 +8%)
+ BOSS_UP: [10, 20, 30, 40, 50],
  RESONANCE: { 4: 2, 6: 4 }, RESONANCE_FIRST: 50,
- TICKET_GRADE: { 5: 2, 10: 2, 15: 2, 20: 3, 25: 3, 30: 3, 35: 4, 40: 4, 45: 4, 50: 5 },
+ TICKET_GRADE: { 5: 2, 10: 2, 15: 2, 20: 3, 25: 3, 30: 3, 35: 4, 40: 4, 45: 4, 50: 5, 55: 5, 60: 5 },
  SCORE: { ROUND: 100, KILL_MUL: 0.667, UNIT_CAP: 20000, UNIT_MUL: 0.5, WIN: 3000, WIN_SEC: 20 },
 };
 
@@ -293,19 +305,19 @@ function pickClan(r, ban) { // 규칙 clanBan: 금지 무리를 뺀 목록에서
 }
 function rollChar(r, grade, ban) { return grade * 4 + pickClan(r, ban); }
 function mergeResult(r, grade, ban) { return (grade + 1) * 4 + pickClan(r, ban); }
-function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((r - 1) / (K.ROUNDS_BASE - 1), K.HP_POW); } // 50 초과는 같은 거듭제곱 곡선 연장
+function hpMul(r) { const K = CONST; return K.HP_MUL0 + (K.HP_MUL1 - K.HP_MUL0) * Math.pow((r - 1) / (K.HP_CURVE_R - 1), K.HP_POW); } // 분모는 HP_CURVE_R(50) 고정: 50 초과는 같은 거듭제곱 곡선 연장
 let UP_MUL = 1; // 히어로 fx.upCost 의 강화 비용 배율(현재 쓰는 히어로 없음). newGame 이 설정
 function upgradeCost(bought) { const c = CONST.UP_COST0 + CONST.UP_COSTK * bought; return UP_MUL === 1 ? c : Math.round(c * UP_MUL); }
 function dmgMul(lv) { return 1 + CONST.UP_STEP * lv + CONST.UP_STEP2 * lv * lv; } // 후반 가속(2차항)
 function armorFactor(armorPct, pierce) { return 1 - (armorPct / 100) * (1 - (pierce || 0)); }
 function charAt(grade, clan) { return CHARS[grade * 4 + clan]; }
-function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : (round > CONST.ROUNDS_BASE && round % 10 === 0 ? CONST.TICKET_GRADE[CONST.ROUNDS_BASE] : -1); } // 50 초과 보스는 마지막 값 유지
+function ticketGrade(round) { return CONST.TICKET_GRADE[round] != null ? CONST.TICKET_GRADE[round] : (round > CONST.ROUNDS_BASE && round % 10 === 0 ? CONST.TICKET_GRADE[CONST.ROUNDS_BASE] : -1); } // ROUNDS_BASE(60) 초과 보스(10라운드마다)는 마지막 값 유지
 function roundInfo(r) {
  const B = CONST.ROUNDS_BASE;
  let row = ROUNDS[Math.max(1, Math.min(B, r)) - 1], boss = row[0] % 5 === 0;
- if (r > B) { // 확장 라운드: 10라운드마다 보스(후반 보스 표 50/40/30 순환), 나머지는 마지막 챕터 일반 몹 순환
+ if (r > B) { // 확장 라운드(60 초과): 10라운드마다 보스(60/55 행 번갈아), 나머지는 마지막 챕터(56~59) 일반 몹 순환
   boss = r % 10 === 0;
-  row = boss ? ROUNDS[[49, 39, 29][(r / 10 - B / 10 - 1) % 3]] : ROUNDS[B - 5 + ((r - B - 1) % 4)];
+  row = boss ? ROUNDS[[B - 1, B - 6][(r / 10 - B / 10 - 1) % 2]] : ROUNDS[B - 5 + ((r - B - 1) % 4)];
  }
  return { r: r > B ? r : row[0], ch: row[1], name: row[2], kind: row[3], hue: row[4], hp: row[5], armor: row[6],
   n: row[7], gap: row[8], speed: row[9], time: row[10], rew: row[11] == null ? 1 : row[11], boss };

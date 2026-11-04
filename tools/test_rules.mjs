@@ -88,7 +88,10 @@ for (const [k, r] of Object.entries(mods)) {
   ok(e2.GAME.canMerge(1).ok, "gradeCap 4: 유니크(3) 합성 가능");
   const e3 = createEngine(), S3 = e3.start(5, { noSell: true }); S3.slots[1] = { ch: 0, n: 2, cd: 0, lock: false, anim: null, fire: null, shots: 0 };
   ok(!e3.GAME.sell(1), "noSell");
-  ok(e3.CONST.ROUNDS === 50 && createEngine().start(5, { rounds: 100 }) && true, "rounds 설정");
+  ok(e3.CONST.ROUNDS === 60 && createEngine().start(5, { rounds: 100 }) && true, "rounds 설정 (기본 60)");
+  const e4 = createEngine(); e4.start(5, { rounds: 50 }); ok(e4.CONST.ROUNDS === 50, "rounds 50 (최소값) 유지");
+  const ri = e4.dbg.roundInfo; ok(ri(55).boss && ri(60).boss && !ri(56).boss && ri(60).ch === 12 && ri(51).ch === 11, "51~60 행: 55·60 보스, 챕터 11·12");
+  ok(ri(70).boss && ri(70).name === ri(60).name && ri(80).name === ri(55).name && !ri(65).boss && ri(61).name === ri(56).name, "60 초과 순환: 보스 60/55 행, 일반 56~59 행");
 }
 
 // ---- 3. 프리셋 6종 ----

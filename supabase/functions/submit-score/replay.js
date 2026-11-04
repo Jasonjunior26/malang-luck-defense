@@ -14,9 +14,11 @@ export function cleanBuild(b) {
 export const LIMITS = { MAX_INPUTS: 8000, MAX_TICKS: 60 * 60 * 25 };
 const OPS = { draw: [0, 0], merge: [0, 19], sell: [0, 19], up: [0, 3], rng: [0, 3], ticket: [0, 31], upT: [0, 3], auto: [0, 1], lock: [0, 19] };
 
-// maxTicks: 규칙 rounds 에 따라 늘어나는 상한(rounds*1800). 기본 50라운드는 기존 LIMITS.MAX_TICKS 그대로.
-export const maxTicksFor = (rounds) => Math.max(LIMITS.MAX_TICKS, (rounds || 50) * 1800);
-export function validateInputs(inputs, maxTicks = LIMITS.MAX_TICKS) {
+// 기본 라운드 수(data.js CONST.ROUNDS_BASE, 현재 60). index.ts 의 claimedRound 상한도 이 값을 쓴다.
+export const ROUNDS_DEFAULT = createEngine().CONST.ROUNDS_BASE;
+// maxTicks: 규칙 rounds 에 따라 늘어나는 상한(rounds*2000). 기본 60라운드 = 120000 틱(33분). 60R 최악(모든 보스를 제한시간 끝에 처치 + bossTime +15) 약 113000 틱.
+export const maxTicksFor = (rounds) => Math.max(LIMITS.MAX_TICKS, (rounds || ROUNDS_DEFAULT) * 2000);
+export function validateInputs(inputs, maxTicks = maxTicksFor()) {
   if (!Array.isArray(inputs)) return "inputs 형식 오류";
   if (inputs.length > LIMITS.MAX_INPUTS) return "inputs 가 너무 많음";
   let prev = 0;
