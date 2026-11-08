@@ -135,10 +135,15 @@ Deno.serve(async (req: Request) => {
     : action === "me" || action === "link" ? { p_kind: "name", p_ip_max: 20, p_dev_max: 10 }
     : action === "import" ? { p_kind: "import", p_ip_max: 6, p_dev_max: 6 }
     : { p_kind: "name", p_ip_max: 6, p_dev_max: 4 };
-  try {
-    const okRate = await rpc("rate_limit_hit", { p_ip: await sha256Hex(IP_SALT + ip), p_device: dev, ...lim });
-    if (okRate === false) return fail(429, "rate_limited");
-  } catch (e) { console.error("rate", e); return fail(500, "server_error"); }
+  // submit 은 rate limit RPC 를 띄워 둔 채 재생(동기 CPU)을 돌리고, 저장 직전에 결과를 확인한다(왕복 대기 시간 겹침).
+  // 한도 초과면 저장 전에 429 로 끝나므로 기록은 남지 않는다.
+  const rateP: Promise<any> = (async () => rpc("rate_limit_hit", { p_ip: await sha256Hex(IP_SALT + ip), p_device: dev, ...lim }))();
+  const checkRate = async (): Promise<Response | null> => {
+    try { return (await rateP) === false ? fail(429, "rate_limited") : null; }
+    catch (e) { console.error("rate", e); return fail(500, "server_error"); }
+  };
+  if (action !== "submit") { const rr = await checkRate(); if (rr) return rr; }
+  else rateP.catch(() => {}); // 미처리 거부 방지(실제 확인은 checkRate)
 
   let user: { id: string; nick: string } | null = null;
   if (action === "me" || action === "link") {
@@ -191,18 +196,16 @@ Deno.serve(async (req: Request) => {
       console.warn("mismatch", { device_id, claimed: [claimedScore, claimedRound, win], server: [r.score, r.round, r.win] });
       return fail(422, "score_mismatch");
     }
+    const rr = await checkRate(); if (rr) return rr;
     // 5) 저장 (같은 기기·같은 날은 최고점만 유지, 시즌 랭킹은 시즌 내 최고점 1건). 닉네임은 서버의 players 값을 쓴다.
     const inputsHash = await sha256Hex(JSON.stringify(inputs));
     const row = firstRow(await rpc("submit_score_season", {
       p_season: seasonInfo!.id, p_score: r.score, p_round: r.round, p_win: r.win, p_mode: "daily", p_seed: seed, p_hero: r.hero,
       p_units: { count: r.units, pts: r.unitPts, kills: r.kills, draws: r.draws }, p_build: cleanBuild(r.build),
       p_ver: b.ver, p_inputs_hash: inputsHash, p_device_id: dev,
-      ...(mine ? { p_is_mine: true } : {}), // 보드 분리(009): 내 영웅 판은 내 영웅 보드로. 랜덤 판은 생략(009 전후 모두 동작)
+      ...(mine ? { p_is_mine: true, p_hero_name: heroName } : {}), // 보드 분리(009)·영웅 이름(011): 내 영웅 판만 전달. 이름도 같은 호출에서 저장(011 필요)
     }));
     if (row?.o_status === "no_player") return fail(409, "no_player");
-    if (mine && row?.o_saved) { // 랭킹에 보일 영웅 이름(007 마이그레이션 필요). 실패해도 점수 저장은 유지
-      try { await rpc("score_set_hero_name", { p_device: dev, p_mode: "daily", p_seed: seed, p_hero_name: heroName }); } catch (e) { console.warn("hero_name", e); }
-    }
     return json(200, {
       ok: true, saved: !!row?.o_saved, best: row?.o_best ?? r.score, score: r.score, name: row?.o_name,
       season: seasonInfo, season_best: row?.o_season_best, prev_best: row?.o_prev_best ?? null,
