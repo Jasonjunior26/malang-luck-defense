@@ -84,6 +84,7 @@ Deno.serve(async (req: Request) => {
   if (typeof device_id !== "string" || !UUID_RE.test(device_id)) return fail(400, "bad_device");
   const dev = device_id.toLowerCase();
   const now = nowMs();
+  const tReq = performance.now(); // 처리 시간 계측(응답 ms 로 돌려줘 느린 제출의 원인을 서버/네트워크로 가른다)
   const today = kstDate(now);
   const ph = seasonPhase(today);
   const seasonInfo = ph.season ? { id: ph.season.id, name: ph.season.name, start: ph.season.start, end: ph.season.end } : null;
@@ -181,7 +182,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // submit: 4) 리플레이 재계산
+    const tRep = performance.now();
     const v = replay(seed, inputs, null, mine);
+    const msReplay = Math.round(performance.now() - tRep);
     if (!v.ok) return fail(422, "replay_failed", { detail: v.error });
     const r = v.result;
     if (r.score !== claimedScore || r.round !== claimedRound || r.win !== win) {
@@ -205,6 +208,7 @@ Deno.serve(async (req: Request) => {
       season: seasonInfo, season_best: row?.o_season_best, prev_best: row?.o_prev_best ?? null,
       rank_before: row?.o_rank_before ?? null, rank_after: row?.o_rank_after ?? null,
       next_score: row?.o_next_score ?? null, top_score: row?.o_top_score ?? null, total: row?.o_total ?? null,
+      ms: { replay: msReplay, total: Math.round(performance.now() - tReq) }, // 서버 처리 시간(재생 / 전체)
     });
   } catch (e) { console.error(action, e); return fail(500, "server_error"); }
 });

@@ -13,7 +13,7 @@ const cut = (src, a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); if
 const store = new Map(), sent = [];
 let resp = () => ({ st: 200, d: { ok: true, saved: true, season_best: 100, season: { id: 2 } } }), gate = null;
 const ctx = vm.createContext({
-  console, JSON, Promise, Date, Math, Array, setTimeout, window: { crypto: { randomUUID: () => "dev-x" } }, crypto: { randomUUID: () => "dev-x" },
+  console, JSON, Promise, Date, Math, Array, setTimeout, performance, window: { crypto: { randomUUID: () => "dev-x" } }, crypto: { randomUUID: () => "dev-x" },
   lsGet: (k, d = null) => (store.has(k) ? store.get(k) : d), lsSet: (k, v) => store.set(k, v),
   remote: () => true, myName: () => "나나", NAME_OK: "ok", GAME_VER: "8", deviceId: () => "dev",
   CONFIG: { MYHERO_RANKED: true }, S: { mine: null, seed: 1, inputs: [[1, 2]] },
@@ -63,6 +63,21 @@ ok(sent.length === 1 && q().length === 0, "다음 flushQueue 가 남은 판을 �
 store.clear(); resp = () => ({ st: 409, d: { ok: false, error: "ver_mismatch" } });
 const r5 = await run("submitScore(" + JSON.stringify(P) + ")");
 ok(r5.st === "drop" && q().length === 0, "거부 응답은 대기열에서 지운다");
+
+
+// 6) 랭킹 등록 중 이동 확인(rankGuard): 끝났으면 바로 이동, 진행 중이면 확인(기다리기/그래도 나가기), 라벨 복원
+{
+  const el = { cno: { textContent: "게임 계속", onclick: null }, cok: { textContent: "홈 이동", onclick: null } };
+  let msg = null, went = 0;
+  const g = vm.createContext({ $: (id) => el[id], uiConfirm: (m, ok) => { msg = m; el.cno.onclick = () => {}; el.cok.onclick = () => ok(); } });
+  vm.runInContext(cut(ui, "let RANK_N = 0;", "async function finishRank(P)"), g);
+  vm.runInContext("rankGuard(() => { globalThis.went = 1; })", g); ok(g.went === 1 && msg === null, "등록이 끝났으면 확인 없이 바로 이동");
+  g.went = 0; vm.runInContext("RANK_N = 1; rankGuard(() => { globalThis.went = 1; })", g);
+  ok(msg && /랭킹 등록 중/.test(msg) && g.went === 0 && el.cno.textContent === "기다리기" && el.cok.textContent === "그래도 나가기", "등록 중이면 이동 전에 확인(기다리기 / 그래도 나가기)");
+  el.cno.onclick(); ok(g.went === 0 && el.cno.textContent === "게임 계속" && el.cok.textContent === "홈 이동", "기다리기: 이동 안 함, 확인창 글자 원래대로");
+  msg = null; vm.runInContext("rankGuard(() => { globalThis.went = 1; })", g); el.cok.onclick();
+  ok(g.went === 1 && el.cok.textContent === "홈 이동", "그래도 나가기: 이동, 글자 원래대로");
+}
 
 console.log(`PASS ${pass} FAIL ${fail}`);
 process.exit(fail ? 1 : 0);

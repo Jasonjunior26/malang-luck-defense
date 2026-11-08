@@ -791,11 +791,14 @@ async function submitScore(P) {
     if (S.mine) { item.mine = S.mine; item.hero_name = MyHero.heroName(); } // 서버가 같은 강화를 적용해 재생한다
     // 보내기 전에 먼저 대기열에 저장한다: 검증이 느린 동안 앱이 닫히거나 화면을 나가도 다음 접속 때 flushQueue 가 이어서 보낸다. 서버가 확정 응답(성공/거부)을 주면 그때 지운다.
     qSet([...qGet(), item]); INFLIGHT.add(item.qid);
+    const tSub = performance.now();
     let r;
     try {
       r = await postScore(item);
       if (r.st === "drop" && r.d.error === "no_player") { lsSet(NAME_OK, ""); if ((await ensureRegistered()) === "ok") r = await postScore(item); }
     } finally { INFLIGHT.delete(item.qid); }
+    r.ms = { total: Math.round(performance.now() - tSub), server: r.d && r.d.ms ? r.d.ms : null, st: r.d && r.d.error ? r.d.error : r.st }; // 느린 제출 진단: 전체(네트워크 포함) vs 서버 처리
+    try { const pf = JSON.parse(lsGet("malang-subperf", "[]")); pf.push({ at: Date.now(), R: P.R, n: item.inputs.length, ...r.ms }); lsSet("malang-subperf", JSON.stringify(pf.slice(-8))); } catch {}
     if (r.st === "retry") return { st: "queued", d: r.d }; // 이미 대기열에 있다
     qSet(qGet().filter((x) => x.qid !== item.qid));
     flushQueue(); // 이전에 밀린 기록도 이어서 전송
@@ -839,16 +842,28 @@ function rankResultHtml(r, P) {
   if (sm.length) h += `<small>${sm.join(" · ")}</small>`;
   return { html: h, cheer: newBest };
 }
+let RANK_N = 0; // 판 종료 화면에서 진행 중인 랭킹 제출 수(겹쳐도 안전하게 카운터)
+function rankGuard(go) { // 제출 중에 다시 하기/홈으로를 누르면 확인(기다리기 / 그래도 나가기). 끝났으면 바로 이동
+  if (RANK_N <= 0) return go();
+  const lb = [$("cno").textContent, $("cok").textContent], back = () => { $("cno").textContent = lb[0]; $("cok").textContent = lb[1]; };
+  $("cno").textContent = "기다리기"; $("cok").textContent = "그래도 나가기";
+  uiConfirm(["랭킹 등록 중이에요.", "끝날 때까지 잠깐만 기다려 주세요.", "지금 나가면 순위를 못 보고, 기록은 나중에 이어서 올라가요."].join("\n"), go);
+  const n0 = $("cno").onclick, o0 = $("cok").onclick;
+  $("cno").onclick = () => { back(); n0(); }; $("cok").onclick = () => { back(); o0(); };
+}
 async function finishRank(P) {
   const box = $("rk"); if (!box) return;
   const ph = phaseNow();
-  if (ph.phase !== "live") { box.textContent = "시즌 기간이 아니라 등록되지 않아요"; return; }
-  let r;
-  try { r = await submitScore(P); } catch { r = { st: "drop", d: {} }; }
+  if (ph.phase !== "live") { box.classList.remove("pend"); box.textContent = "시즌 기간이 아니라 등록되지 않아요"; return; }
+  let r; RANK_N++;
+  const slow = setTimeout(() => { const x = $("rk"); if (x && x.classList.contains("pend")) x.innerHTML = '랭킹 등록 중…<small>검증에 몇 초 걸려요</small>'; }, 3000);
+  try { r = await submitScore(P); } catch { r = { st: "drop", d: {} }; } finally { clearTimeout(slow); RANK_N--; }
   const b2 = $("rk"); if (!b2) return; // 그 사이 화면이 바뀜
+  b2.classList.remove("pend");
   const o = rankResultHtml(r, P);
   b2.innerHTML = (o.html || "") + (kakaoOn() && !AUTH.signedIn() && r.st !== "local" ? `<button class="wide mini" id="rkKk" ${BTNR}>💛 카카오로 기록 지키기</button>` : "");
   if ($("rkKk")) $("rkKk").onclick = () => AUTH.login();
+  if (r.ms && r.ms.total >= 3000) { const sec = (v) => (v / 1000).toFixed(1), sv = r.ms.server; b2.insertAdjacentHTML("beforeend", `<small class="dim">걸린 시간 ${sec(r.ms.total)}초${sv ? ` (서버 ${sec(sv.total)}초 · 검증 ${sec(sv.replay)}초)` : ""}</small>`); } // 느릴 때만 원인 표시
   if (o.cheer) { b2.classList.add("cheer"); sfx("reso"); vib([60, 40, 120]); }
   if (r.st !== "skip") refreshTitle(); // 생략/변동 없는 판은 캐시 그대로(서버 호출 0)
 }
@@ -1174,25 +1189,24 @@ function restartGame() {
   GAME.start(mode, undefined, undefined, MyHero.again()); uiReset();
 }
 
-const HOMEBTN = `<button class="wide mini" id="goHomeBtn" ${BTNR}>🏠 홈으로</button>`; // 판 종료 화면 공통 홈 버튼
+const HOMEBTN = `<button class="mini" id="goHomeBtn" ${BTNR}>🏠 홈으로</button>`; // 판 종료 화면 공통 홈 버튼
 function uiGameOver(result) {
   const res = result || {}, P = scoreParts(res), win = P.win, priv = !!(window.SeasonMod && SeasonMod.run());
   S.over = true; sfx(win ? "win" : "over"); vib(win ? [100, 50, 100, 50, 300] : 200);
   const bk = priv ? "malang-best-ps" : "malang-best2", best = Number(lsGet(bk, "0")), isBest = P.score > best;
   if (isBest) lsSet(bk, String(P.score));
-  const parts = `<div class="sc2">라운드 ${P.R} x ${CONST.SCORE.ROUND}<b>${P.R * CONST.SCORE.ROUND}</b><br>처치 ${P.kills}기<b>${P.kills}</b><br>필드 유닛 점수 ${P.U}<b>${P.uPts}</b>${win ? `<br>클리어 보너스${P.left ? ` (남은 ${Math.floor(P.left)}초)` : ""}<b>${CONST.SCORE.WIN + CONST.SCORE.WIN_SEC * Math.floor(P.left)}</b>` : ""}</div>`;
+  const parts = `<details class="cgd"><summary>점수 내역</summary><div class="sc2">라운드 ${P.R} x ${CONST.SCORE.ROUND}<b>${P.R * CONST.SCORE.ROUND}</b><br>처치 ${P.kills}기<b>${P.kills}</b><br>필드 유닛 점수 ${P.U}<b>${P.uPts}</b>${win ? `<br>클리어 보너스${P.left ? ` (남은 ${Math.floor(P.left)}초)` : ""}<b>${CONST.SCORE.WIN + CONST.SCORE.WIN_SEC * Math.floor(P.left)}</b>` : ""}</div></details>`;
   const firstToday = !priv && !S.mineSettled && lsGet("malang-myhero-day", "") !== todayKey(); // 정산 전에 판정(myhero.js KEY_DAY: 코인이 지급된 오늘 첫 판)
   const coin = priv || !S.mine ? null : MyHero.settle(S, P); // 코인 줄은 내 영웅 판에만
   const cp = coin && coin.parts, luckSum = cp ? cp.boss + cp.gold + cp.grade : 0;
   const cl = cp ? [["기본", cp.base], ["보스 주머니", cp.boss], ["황금 몹", cp.gold], ["첫 등급", cp.grade], ["내 영웅", cp.hero], ["신기록", cp.rec], ["오늘 첫 판", cp.daily]].filter((e) => e[1] > 0).map((e) => `<li>${e[0]}<b>+${e[1]}</b></li>`).join("") : "";
-  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> 코인</div><div class="cgs">보유 ${nf(coin.total)}</div>${luckSum > 0 ? `<div class="cgl">운빨 +${luckSum}</div>` : ""}${firstToday && coin.gain > 0 ? `<div class="cgl d">오늘 첫 판 보너스</div>` : ""}${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
+  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> 코인 <small>보유 ${nf(coin.total)}</small></div>${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
   const why = res.why ? `<small>${esc(res.why)}</small><br>` : "";
-  const reg = priv ? `<div class="rk" id="rk">등록 중…</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>시즌 순위</button>${HOMEBTN}`
-    : `<div class="rk" id="rk">랭킹 등록 중…</div><button class="wide green" id="skip">🔁 다시 하기</button><button class="wide mini" id="seeRank" ${BTNR}>${S.mine ? "나만의 영웅 리그" : "운빨 리그"} 랭킹 보기</button>${HOMEBTN}`;
-  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${esc(MyHero.label(S))} · ${priv ? esc(SeasonMod.run().name) : LEAGUE[S.mine ? "mine" : "rand"] + " · " + esc(phaseNow().season ? phaseNow().season.name : "시즌")}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${parts}${coinLine}${reg}`);
+  const rkBox = `<div class="rk pend" id="rk">${priv ? "등록 중…" : "랭킹 등록 중…"}</div>`, btns = `<button class="wide green" id="skip">🔁 다시 하기</button><div class="gor"><button class="mini" id="seeRank" ${BTNR}>${priv ? "시즌 순위" : "🏆 랭킹 보기"}</button>${HOMEBTN}</div>`;
+  modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${esc(MyHero.label(S))} · ${priv ? esc(SeasonMod.run().name) : LEAGUE[S.mine ? "mine" : "rand"]}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${rkBox}${coinLine}${parts}${btns}`)
   { const el = $("cgNum"), g = coin ? coin.gain : 0; if (el && g > 1) { const t0 = performance.now(); const tick = (t) => { const k = Math.min(1, (t - t0) / 600); el.textContent = Math.round(g * k); if (k < 1 && el.isConnected) requestAnimationFrame(tick); }; el.textContent = "0"; requestAnimationFrame(tick); } }
-  $("skip").onclick = () => restartGame();
-  $("goHomeBtn").onclick = goHome; // 판이 끝난 뒤라 확인 없이 이동(기록은 이미 제출/큐에 있음)
+  $("skip").onclick = () => rankGuard(() => restartGame());
+  $("goHomeBtn").onclick = () => rankGuard(goHome); // 랭킹 등록 중이면 이동 전에 한 번 묻는다(기록은 대기열에 저장돼 이어서 올라간다)
   if (priv) { $("seeRank").onclick = () => SeasonMod.openDetail(SeasonMod.run().id); SeasonMod.finish(P); }
   else { $("seeRank").onclick = () => showRanks("season", true, S.mine ? "mine" : "rand"); finishRank(P); }
   if (win) uiBanner("클리어! 말랑 왕국을 지켜냈어요!", "win");

@@ -46,7 +46,7 @@ ok(!/practice|연습/.test(ui + rd("index.html") + rd("game.js") + rd("myhero.js
 ok(/data-b="\$\{k\}"/.test(ui) && ui.includes('showRanks("season", true, S.mine ? "mine" : "rand")'), "보드 토글 + 게임오버에서 해당 보드로 열기");
 ok(ui.includes(`async function showRanks(tab = "season", again = false, board = "rand"`), "기본 보드는 랜덤");
 const go = slice("function uiGameOver(", "// ---------- 타이틀");
-ok((go.match(/\$\{HOMEBTN\}/g) || []).length === 2 && go.includes('$("goHomeBtn").onclick = goHome'), "클리어/게임오버/프라이빗 모두 홈 버튼");
+ok((go.match(/\$\{HOMEBTN\}/g) || []).length === 1 && go.includes('$("goHomeBtn").onclick = () => rankGuard(goHome)') && go.includes("rankGuard(() => restartGame())"), "클리어/게임오버/프라이빗 공통 홈 버튼 + 랭킹 등록 중 이동 확인(rankGuard)");
 ok(ui.includes('id="rkHome"') && ui.includes('$("rkHome").onclick = goHome'), "결과 후 랭킹 화면에도 홈 버튼");
 ok(/\$\("home"\)\.onclick = \(\) => uiConfirm\(/.test(ui), "게임 중 ☰ 메뉴 홈은 확인 대화 유지");
 

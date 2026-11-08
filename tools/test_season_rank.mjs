@@ -149,7 +149,7 @@ const sub = cut(ui, "async function submitScore(P)", "// 게임오버 화면의 
 ok(/P\.score <= lb\) \{ flushQueue\(\); return \{ st: "skip"/.test(sub), "개인 시즌 최고 이하 판은 서버 호출 생략");
 ok(sub.includes("sbestSet(bd0, ssid, r.d.season_best)") && sub.includes("if (r.d.saved)") && sub.includes("rcDrop("), "서버 확정 최고만 기록 + 갱신 시 캐시 폐기");
 ok(/season: sid0/.test(sub) && /item\.season !== cs\.id/.test(ui), "큐 항목에 시즌 id, 지난 시즌 큐는 폐기");
-ok(ui.includes("LEAGUE[S.mine ? \"mine\" : \"rand\"]") && ui.includes("나만의 영웅 리그\" : \"운빨 리그\"} 랭킹 보기"), "(a) 판 종료 화면에 리그명 표시(제목/버튼)");
+ok(ui.includes("LEAGUE[S.mine ? \"mine\" : \"rand\"]") && ui.includes("🏆 랭킹 보기"), "(a) 판 종료 화면에 리그명 표시(제목/버튼)");
 ok(/RK_LEAGUE/.test(cut(ui, "async function showRanks(", "function restartGame()")) && /data-b=/.test(ui) && /data-s=/.test(ui) && /data-t=/.test(ui) && /role="tab"/.test(ui) && /aria-selected/.test(ui), "랭킹 모달: 리그 탭+내 기록 탭, 보조 탭, 시즌 선택, role=tab/aria-selected");
 ok(!/api\("profile"\)/.test(cut(ui, "async function refreshTitle()", "function showSeasonClosed")), "홈 진입은 Edge Function(profile) 호출 없음");
 const mig = rd("supabase/migrations/010_season_points.sql");
