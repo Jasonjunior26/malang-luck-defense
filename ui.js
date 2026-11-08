@@ -35,16 +35,31 @@ function initAudio() {
       try { const b = AC.createBuffer(1, 1, 22050), s = AC.createBufferSource(); s.buffer = b; s.connect(AC.destination); s.start(0); } catch {}
     } catch { AC = null; }
   }
-  if (AC && AC.state === "suspended" && !(typeof document !== "undefined" && document.hidden)) { try { AC.resume(); } catch {} }
-  if (AC) bgmApply();
+  if (AC) { if (SND_MODE === 1) _acKick(SFX_IDLE_MS); else _acSync(); bgmApply(); }
+}
+// [절전] AudioContext 를 필요할 때만 running 으로 둔다. 끔(2)=항상 suspend, 효과음만(1)=효과음 뒤 SFX_IDLE_MS 무음이면 suspend,
+// 효과음+BGM(0)=일시정지/타이틀/게임오버에서 입력 없이 BGM_IDLE_MS 지나면 BGM 페이드 후 suspend(_bgSleep), 입력/상태 변화 시 재개.
+const SFX_IDLE_MS = 1500, BGM_IDLE_MS = 20000;
+let _sfxUntil = 0, _acSusT = null, _bgSleep = false, _bgWaitFrom = 0, _lastInput = Date.now();
+const _docHidden = () => typeof document !== "undefined" && document.hidden;
+function _acNeed() { return !MUTED && !_docHidden() && ((SND_MODE === 0 && !_bgSleep) || Date.now() < _sfxUntil); }
+function _acSync() {
+  if (!AC) return;
+  try { if (_acNeed()) { if (AC.state === "suspended") AC.resume(); } else if (AC.state === "running") AC.suspend(); } catch {}
+}
+function _acKick(ms) { // 효과음 직전: 깨우고 ms 뒤 정책 재확인
+  _sfxUntil = Math.max(_sfxUntil, Date.now() + ms); _acSync();
+  if (_acSusT) clearTimeout(_acSusT);
+  _acSusT = setTimeout(() => { _acSusT = null; _acSync(); }, ms + 300);
 }
 // 첫 터치에서 AudioContext 해제 + UI 탭 틱 + 백그라운드 일시정지
 try {
-  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, () => { if (!AC || AC.state !== "running") initAudio(); }, { capture: true, passive: true });
+  for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, () => { _lastInput = Date.now(); if (_bgSleep) _bgWake(); if (!AC || (AC.state !== "running" && !MUTED)) initAudio(); }, { capture: true, passive: true });
   document.addEventListener("pointerdown", (e) => { const t = e.target; if (t && t.closest && t.closest("button") && !t.closest("#draw")) sfx("tap"); }, { capture: true, passive: true });
   document.addEventListener("visibilitychange", () => {
     if (!AC) return;
-    if (document.hidden) { try { AC.suspend(); } catch {} } else if (!MUTED) { try { AC.resume(); } catch {} _bgNext = 0; }
+    if (document.hidden) { try { AC.suspend(); } catch {} if (_bgTimer) { clearInterval(_bgTimer); _bgTimer = null; } }
+    else { _acSync(); _bgNext = 0; if (_bgOn && !_bgTimer) _bgTimer = setInterval(_bgTick, 90); }
   });
 } catch {}
 
@@ -184,6 +199,7 @@ function sfx(n) {
   if (now - (_sfxT[k] || 0) < (_gap[k] || 0)) return;
   if (k === "atk") { if (now - _atkAny < 35) return; _atkAny = now; } // 동시 다발 공격음 압축
   _sfxT[k] = now; _sfxT[n] = now;
+  if (SND_MODE !== 0 || _bgSleep) _acKick(SFX_IDLE_MS);
   try { f(); } catch {}
 }
 function vib(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch {} }
@@ -314,8 +330,15 @@ function _bgEnding(win) { // 엔딩 스팅어: 효과음(over/win) 이 지나간
 function _bgTick() {
   if (!AC || !_bgOn) return;
   let over = false, paused = false, win = false;
-  try { over = !!(typeof S !== "undefined" && S && S.over) && !(typeof TITLE_ON !== "undefined" && TITLE_ON); paused = !!(typeof S !== "undefined" && S && S.paused); win = !!(typeof S !== "undefined" && S && S.win); } catch {}
-  try { BB.gain.setTargetAtTime(Math.max(0.0001, paused ? AUD.bgm * 0.45 : AUD.bgm), AC.currentTime, 0.25); } catch {}
+  let title = false;
+  try { title = typeof TITLE_ON !== "undefined" && TITLE_ON; over = !!(typeof S !== "undefined" && S && S.over) && !title; paused = !!(typeof S !== "undefined" && S && S.paused); win = !!(typeof S !== "undefined" && S && S.win); } catch {}
+  // 장시간 대기(일시정지/타이틀/게임오버 + 입력 없음): BGM 페이드 후 suspend
+  if (!(over || paused || title)) { _bgWaitFrom = 0; if (_bgSleep) _bgWake(); }
+  else {
+    const nowMs = Date.now(); if (!_bgWaitFrom) _bgWaitFrom = nowMs;
+    if (!_bgSleep && nowMs - Math.max(_bgWaitFrom, _lastInput) > BGM_IDLE_MS) { _bgSleep = true; _acKick(SFX_IDLE_MS); }
+  }
+  try { BB.gain.setTargetAtTime(Math.max(0.0001, _bgSleep ? 0.0001 : paused ? AUD.bgm * 0.45 : AUD.bgm), AC.currentTime, _bgSleep ? 0.3 : 0.25); } catch {}
   if (AC.state !== "running") { _bgNext = 0; return; }
   if (over) { // 게임 종료: 현재 곡 페이드아웃 후 짧은 엔딩 1회
     if (_bgCur) { _bgFade(_bgCur, 0, 1.0); _bgCur = ""; }
@@ -337,6 +360,7 @@ function _bgTick() {
     _bgNext += dur; _bgStep = (_bgStep + 1) % total;
   }
 }
+function _bgWake() { _bgSleep = false; _bgWaitFrom = 0; _bgNext = 0; _acSync(); }
 function bgmApply() {
   const want = !!AC && SND_MODE === 0;
   if (want && !_bgOn) { _bgOn = true; _bgNext = 0; _bgStep = 0; _bgCur = ""; if (!_bgTimer) _bgTimer = setInterval(_bgTick, 90); }
@@ -411,12 +435,14 @@ function uiMerged(fromGrade, toIdx) {
 const _txt = {};
 function setText(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).textContent = v; } }
 function setHtml(id, v) { if (_txt[id] !== v) { _txt[id] = v; $(id).innerHTML = v; return true; } return false; }
+function setW(id, pct) { const v = (Math.round(pct * 10) / 10) + "%", k = id + ".w"; if (_txt[k] !== v) { _txt[k] = v; $(id).style.width = v; } } // 바 폭: 0.1% 단위로 바뀔 때만 쓰기
+function setDis(id, on) { const k = id + ".dis"; if (_txt[k] !== on) { _txt[k] = on; $(id).disabled = on; } }
 function setCls(id, cls, on) { const k = id + "." + cls; if (_txt[k] !== on) { _txt[k] = on; $(id).classList.toggle(cls, on); } }
 let _S = null, _hudFrame = 0, _lastRound = 0, _mobLv = 0, _lastSec = -1;
 // 공명 상태 추적(표시 전용): 발동/해제 순간 배너, 종류 수 증가 시 칩 강조, 단계 1종 전 힌트
 let _resoPrev = null, _resoPulse = [0, 0, 0, 0], _resoSeen = [0, 0, 0, 0]; // _resoSeen: 첫 발동음은 uiLog("공명!")가 담당
 function trackReso() {
-  const cur = CLANS.map((_, i) => [resonanceCount(S.slots, i), resonanceBonus(S.slots, i)]);
+  const ez = S.hero && S.hero.fx.resoEase, nd = resonanceNeed(ez), cur = CLANS.map((_, i) => [resonanceCount(S.slots, i), resonanceBonus(S.slots, i, ez)]);
   const prev = _resoPrev; _resoPrev = cur;
   if (!prev) return;
   cur.forEach(([n, b], i) => {
@@ -424,7 +450,7 @@ function trackReso() {
     if (n > pn) { _resoPulse[i] = 1; setTimeout(() => { _resoPulse[i] = 0; delete _txt.clanRows; }, 1900); delete _txt.clanRows; }
     if (b > pb) { uiBanner(`${c.ico} ${c.name} 공명 +${b}Lv!`, "epic"); vib(60); if (_resoSeen[i]) sfx("reso"); _resoSeen[i] = 1; }
     else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
-    else if (n > pn && (n === 3 || n === 5)) uiLog(`${c.ico} ${c.name} ${n === 3 ? 4 : 6}종까지 1종 남음`, c.color);
+    else if (n > pn && (n === nd[0] - 1 || n === nd[1] - 1)) uiLog(`${c.ico} ${c.name} ${n + 1}종까지 1종 남음`, c.color);
   });
 }
 function uiReset() { _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
@@ -433,7 +459,7 @@ const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.h
 function updateHud() {
   if (typeof S === "undefined" || !S) return;
   if (_S !== S) { _S = S; uiReset(); S.dispMin = S.minerals; }
-  $("menuBtn").classList.toggle("dot", (S.tickets || []).length > 0);
+  setCls("menuBtn", "dot", (S.tickets || []).length > 0);
   const info = roundInfo(S.round || 1);
   // 미네랄
   const lastMin = S.dispMin;
@@ -459,11 +485,11 @@ function updateHud() {
     setCls("cWave", "urgent", urgent);
     if (urgent && sec !== _lastSec) { sfx("tick"); }
     _lastSec = sec;
-    $("hWaveBar").style.width = Math.max(0, Math.min(100, (left / info.time) * 100)) + "%";
+    setW("hWaveBar", Math.max(0, Math.min(100, (left / info.time) * 100)));
   } else {
     setCls("cWave", "urgent", false);
     setText("hWave", `라운드 ${S.round}/${CONST.ROUNDS}`);
-    $("hWaveBar").style.width = Math.min(100, ((S.roundT || 0) / CONST.ROUND_SEC) * 100) + "%";
+    setW("hWaveBar", Math.min(100, ((S.roundT || 0) / CONST.ROUND_SEC) * 100));
   }
   const tl = boss ? left : Math.max(0, info.time - (S.roundT || 0)), ts = Math.ceil(tl);
   setText("hCh", `⏱ ${Math.floor(ts / 60)}:${String(ts % 60).padStart(2, "0")}${boss ? " 보스" : ""}`);
@@ -475,7 +501,7 @@ function updateHud() {
     const extra = S.round === CONST.ROUNDS ? ` · 남은 적 ${S.mobs.length}기 (보스와 모든 적을 처치!)` : "";
     setText("bossName", info.name + extra);
     setText("bossHp", Math.ceil(Math.max(0, bm.hp)) + "/" + Math.ceil(bm.max));
-    $("bossFill").style.width = Math.max(0, (bm.hp / bm.max) * 100) + "%";
+    setW("bossFill", Math.max(0, (bm.hp / bm.max) * 100));
   }
   // 몹 수: 상한의 80% 이상이면 점수 칸이 👾 N/상한 경고로 바뀐다 (130/145 배너·소리는 그대로)
   const n = S.mobs.length, W80 = CONST.MOB_WARN[0], W90 = CONST.MOB_WARN[1];
@@ -489,17 +515,17 @@ function updateHud() {
   if (lv > _mobLv) { uiBanner(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, "warn"); uiLog(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, lv === 2 ? "#d4182e" : "#c98a00"); sfx(lv === 2 ? "warn2" : "warn"); vib(60); }
   _mobLv = lv;
   // 버튼
-  const free = S.slots.some((s) => !s), can = S.minerals >= CONST.DRAW_COST && free && !S.over;
-  $("draw").disabled = !can; setCls("draw", "ready", can);
+  const free = S.slots.some((s) => !s), dc = GAME.drawCost(), can = S.minerals >= dc && free && !S.over;
+  setDis("draw", !can); setCls("draw", "ready", can);
   setHtml("drawLbl", free ? "🎲 뽑기" : "자리가 없어요");
-  setText("drawCost", "💎 " + CONST.DRAW_COST);
+  setText("drawCost", dc === 0 ? "무료!" : "💎 " + dc);
   const u = S.slots[S.sel], uc = u && !u.hero ? CHARS[u.ch] : null;
   const sellable = !!uc && GRADES[uc.grade].sell > 0 && !S.rules.noSell;
   setCls("sell", "on", !!uc);
-  $("sell").disabled = !sellable || S.over;
+  setDis("sell", !sellable || S.over);
   setHtml("sell", sellable ? `판매 <small>💎${GRADES[uc.grade].sell}</small>` : "판매 불가");
   const mg = u && !S.over ? GAME.canMerge(S.sel) : { ok: false };
-  $("merge").disabled = !mg.ok; setCls("merge", "ready", !!mg.ok);
+  setDis("merge", !mg.ok); setCls("merge", "ready", !!mg.ok);
   setHtml("merge", `🔀<small>${mg.ok ? "합성" : u && !u.hero && uc && uc.grade >= 6 ? "불가" : "합성"}</small>`);
   setHtml("spd", `⏩<small>x${S.speed}</small>`);
   setHtml("info", infoText(u));
@@ -513,14 +539,15 @@ function updateHud() {
 function clanRowsHtml() {
   return CLANS.map((c, i) => {
     const have = []; for (let g = 0; g < GRADES.length; g++) if (S.slots.some((s) => s && !s.hero && s.ch === g * 4 + i)) have.push(g);
-    const n = have.length, rb = resonanceBonus(S.slots, i), cap = n >= 4 ? 6 : 4, shown = have.slice(-cap);
+    const ez = S.hero && S.hero.fx.resoEase, nd = resonanceNeed(ez), n = have.length, rb = resonanceBonus(S.slots, i, ez), cap = n >= nd[0] ? nd[1] : nd[0], shown = have.slice(-cap);
     const slots = []; for (let k = 0; k < cap; k++) {
       if (k < shown.length) { const ci = shown[k] * 4 + i; slots.push(`<i class="sl on"><canvas data-i="${ci}" width="44" height="44" title="${esc(gname(shown[k]) + " " + CHARS[ci].name)}"></canvas></i>`); }
-      else slots.push(k === shown.length && (n === 3 || n === 5) ? `<i class="sl nx">?</i>` : `<i class="sl"></i>`);
+      else slots.push(k === shown.length && (n === nd[0] - 1 || n === nd[1] - 1) ? `<i class="sl nx">?</i>` : `<i class="sl"></i>`);
     }
     const up = S.up[i], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), ok = !maxed && S.minerals >= cost && !S.over;
     const lv = S.lv && S.lv[i] != null ? S.lv[i] : clanLevel(S, i);
-    return `<div class="cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">+${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span><span class="uc${ok ? " ok" : ""}" data-up="${i}">${maxed ? "MAX" : "⬆💎" + cost}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span></div>`;
+    const rn = S.rangeUp ? S.rangeUp[i] : 0, rc = GAME.rangeCost(i), rok = rc >= 0 && S.minerals >= rc && !S.over; // 사거리 강화 칩: 🎯비용 (+단계 뱃지), 최대면 MAX
+    return `<div class="cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">+${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span><span class="uc rg${rok ? " ok" : ""}${rc < 0 ? " mx" : ""}" data-rg="${i}" title="사거리 강화 +${Math.round(CONST.RANGE_UP.STEP * 100)}%">🎯${rc < 0 ? "MAX" : rc}${rn > 0 ? `<u>+${rn}</u>` : ""}</span><span class="uc${ok ? " ok" : ""}" data-up="${i}">${maxed ? "MAX" : "⬆💎" + cost}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span></div>`;
   }).join("");
 }
 // 정보 패널: 기본/히어로 선택 = 히어로 규칙 + 진행도(+보관 선택권), 유닛 선택 = 상세
@@ -528,12 +555,13 @@ function infoText(u) {
   if (!u || u.hero) {
     if (!S.hero) return "";
     const hs = S.heroState && S.heroState.progress;
-    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? "이동·판매·합성 불가" : ""}</div>`;
+    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? `Lv${S.heroLv} · 사거리 ${Math.round(defOf(u).range)} · 이동·판매·합성 불가` : ""}</div>`;
   }
-  const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = dmgMul(lv);
-  const dps = (c.atk / c.cd) * mul * u.n;
+  // 배율·사거리·쿨다운은 game.js(unitMul/defOf)와 같은 값: 공업 2차식, 고래 누적 피해, 사거리 강화, 족제비 공속
+  const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = unitMul(u), d = defOf(u);
+  const dps = (c.atk / d.cd) * mul * u.n, rg = Math.round(d.range), rgUp = rg > c.range ? ` <small>(+${Math.round((d.range / c.range - 1) * 100)}%)</small>` : "";
   const fxn = FX_NAME[c.fx] || c.fx;
-  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico}${cl.name} 공업 Lv${lv} (x${mul.toFixed(2)}) · 사거리 ${c.range}${u.lock ? " · 🔒" : ""}</div>`;
+  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico}${cl.name} 공업 Lv${lv} (x${mul.toFixed(2)}) · 사거리 ${rg}${rgUp}${u.lock ? " · 🔒" : ""}</div>`;
 }
 const FX_NAME = { shot: "투척", tongue: "혀 공격", slash: "할퀴기", wave: "음파", roar: "포효(광역)", beam: "광선(관통)", breath: "숨결(광역)", chain: "연쇄", lob: "포물선 폭탄", nova: "전체 파동", meteor: "유성", storm: "폭풍" };
 
@@ -601,8 +629,8 @@ function showPop(html, row, x, ms) {
   clearTimeout(hidePop._t); if (ms) hidePop._t = setTimeout(hidePop, ms);
 }
 function resoHint(c, row, x) {
-  const R = CONST.RESONANCE, n = resonanceCount(S.slots, c), cl = CLANS[c];
-  showPop(`<div>다른 등급 4종 → 공업 <b>+${R[4]}Lv</b>, 6종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 히어로 제외</small>`, row, x, 3200);
+  const R = CONST.RESONANCE, n = resonanceCount(S.slots, c), cl = CLANS[c], nd = resonanceNeed(S.hero && S.hero.fx.resoEase);
+  showPop(`<div>다른 등급 ${nd[0]}종 → 공업 <b>+${R[4]}Lv</b>, ${nd[1]}종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 히어로 제외 · 🎯 = 사거리 +${Math.round(CONST.RANGE_UP.STEP * 100)}%</small>`, row, x, 3200);
 }
 function upChoice(c, row, x) {
   const cl = CLANS[c], up = S.up[c], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), lv = S.lv[c];
@@ -619,7 +647,7 @@ function upChoice(c, row, x) {
 const LS_KEY = "malang-ranks2";
 const remote = () => CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
 const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Content-Type": "application/json" }; if (String(k).startsWith("eyJ")) h.Authorization = "Bearer " + k; return h; }; // sb_publishable_ 키는 JWT 가 아니므로 Bearer 로 보내지 않는다
-const GAME_VER = "4";
+const GAME_VER = "6";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
 function scoreParts(res) {
@@ -1268,7 +1296,7 @@ function bindUi() {
   document.addEventListener("fullscreenchange", () => setTimeout(fitVh, 100));
   setupA2hs();
   if (_bound) return; _bound = true;
-  $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < CONST.DRAW_COST) sfx("deny"); };
+  $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < GAME.drawCost()) sfx("deny"); };
   // 합성: 탭 = 선택 칸 합성(확인창 없음), 길게 = 가능한 만큼 일괄
   const doMerge = (all) => {
     const i = S.sel; if (i < 0) return;
@@ -1291,6 +1319,10 @@ function bindUi() {
   $("prob").onclick = () => showProb();
   $("snd").onclick = () => sndCycle();
   sndLabel();
+  // 절전 토글: 켬 = 30fps + 저사양(iOS 기본 켬), 끔 = 기존 60fps. game.js gfxSetSave 가 malrang_gfx 에 저장
+  const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.classList.toggle("off", !on); const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 켬" : "절전 끔"; };
+  $("save").onclick = () => { if (typeof gfxSetSave === "function") gfxSetSave(!(typeof GFX_SAVE !== "undefined" && GFX_SAVE)); saveLabel(); };
+  saveLabel();
   document.addEventListener("click", (e) => {
     if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
     if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows")) hidePop();
@@ -1309,7 +1341,8 @@ function bindUi() {
   $("clanRows").onclick = (e) => {
     const row = e.target.closest(".cr"); if (!row || !S || S.over) return;
     const c = +row.dataset.c; initAudio();
-    if (e.target.closest(".uc")) {
+    if (e.target.closest("[data-rg]")) { hidePop(); if (GAME.rangeUp(c) === false) sfx("deny"); }
+    else if (e.target.closest(".uc")) {
       if (S.upTickets > 0) upChoice(c, row, e.clientX);
       else { hidePop(); if (GAME.upgrade(c) === false) sfx("deny"); }
     } else resoHint(c, row, e.clientX);

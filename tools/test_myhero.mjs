@@ -7,25 +7,25 @@ import { replay } from "../supabase/functions/submit-score/replay.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const U = (o) => ({ atk: 0, rew: 0, disc: 0, start: 0, ...o });
-for (const m of [{ hero: "darami", up: U({}) }, { hero: "durumi", up: U({ atk: 5, rew: 5 }) }, { hero: "fairy", up: U({ atk: 5, rew: 3, disc: 2 }) }, { hero: "turtle" }]) ok(vmine(m).ok, "good " + JSON.stringify(m));
-for (const m of [null, [], "x", { hero: "nope", up: U({}) }, { up: U({}) }, { hero: "darami", up: U({ atk: 6 }) }, { hero: "darami", up: U({ disc: 4 }) }, { hero: "darami", up: U({ atk: -1 }) },
-  { hero: "darami", up: U({ atk: 1.5 }) }, { hero: "darami", up: U({ atk: "1" }) }, { hero: "darami", up: U({ atk: 5, rew: 5, start: 1 }) }]) ok(!vmine(m).ok, "bad " + JSON.stringify(m));
+for (const m of [{ hero: "bee", up: U({}) }, { hero: "goose", up: U({ atk: 5, rew: 5 }) }, { hero: "weasel", up: U({ atk: 5, rew: 3, disc: 2 }) }, { hero: "whale" }]) ok(vmine(m).ok, "good " + JSON.stringify(m));
+for (const m of [null, [], "x", { hero: "nope", up: U({}) }, { up: U({}) }, { hero: "bee", up: U({ atk: 6 }) }, { hero: "bee", up: U({ disc: 4 }) }, { hero: "bee", up: U({ atk: -1 }) },
+  { hero: "bee", up: U({ atk: 1.5 }) }, { hero: "bee", up: U({ atk: "1" }) }, { hero: "bee", up: U({ atk: 5, rew: 5, start: 1 }) }]) ok(!vmine(m).ok, "bad " + JSON.stringify(m));
 // 효과
 const st = (mine, seed = 777) => { const e = createEngine(); return { e, S: e.start(seed, null, mine) }; };
 {
-  const base = st(null).S, a = st({ hero: "darami", up: U({ start: 5, disc: 3, rew: 2 }) }).S;
-  ok(a.hero.id === "darami" && a.mine && a.mine.up.start === 5, "내 영웅 지정");
-  ok(a.minerals === base.minerals - (base.hero.fx.startMin || 0) + 30 + 40, "시작 자원 +40: " + a.minerals);
-  ok(Math.abs(a.hero.fx.upCost - 0.88) < 1e-9 && Math.abs(a.hero.fx.killMul - 1.08) < 1e-9 && Math.abs(st({ hero: "darami", up: U({ atk: 5 }) }).S.hero.fx.atkMul - 1.15) < 1e-9, "fx 값");
-  ok(st({ hero: "durumi", up: U({ disc: 3 }) }).S.hero.fx.upCost.toFixed(4) === (0.85 * 0.88).toFixed(4), "기존 upCost 와 곱");
+  const base = st(null).S, a = st({ hero: "weasel", up: U({ start: 5, disc: 3, rew: 2 }) }).S;
+  ok(a.hero.id === "weasel" && a.mine && a.mine.up.start === 5, "내 영웅 지정");
+  ok(a.minerals === base.minerals - (base.hero.fx.startMin || 0) + 40, "시작 자원 +40: " + a.minerals);
+  ok(Math.abs(a.hero.fx.upCost - 0.88) < 1e-9 && Math.abs(a.hero.fx.killMul - 1.08) < 1e-9 && Math.abs(st({ hero: "weasel", up: U({ atk: 5 }) }).S.hero.fx.atkMul - 1.15) < 1e-9, "fx 값");
+  ok(st({ hero: "goose", up: U({ disc: 3 }) }).S.hero.fx.upCost.toFixed(4) === (0.88).toFixed(4), "강화 upCost");
   ok(a.hero.id !== base.hero.id || true, "ok");
   const e = createEngine(); e.start(777, null, null); const h0 = JSON.stringify(e.S.hero);
   ok(e.S.rng && true, "rng");
 }
 // 같은 시드면 mine 이 있어도 뽑기/난수 흐름은 동일(영웅만 바뀜): 첫 라운드 몹 구성 동일
-{ const x = st(null).S, y = st({ hero: "darami", up: U({}) }).S; ok(x.queue === y.queue && x.slots.findIndex((s) => s && s.hero) === y.slots.findIndex((s) => s && s.hero), "난수 흐름 동일"); }
+{ const x = st(null).S, y = st({ hero: "bee", up: U({}) }).S; ok(x.queue === y.queue && x.slots.findIndex((s) => s && s.hero) === y.slots.findIndex((s) => s && s.hero), "난수 흐름 동일"); }
 // 규칙 판에서는 무시
-{ const r = st({ hero: "darami", up: U({ atk: 5 }) }, 5); const e = createEngine(); const S = e.start(5, { hpMul: 1.1 }, { hero: "darami", up: U({ atk: 5 }) }); ok(!S.mine && !(S.hero.fx.atkMul), "규칙 판 무시"); }
+{ const r = st({ hero: "bee", up: U({ atk: 5 }) }, 5); const e = createEngine(); const S = e.start(5, { hpMul: 1.1 }, { hero: "bee", up: U({ atk: 5 }) }); ok(!S.mine && !(S.hero.fx.atkMul), "규칙 판 무시"); }
 function bot(seed, rules, mine, maxTicks = 60 * 60 * 25) {
   const e = createEngine(), G = e.GAME, K = e.CONST;
   let a = (seed * 7 + 1) >>> 0;
@@ -50,7 +50,7 @@ function bot(seed, rules, mine, maxTicks = 60 * 60 * 25) {
   return { e, S, r: e.result(), banned };
 }
 
-for (const [seed, mine] of [[11, { hero: "darami", up: U({}) }], [12, { hero: "nulgul", up: U({ atk: 5, rew: 5 }) }], [13, { hero: "durumi", up: U({ disc: 3, start: 5, atk: 2 }) }], [14, null]]) {
+for (const [seed, mine] of [[11, { hero: "bee", up: U({}) }], [12, { hero: "hedgehog", up: U({ atk: 5, rew: 5 }) }], [13, { hero: "goose", up: U({ disc: 3, start: 5, atk: 2 }) }], [14, null]]) {
   const b = bot(seed, null, mine);
   ok(!!b.r, "결과 " + seed);
   const rp = replay(seed, b.S.inputs, null, mine);
@@ -58,7 +58,7 @@ for (const [seed, mine] of [[11, { hero: "darami", up: U({}) }], [12, { hero: "n
   if (mine && mine.up.atk) { const rp0 = replay(seed, b.S.inputs, null, null); ok(!rp0.ok || rp0.result.score !== b.r.score, "mine 없이 재생하면 달라야 함(서버 지원 필요 근거) " + seed); }
   console.log("seed", seed, "코인", coinsFor(b.r.round, b.r.kills, !!b.r.win, 0), mine ? mine.hero : "랜덤", "R" + b.r.round, "score", b.r.score, "kills", b.r.kills);
 }
-{ const rp = replay(1, [], null, { hero: "darami", up: U({ atk: 9 }) }); ok(!rp.ok, "잘못된 mine 거부"); }
+{ const rp = replay(1, [], null, { hero: "bee", up: U({ atk: 9 }) }); ok(!rp.ok, "잘못된 mine 거부"); }
 // 코인
 ok(coinsFor(4, 100, false, 0) === 2, "R4 코인 " + coinsFor(4, 100, false, 0));
 ok(coinsFor(30, 600, false, 0) === 21 + 12, "R30 코인");
@@ -83,42 +83,42 @@ console.log("코인 예시: R20/300처치", coinsFor(20, 300, false, 0), " R35/7
   const MH = ctx.MyHero, run = (c) => vm.runInContext(c, ctx);
   ok(MH.list().length === 0 && MH.coins() === 0, "초기 빈 상태");
   let started = "none"; MH.pickMine((m) => { started = m; }); ok(started === "none" && /등록한 영웅이 없어요/.test(html) && !!els.mhReg, "등록 없으면 시작 안 하고 등록 안내");
-  MH.open(); btns["add:1"].onclick(); btns["p:darami"].onclick();
+  MH.open(); btns["add:1"].onclick(); btns["p:bee"].onclick();
   els.mhNm.value = "a"; els.mhOk.onclick(); ok(MH.list().length === 0 && els.mhMsg.textContent === "len", "이름 길이 거부");
   els.mhNm.value = "씨발이"; els.mhOk.onclick(); ok(MH.list().length === 0 && els.mhMsg.textContent === "bad", "금지어 거부");
   els.mhNm.value = "다람 쥐"; els.mhOk.onclick(); ok(MH.list().length === 1 && MH.list()[0].name === "다람 쥐", "등록");
-  for (const [id, nm] of [["hwarang", "불꽃이"], ["fairy", "요정이"], ["turtle", "거북이"]]) { MH.open(); if (btns["add:1"]) { btns["add:1"].onclick(); btns["p:" + id].onclick(); els.mhNm.value = nm; els.mhOk.onclick(); } }
+  for (const [id, nm] of [["frog", "불꽃이"], ["weasel", "요정이"], ["whale", "거북이"]]) { MH.open(); if (btns["add:1"]) { btns["add:1"].onclick(); btns["p:" + id].onclick(); els.mhNm.value = nm; els.mhOk.onclick(); } }
   ok(MH.list().length === 3, "최대 3종 (4번째 등록 자리 없음)");
   // 코인 정산: 한 판 한 번만
-  const S1 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "darami" } }; const r1 = MH.settle(S1, { R: 40, kills: 1600, win: false });
+  const S1 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "bee" } }; const r1 = MH.settle(S1, { R: 40, kills: 1600, win: false });
   const L1 = MH.luck(4242, 40, false, 4), sub1 = 63 + L1.boss + L1.gold + L1.grade;
   ok(r1.parts.base === 63 && r1.parts.boss === L1.boss && r1.parts.grade === 2 && r1.parts.daily === Math.min(15, Math.floor(sub1 * 0.2)) && r1.gain === sub1 + r1.parts.daily && MH.coins() === r1.gain, "정산 " + JSON.stringify(r1));
   ok(MH.settle(S1, { R: 40, kills: 1600 }).gain === 0, "이중 정산 방지");
-  const S2 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "fairy" } }, r2 = MH.settle(S2, { R: 40, kills: 1600 });
+  const S2 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "weasel" } }, r2 = MH.settle(S2, { R: 40, kills: 1600 });
   ok(r2.parts.daily === 0 && r2.gain === sub1, "연습 제거: 절반 규칙 없음, 오늘 두 번째 판은 일일 보너스 없음 " + JSON.stringify(r2));
   ok(JSON.stringify(MH.luck(4242, 40, false, 4)) === JSON.stringify(L1) && MH.luck(1, 3, false, 0).boss === 0 && MH.luck(1, 6, false, 0).boss >= 1 && MH.luck(1, 20, false, 6).grade === 22, "운 층 결정적/보스 5라운드마다/등급 합");
-  { const r = MH.settle({ mode: "daily", mine: null, seed: 4242, topGrade: 0, hero: { id: "darami" } }, { R: 50, kills: 1600 }); // 신기록: 이 영웅 이전 최고 R40 -> +10 라운드 x2
+  { const r = MH.settle({ mode: "daily", mine: null, seed: 4242, topGrade: 0, hero: { id: "bee" } }, { R: 50, kills: 1600 }); // 신기록: 이 영웅 이전 최고 R40 -> +10 라운드 x2
     ok(r.parts.rec === 20, "신기록 +20 " + JSON.stringify(r.parts)); const r0 = MH.settle({ mode: "daily", mine: null, seed: 1, hero: { id: "newhero" } }, { R: 30, kills: 0 }); ok(r0.parts.rec === 0, "첫 판 신기록 0"); }
   { const rm = MH.settle({ mode: "daily", mine: { up: { rew: 0 } }, seed: 9, topGrade: 0, hero: { id: "zz" } }, { R: 40, kills: 1600 }); ok(rm.parts.hero === 3, "내 영웅 +5% " + rm.parts.hero); }
-  ok(MH.settle({ mode: "daily", mine: null, seed: 5, hero: { id: "darami" } }, { R: 500, kills: 90000, win: true }).gain <= 250, "판당 상한 250");
+  ok(MH.settle({ mode: "daily", mine: null, seed: 5, hero: { id: "bee" } }, { R: 500, kills: 90000, win: true }).gain <= 250, "판당 상한 250");
   { const d = JSON.parse(store["malang-myhero"]); d.coins = 94; store["malang-myhero"] = JSON.stringify(d); }
   // 강화: 94코인
-  MH.open(); btns["m:darami"].onclick(); ok(/🪙 60/.test(html), "1단계 60코인"); btns["b:atk"].onclick();
+  MH.open(); btns["m:bee"].onclick(); ok(/🪙 60/.test(html), "1단계 60코인"); btns["b:atk"].onclick();
   ok(MH.list()[0].up.atk === 1 && MH.coins() === 94 - 60, "구매 반영 " + MH.coins());
   btns["b:atk"].onclick(); ok(MH.list()[0].up.atk === 1 && /모자라/.test(html), "코인 부족 거부");
   // 상한: 코인을 크게 지급해 총합 10 도달
   store["malang-myhero"] = JSON.stringify({ v: 1, coins: 99999, heroes: JSON.parse(store["malang-myhero"]).heroes });
-  MH.open(); btns["m:darami"].onclick();
+  MH.open(); btns["m:bee"].onclick();
   for (const k of ["atk", "atk", "atk", "atk", "rew", "rew", "rew", "rew", "rew", "disc"]) { if (btns["b:" + k]) btns["b:" + k].onclick(); else break; }
   const up = MH.list()[0].up; ok(Object.values(up).reduce((a, b) => a + b, 0) === 10, "총합 상한 10 " + JSON.stringify(up));
   ok(!/data-b=/.test(html), "상한이면 구매 버튼 없음");
   // 손상된 저장값 방어
-  store["malang-myhero"] = JSON.stringify({ v: 1, coins: -5, heroes: [{ id: "darami", name: "x", up: { atk: 99 } }, { id: "zzz", name: "좋은이름", up: {} }] });
+  store["malang-myhero"] = JSON.stringify({ v: 1, coins: -5, heroes: [{ id: "bee", name: "x", up: { atk: 99 } }, { id: "zzz", name: "좋은이름", up: {} }] });
   ok(MH.list().length === 0 && MH.coins() === 0, "손상 저장값 걸러냄");
   // 선택창
-  store["malang-myhero"] = JSON.stringify({ v: 1, coins: 0, heroes: [{ id: "darami", name: "다람이1", up: { atk: 2 } }] });
-  let got = "none"; MH.pickMine((m) => { got = m; }); ok(!/mhRand|랜덤/.test(html), "선택창에 랜덤 항목 없음"); btns["h:darami"].onclick();
-  ok(got && got.hero === "darami" && got.up.atk === 2, "내 영웅 선택 -> mine 전달"); ok(MH.heroName() === "다람이1" && MH.again().hero === "darami", "again/heroName");
+  store["malang-myhero"] = JSON.stringify({ v: 1, coins: 0, heroes: [{ id: "bee", name: "다람이1", up: { atk: 2 } }] });
+  let got = "none"; MH.pickMine((m) => { got = m; }); ok(!/mhRand|랜덤/.test(html), "선택창에 랜덤 항목 없음"); btns["h:bee"].onclick();
+  ok(got && got.hero === "bee" && got.up.atk === 2, "내 영웅 선택 -> mine 전달"); ok(MH.heroName() === "다람이1" && MH.again().hero === "bee", "again/heroName");
   MH.clear(); ok(MH.again() === null, "clear 후 다시 하기는 운빨 리그(mine=null)");
 }
 console.log(`pass ${pass} fail ${fail}`); process.exit(fail ? 1 : 0);

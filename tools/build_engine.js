@@ -69,6 +69,7 @@ ${strip(game)}
     update,
     start(seed, rules, mine) { __seed = seed >>> 0; T.over = null; GAME.start("daily", __seed, rules || null, mine || null); return S; },
     result() { return T.over; },
+    dbg: { addUnit: (ch) => addUnit(ch, true), afterChange: () => afterChange(), roundInfo, hpMul, ROUNDS }, // 밸런스 봇(tools/sim_bot.mjs) 전용, 서버 재생은 쓰지 않음
   };
 }
 `;

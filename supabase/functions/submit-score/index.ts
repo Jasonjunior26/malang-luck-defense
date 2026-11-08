@@ -3,7 +3,7 @@
 // action: submit(기본) | register | rename | profile | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
-import { replay, validateInputs, cleanBuild, validateMine, ENGINE_VER } from "./replay.js";
+import { replay, validateInputs, cleanBuild, validateMine, ENGINE_VER, ROUNDS_DEFAULT } from "./replay.js";
 import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
 import { handleFriends } from "./friends.ts"; // 친구(fr*) 액션
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
     if (ph.phase !== "live") return fail(403, "season_closed", { season: seasonInfo });
     if (!isInt(seed) || seed < 1 || seed > 2147483646) return fail(400, "bad_seed"); // 시드는 클라이언트가 매 판 뽑아 보내고, 서버는 같은 시드로 재생해 점수를 검증
     if (!isInt(claimedScore) || claimedScore < 0 || claimedScore > 30000) return fail(400, "bad_score");
-    if (!isInt(claimedRound) || claimedRound < 1 || claimedRound > 50) return fail(400, "bad_round");
+    if (!isInt(claimedRound) || claimedRound < 1 || claimedRound > ROUNDS_DEFAULT) return fail(400, "bad_round"); // 공식 시즌은 기본 60라운드
     if (typeof win !== "boolean") return fail(400, "bad_win");
     const bad = validateInputs(inputs);
     if (bad) return fail(400, "bad_inputs", { detail: bad });

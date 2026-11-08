@@ -3,6 +3,35 @@
 const cv = $("cv"), ctx = cv.getContext("2d");
 const W = CONST.W, H = CONST.H;
 const HEADLESS = typeof window === "undefined"; // 시뮬 검증 모드에서 FX 호출 생략용
+var GFX_SC = 1; // 렌더 배율(cv.width / W). graphics.js 가 typeof 검사 후 읽음
+var GFX_LOW = false; // 저사양 모드. graphics.js 가 읽음
+var GFX_AUTO = false;
+var GFX_IOS = false; // iPhone/iPad(iPadOS 의 MacIntel+터치 포함)
+var GFX_SAVE = false; // 절전: 게임 렌더 30fps. iOS 기본 켬, ☰ 메뉴 "절전" 토글(malrang_gfx low=켬·저사양 / high=끔)
+var GFX_RFPS = 60; // 게임 중 렌더 목표 fps(30/60). graphics.js 가 굽기 fps 를 여기에 맞춤
+(function () {
+  let pref = null;
+  if (typeof window === "undefined") return;
+  try { pref = localStorage.getItem("malrang_gfx"); } catch (e) {}
+  const nv = typeof navigator !== "undefined" ? navigator : {};
+  GFX_IOS = /iP(hone|ad|od)/.test(nv.userAgent || "") || (nv.platform === "MacIntel" && nv.maxTouchPoints > 1);
+  if (pref === "low") { GFX_LOW = true; GFX_SAVE = true; }
+  else if (pref === "high") GFX_LOW = false;
+  else {
+    if ((nv.hardwareConcurrency && nv.hardwareConcurrency <= 4) || (nv.deviceMemory && nv.deviceMemory <= 2)) GFX_LOW = true;
+    if (GFX_IOS) GFX_SAVE = true;
+  }
+  GFX_AUTO = pref !== "low" && pref !== "high"; // 런타임 자동 하향 허용 여부
+  GFX_RFPS = GFX_SAVE || GFX_LOW ? 30 : 60;
+  try { document.documentElement.classList.toggle("save", GFX_SAVE); } catch (e) {}
+})();
+// ☰ 메뉴 절전 토글(ui.js). 켬 = 30fps + 저사양, 끔 = 60fps(자동 하향 없음)
+function gfxSetSave(on) {
+  GFX_SAVE = !!on; GFX_LOW = !!on; GFX_AUTO = false;
+  try { localStorage.setItem("malrang_gfx", on ? "low" : "high"); } catch (e) {}
+  try { document.documentElement.classList.toggle("save", GFX_SAVE); } catch (e) {}
+  if (typeof requestRenderNow === "function") requestRenderNow();
+}
 const SLOT_COLS = CONST.COLS, SLOT_ROWS = CONST.ROWS;
 
 // ---------- 지형 ----------
@@ -45,6 +74,7 @@ function newGame(mode, forceSeed, rules, mine) {
     round: 0, roundT: 0, bossT: 0, nextT: -1, over: false, win: false, paused: true, speed: 1, time: 0, frame: 0, tick: 0, inAuto: false,
     slots: Array(CONST.SLOTS).fill(null), sel: -1,
     up: [0, 1, 2, 3].map((c) => ({ bought: 0, bonus: (hx.lv && hx.lv[c]) || 0 })),
+    rangeUp: [0, 0, 0, 0], // 무리별 사거리 강화 단계 (CONST.RANGE_UP)
     upTickets: 0, tickets: [], autoMerge: false, heroState: { progress: "", flags: {} },
     resonance: [0, 0, 0, 0], reso: [0, 0, 0, 0], lv: [0, 0, 0, 0], heroLv: 0, resoGot: [false, false, false, false],
     mobs: [], mobId: 0, queue: 0, spawnT: 0, info: null,
@@ -64,17 +94,24 @@ function inp(op, arg) { S.inputs.push([S.tick, op, arg === undefined ? 0 : arg])
 // ---------- 공업 레벨 / 공명 ----------
 function refreshLevels() {
   let mx = 0;
+  const hx = S.hero.fx || {};
   for (let c = 0; c < 4; c++) {
     S.reso[c] = resonanceCount(S.slots, c); // 서로 다른 등급 종류 수
-    const rb = resonanceBonus(S.slots, c);
+    const rb = resonanceBonus(S.slots, c, hx.resoEase);
     S.resonance[c] = S.reso[c];
     S.lv[c] = Math.min(CONST.UP_LV_CAP, clanLevel(S, c) + rb);
     if (S.lv[c] > mx) mx = S.lv[c];
     if (rb > 0 && !S.resoGot[c]) { S.resoGot[c] = true; S.minerals += CONST.RESONANCE_FIRST; log(`${CLANS[c].name} 공명! +${CONST.RESONANCE_FIRST}`, CLANS[c].color); }
   }
-  S.heroLv = Math.floor(mx * 0.5);
+  S.heroLv = Math.floor(mx * (hx.heroLvK || 0.5)); // 히어로 유닛 Lv = 최고 무리 Lv x 50% (부엉이 군사 100%)
 }
-const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]) * (S.hero.fx.atkMul || 1);
+// 피해 배율 = 공업 배율 x 히어로 라운드 누적(고래 장로)
+const unitMul = (u) => dmgMul(u.hero ? S.heroLv : S.lv[u.ch % 4]) * (S.hero.fx.atkMul || 1) * (S.hero.fx.roundDmg ? 1 + S.hero.fx.roundDmg * (S.round - 1) : 1);
+// 사거리 배율 = 1 + 무리 사거리 강화 x STEP + 히어로(사막여우). 히어로 유닛은 히어로 보정만
+const rangeMul = (u) => 1 + (u.hero ? 0 : S.rangeUp[u.ch % 4] * CONST.RANGE_UP.STEP) + (S.hero.fx.rangeMul || 0);
+const rangeCost = (c) => S.rangeUp[c] >= CONST.RANGE_UP.MAX ? -1 : CONST.RANGE_UP.COST[S.rangeUp[c]];
+// 이번 뽑기 비용 (황금 거위: freeDraw 번째마다 0)
+const drawCostNow = () => { const f = S.hero.fx.freeDraw; return f && (S.draws + 1) % f === 0 ? 0 : CONST.DRAW_COST; };
 
 // ---------- 로그 / 이펙트 ----------
 function log(txt, col) {
@@ -125,8 +162,9 @@ function segDist(px, py, ax, ay, bx, by) {
 // ---------- 발사 ----------
 // 유닛 정의 (일반 유닛은 CHARS, 히어로는 고정 수치)
 function defOf(u) {
-  if (u.hero) return { fx: "shot", atk: HERO_UNIT.atk, cd: HERO_UNIT.cd, range: HERO_UNIT.range, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
-  const c = CHARS[u.ch]; return { fx: c.fx, atk: c.atk, cd: c.cd, range: c.range, aoe: c.aoe, pierce: c.pierce || 0, st: c.st, shot: c.shot, grade: c.grade };
+  const rm = rangeMul(u), sp = S.hero.fx.atkSpd || 1; // 사거리 강화·히어로 보정, 공격 속도(번개 족제비)
+  if (u.hero) return { fx: "shot", atk: HERO_UNIT.atk, cd: HERO_UNIT.cd / sp, range: HERO_UNIT.range * rm, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
+  const c = CHARS[u.ch]; return { fx: c.fx, atk: c.atk, cd: c.cd / sp, range: c.range * rm, aoe: c.aoe, pierce: c.pierce || 0, st: c.st, shot: c.shot, grade: c.grade };
 }
 function launch(u, i, f) {
   const p = slotPos(i), d = defOf(u);
@@ -229,18 +267,12 @@ function startRound() {
   if (info.boss) log(`보스 등장! ${info.name}`, "#ff5c8a");
   else if (info.r === ch.from) log(`챕터 ${ch.id}. ${ch.name}`, "#7a5fd0");
   const hx = S.hero.fx || {};
-  if (hx.interest) S.minerals += Math.min(hx.interest.max, Math.floor(S.minerals / hx.interest.per) * hx.interest.gain);
   if (hx.roundMin) { S.minerals += hx.roundMin; }
-  if (hx.roundHidden && S.round > 1 && S.rng.misc() < hx.roundHidden) {
-    const ci = rollChar(S.rng.misc, 4);
-    if (addUnit(ci, true)) log(`달토끼 점쟁이의 선물! [히든] ${CHARS[ci].name}`, GRADES[4].color);
-    else { S.tickets.push(4); log("점쟁이의 선물! 히든 선택권을 보관해요", GRADES[4].color); }
-    sfx("drawHi");
-  }
+  if (hx.roundDmg && S.round > 1) updateProgress();
 }
 function spawn() {
   const info = S.info;
-  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1)), boss = info.boss;
+  const hp = Math.round(info.hp * hpMul(info.r) * (S.rules.hpMul || 1) * (info.boss && S.hero.fx.bossHp ? S.hero.fx.bossHp : 1)), boss = info.boss;
   S.mobs.push({ id: S.mobId++, d: 0, hp, max: hp, boss, kind: info.kind, hue: info.hue + (boss ? 0 : Math.random() * 16 - 8), deco: [], armor: info.armor, speed: info.speed * (1 - (S.hero.fx.mobSlow || 0)) * (S.rules.mobSpeed || 1), slow: 0, slowT: 0, burn: 0, burnT: 0, flash: 0, name: info.name, final: info.r === CONST.ROUNDS, rew: info.rew * (S.rewK || 1) });
 }
 
@@ -270,31 +302,20 @@ function addUnit(ch, silent, pref) {
 }
 
 // ---------- 히어로 규칙 ----------
-function countOf(ch) { let n = 0; for (const s of S.slots) if (s && !s.hero && s.ch === ch) n += s.n; return n; }
 function afterChange() {
   refreshLevels();
-  const hx = S.hero.fx || {}, fl = S.heroState.flags;
-  if (hx.collect) {
-    for (let g = 0; g < 8; g++) {
-      if (fl["c" + g]) continue;
-      if ([0, 1, 2, 3].every((c) => countOf(g * 4 + c) > 0)) { fl["c" + g] = 1; fl.cn = (fl.cn || 0) + 1; S.minerals += hx.collect.bonus; log(`컬렉션 완성! ${GRADES[g].name} 4종 +${hx.collect.bonus}`, "#3b9dff"); sfx("ticket"); }
-    }
-  }
-  if (hx.hold && !fl.hold && countOf(hx.hold.ch) >= hx.hold.n) { fl.hold = 1; S.minerals += hx.hold.bonus; log(`${CHARS[hx.hold.ch].name} ${hx.hold.n}기 보유 보너스 +${hx.hold.bonus}!`, "#ff9ec0"); sfx("ticket"); }
   updateProgress();
 }
+// 정보 패널의 히어로 진행 문구 (표시 전용)
 function updateProgress() {
   const hx = S.hero.fx || {}, fl = S.heroState.flags;
   let t = "";
-  if (hx.collect) { let best = 0; for (let g = 0; g < 8; g++) { if (fl["c" + g]) continue; const n = [0, 1, 2, 3].filter((c) => countOf(g * 4 + c) > 0).length; if (n > best) best = n; } t = `컬렉션 ${fl.cn || 0}/8 (진행 ${best}/4)`; }
-  else if (hx.hold) t = fl.hold ? "달성 완료 +" + hx.hold.bonus : `${CHARS[hx.hold.ch].name} ${Math.min(countOf(hx.hold.ch), hx.hold.n)}/${hx.hold.n}`;
-  else if (hx.drawBonus) t = `${CHARS[hx.drawBonus.ch].name} 뽑기 ${fl.db || 0}회 (+${(fl.db || 0) * hx.drawBonus.bonus})`;
-  else if (hx.interest) t = `이자 최대 +${hx.interest.max}`;
-  else if (hx.mergeMin) t = `합성 +${hx.mergeMin}`;
-  else if (hx.mergeTwin) t = "합성 8% 쌍둥이";
+  if (hx.freeDraw) { const k = hx.freeDraw - (S.draws % hx.freeDraw); t = k === 1 ? "다음 뽑기 무료!" : `무료 뽑기까지 ${k}회`; }
+  else if (hx.roundDmg) t = `피해 +${(hx.roundDmg * (S.round - 1) * 100).toFixed(1)}%`;
+  else if (hx.bossUp) t = `보스 보너스 공업 +${fl.bu || 0}`;
+  else if (hx.mergeUp) t = `연금 성공 ${fl.mu || 0}회`;
+  else if (hx.heroLvK) t = `히어로 Lv${S.heroLv}`;
   else if (hx.roundMin) t = `라운드 수입 +${hx.roundMin}`;
-  else if (hx.killLuck) t = `대박 ${fl.kl || 0}회`;
-  else if (hx.roundHidden) t = `히든 선물 ${fl.rh || 0}기`;
   S.heroState.progress = t;
 }
 
@@ -303,12 +324,12 @@ const GAME = {
   draw() {
     if (S.over || S.paused) return false;
     if (S.rules.drawLimit && S.draws >= S.rules.drawLimit) { return false; }
-    if (S.minerals < CONST.DRAW_COST) { return false; }
+    const cost = drawCostNow();
+    if (S.minerals < cost) { return false; }
     if (freeSlot() < 0) { log("자리가 없어요! 판매하거나 합성하세요", "#e0558a"); sfx("deny"); return false; }
-    S.minerals -= CONST.DRAW_COST; S.draws++; inp("draw");
+    S.minerals -= cost; S.draws++; inp("draw");
+    if (cost === 0) log("황금 거위의 무료 뽑기!", "#e0a000");
     const probs = gradeProbs(S.hero, S.rules), g = rollGrade(S.rng.gacha, probs), ci = rollChar(S.rng.gacha, g, S.rules.clanBan), c = CHARS[ci];
-    const hx = S.hero.fx || {};
-    if (hx.drawBonus && ci === hx.drawBonus.ch) { S.minerals += hx.drawBonus.bonus; S.heroState.flags.db = (S.heroState.flags.db || 0) + 1; }
     const si = placeUnit(ci);
     afterChange();
     const gr = GRADES[g];
@@ -335,14 +356,8 @@ const GAME = {
     return { ok: false, reason: "자리가 없어요" };
   },
   mergeWarning(i) {
-    const s = S.slots[i], hx = S.hero.fx || {}, fl = S.heroState.flags;
+    const s = S.slots[i]; // 자동합성 보류 사유(현재 히어로 중 해당 없음, 자리만 유지)
     if (!s || s.hero) return null;
-    const left = s.n - 3;
-    if (hx.hold && !fl.hold && s.ch === hx.hold.ch && s.n >= 5 && left < hx.hold.n) return `봉봉이 보너스까지 ${hx.hold.n - s.n}기 남았어요. 그래도 합성할까요?`;
-    if (hx.collect && left === 0 && !fl["c" + (s.ch >> 2)]) {
-      const g = s.ch >> 2, have = [0, 1, 2, 3].filter((c) => countOf(g * 4 + c) > 0).length;
-      if (have >= 3) return `${GRADES[g].name} 컬렉션 보너스(+${hx.collect.bonus})가 눈앞이에요. 그래도 합성할까요?`;
-    }
     return null;
   },
   merge(i, all) {
@@ -350,13 +365,13 @@ const GAME = {
     for (let guard = 0; guard < 40; guard++) {
       const s = S.slots[i];
       if (!this.canMerge(i).ok) break;
-      const g = s.ch >> 2, ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
+      const g = s.ch >> 2; let ci = mergeResult(S.rng.merge, g, S.rules.clanBan);
+      // 개구리 연금술사: 결과가 합성 상한(레전더리, 시즌 gradeCap) 미만일 때만 misc 난수 1회 -> 한 등급 위(같은 무리)
+      const hxm = S.hero.fx;
+      if (hxm.mergeUp && (ci >> 2) < (S.rules.gradeCap || 6) && S.rng.misc() < hxm.mergeUp) { ci += 4; S.heroState.flags.mu = (S.heroState.flags.mu || 0) + 1; log(`연금술 성공! 한 등급 위 [${GRADES[ci >> 2].name}]`, GRADES[ci >> 2].color); sfx("drawHi"); }
       s.n -= 3; const p = slotPos(i);
       if (s.n <= 0) S.slots[i] = null;
       const si = placeUnit(ci, i);
-      const hxm = S.hero.fx;
-      if (hxm.mergeMin) S.minerals += hxm.mergeMin;
-      if (hxm.mergeTwin && S.rng.misc() < hxm.mergeTwin && freeSlot() >= 0 && addUnit(ci, true)) { log(`쌍둥이 다람쥐! ${CHARS[ci].name} 한 기 더!`, GRADES[ci >> 2].color); sfx("drawHi"); }
       afterChange(); if (!S.inAuto) inp("merge", i); done++;
       const gr = GRADES[ci >> 2], c = CHARS[ci];
       if (!HEADLESS) { burst(p.x, p.y, gr.color, 14 + g * 4, 110, 3.4, 0.6); ring(p.x, p.y, gr.color, 44, 0.45); }
@@ -387,6 +402,15 @@ const GAME = {
     S.minerals -= cost; u.bought++; inp("up", c); refreshLevels(); updateProgress();
     log(`${CLANS[c].name} 강화 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
   },
+  rangeUp(c) { // 무리별 사거리 강화 (입력 로그 "rng")
+    if (S.over || !(c >= 0 && c < 4)) return false;
+    const cost = rangeCost(c);
+    if (cost < 0 || S.minerals < cost) return false;
+    S.minerals -= cost; S.rangeUp[c]++; inp("rng", c);
+    log(`${CLANS[c].name} 사거리 +${Math.round(S.rangeUp[c] * CONST.RANGE_UP.STEP * 100)}%!`, CLANS[c].color); sfx("upgrade"); return true;
+  },
+  rangeCost(c) { return rangeCost(c); }, // -1 = 최대
+  drawCost() { return drawCostNow(); },
   useTicket(chIdx) { // chIdx = 고른 유닛(CHARS 인덱스). 같은 등급 선택권 1장을 소모한다.
     const g = chIdx >> 2, k = S.tickets.indexOf(g);
     if (k < 0 || S.over) return false;
@@ -432,7 +456,6 @@ function killMob(m) {
   if (S.slots.some((s) => s && !s.hero && s.ch === 28)) r += 1; // 숲신 패시브
   if (hx.killMul) r *= hx.killMul;
   r *= m.rew; // 라운드 몹 수가 늘어난 만큼 개체 보상 비례 감소(라운드 총 보상 유지)
-  if (hx.killLuck && S.rng.misc() < hx.killLuck.p) { r *= hx.killLuck.mul; S.heroState.flags.kl = (S.heroState.flags.kl || 0) + 1; const q = trackPoint(m.d); pop(q.x, q.y - 8, `대박 +${Math.max(1, Math.round(r))}`, 0.9, "#e0a000", 14); }
   S.rewAcc = (S.rewAcc || 0) + r; const rg = Math.floor(S.rewAcc + 1e-9); S.rewAcc -= rg; S.minerals += rg; // 소수 보상은 누적 후 정수 지급
   const q = trackPoint(m.d);
   if (!HEADLESS) {
@@ -443,6 +466,10 @@ function killMob(m) {
   ring(q.x, q.y, "#ffd54f", 70, 0.6); S.shake = Math.max(S.shake, 9); vib(60); sfx("kill");
   S.minerals += CONST.BOSS_REWARD + (hx.bossBonus || 0);
   log(`${m.name} 처치! 미네랄 +${CONST.BOSS_REWARD + (hx.bossBonus || 0)}`, "#e0a000");
+  if (hx.bossUp && (S.heroState.flags.bk = (S.heroState.flags.bk || 0) + 1) % (hx.bossUpEvery || 1) === 0) { // 고슴도치 대장: 보스 bossUpEvery 마리마다 모든 무리 공업 보너스 (상한 UP_LV_CAP 안에서만)
+    for (let c = 0; c < 4; c++) if (clanLevel(S, c) < CONST.UP_LV_CAP) S.up[c].bonus += hx.bossUp;
+    S.heroState.flags.bu = (S.heroState.flags.bu || 0) + hx.bossUp; log(`따끔 대장! 모든 무리 공업 +${hx.bossUp}`, "#e8442e");
+  }
   const rd = S.round;
   if (rd < CONST.ROUNDS) {
     S.nextT = CONST.BOSS_DELAY; S.bossT = 0;
@@ -570,13 +597,22 @@ cv.addEventListener("pointerdown", (e) => {
 });
 
 // ---------- 그리기 ----------
+// 캔버스 크기는 resize/orientation/ResizeObserver 때만 다시 잰다(매 프레임 getBoundingClientRect 강제 레이아웃 방지)
+let fitDirty = true;
 function fit(c) {
-  const r = c.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
   if (w && h && (c.width !== w || c.height !== h)) { c.width = w; c.height = h; }
+  return !!(w && h);
+}
+if (!HEADLESS) {
+  const dirty = () => { fitDirty = true; if (typeof requestRenderNow === "function") requestRenderNow(); };
+  try { window.addEventListener("resize", dirty); window.addEventListener("orientationchange", dirty); } catch (e) {}
+  try { new ResizeObserver(dirty).observe(cv); } catch (e) {}
 }
 function render() {
-  fit(cv);
+  if (fitDirty && fit(cv)) fitDirty = false;
+  GFX_SC = cv.width / W;
   ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
   ctx.imageSmoothingQuality = "high";
   ctx.save();
@@ -591,12 +627,12 @@ function render() {
   S.slots.forEach((u, i) => {
     if (!u) return;
     const p = slotPos(i);
-    if (u.hero) drawHero(ctx, S.hero.id, p.x, p.y, S.time, { anim: u.anim, hero: true, selected: S.sel === i });
-    else drawUnit(ctx, u.ch, p.x, p.y, S.time, { anim: u.anim, count: u.n, selected: S.sel === i, lock: u.lock });
+    if (u.hero) drawHero(ctx, S.hero.id, p.x, p.y, S.time, { anim: u.anim, hero: true, selected: S.sel === i, bake: true });
+    else drawUnit(ctx, u.ch, p.x, p.y, S.time, { anim: u.anim, count: u.n, selected: S.sel === i, lock: u.lock, bake: true });
   });
   for (const m of S.mobs) {
     const q = trackPoint(m.d), s = m.boss ? (m.final ? 34 : 26) : 12;
-    drawMob(ctx, q.x, q.y, s, S.time, m);
+    drawMob(ctx, q.x, q.y, s, S.time, m, true);
     const bw = s * 2, bx = q.x - s, by = q.y - s - 12;
     ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.roundRect(bx, by, bw, 5, 2.5); ctx.fill();
     ctx.fillStyle = m.burn > 0 ? "#ff8a3d" : m.slow > 0 ? "#4aa8ff" : "#ff6b8b"; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(0, (bw * m.hp) / m.max), 5, 2.5); ctx.fill();
@@ -606,13 +642,16 @@ function render() {
   for (const e of S.efx) drawEfx(ctx, e);
   for (const pr of S.projs) drawProj(ctx, pr, S.time);
   for (const p of S.parts) drawPart(ctx, p);
-  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
-  for (const f of S.fx) {
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = "#fff";
+  let fSize = -1, fCol = "";
+  for (const f of S.fx) { // font/색은 바뀔 때만 설정(Safari 폰트 문자열 파싱 비용)
     const k = 1 - f.t / f.max, y = f.y - 30 - k * 24;
     ctx.globalAlpha = Math.min(1, (f.t / f.max) * 2);
-    ctx.font = `${f.size}px Jua,system-ui,sans-serif`; ctx.lineWidth = 3.5; ctx.strokeStyle = "#fff"; ctx.fillStyle = f.col;
-    ctx.strokeText(f.txt, f.x, y); ctx.fillText(f.txt, f.x, y); ctx.globalAlpha = 1;
+    if (f.size !== fSize) { fSize = f.size; ctx.font = `${f.size}px Jua,system-ui,sans-serif`; }
+    if (f.col !== fCol) { fCol = f.col; ctx.fillStyle = f.col; }
+    ctx.strokeText(f.txt, f.x, y); ctx.fillText(f.txt, f.x, y);
   }
+  ctx.globalAlpha = 1;
   ctx.restore();
   const n = S.mobs.length;
   if (n >= CONST.MOB_WARN[0]) { // 80기 노랑 점멸, 90기 빨강 비네트
@@ -634,17 +673,62 @@ function render() {
 }
 
 // ---------- 메인 루프 (고정 타임스텝 1/60) ----------
+// 시뮬 틱은 rAF dt 누적으로만 진행하고 렌더 fps(타이틀 20 / 게임 30·60)는 그리기만 거른다(게임 속도·틱 수는 렌더 fps 와 무관).
+// 정지 상태(일시정지·모달·확인창·게임오버)에서는 남은 연출이 끝나면 rAF 를 멈추고 250ms setTimeout 으로 상태만 확인한다.
+// 정지 중에는 update 가 paused/over 에서 return 하므로 시뮬 틱(S.tick)·결과는 같다.
 let last = performance.now(), acc = 0, parade = null;
+let lastR = 0, lastP = 0, forceR = false, stateKey = "", fpsT = 0, fpsN = 0, sleeping = false, sleepT = 0, idleSig = "";
+const isTitle = () => typeof TITLE_ON !== "undefined" && TITLE_ON;
+const isIdle = () => !!(S.paused || S.over || (typeof MODAL_ON !== "undefined" && MODAL_ON) || (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON));
+const curKey = () => (isTitle() ? "t" : "") + (S.paused ? "p" : "") + (S.over ? "o" : "") + (typeof MODAL_ON !== "undefined" && MODAL_ON ? "m" : "") + (typeof CONFIRM_ON !== "undefined" && CONFIRM_ON ? "c" : "");
+const curSig = () => curKey() + "|" + S.minerals + "|" + S.sel + "|" + S.speed + "|" + (S.inputs ? S.inputs.length : 0) + "|" + (S.tickets ? S.tickets.length : 0) + "|" + S.slots.reduce((a, u) => a + (u ? 1 + u.n + (u.lock ? 100 : 0) : 0), 0);
+const simStopped = () => !!(S.paused || S.over); // 시뮬이 멈춘 상태에서만 잠든다(모달이 떠도 시뮬이 도는 경우는 기존 15fps 유지)
+const fxBusy = () => !!(S.fx.length || S.efx.length || S.parts.length || S.banner || S.flash > 0 || S.shake > 0 || S.dispMin !== S.minerals);
+function sleepTick() {
+  sleepT = 0;
+  if (!sleeping) return;
+  if (!simStopped() || isTitle() || curSig() !== idleSig) { forceR = true; wakeLoop(); }
+  else sleepT = setTimeout(sleepTick, 250);
+}
+function wakeLoop() {
+  if (!sleeping) return;
+  sleeping = false; if (sleepT) { clearTimeout(sleepT); sleepT = 0; }
+  last = performance.now(); requestAnimationFrame(loop);
+}
+// 상태 변경/입력 시 한 번 그리기(잠든 루프도 깨운다)
+function requestRenderNow() { forceR = true; wakeLoop(); }
+if (!HEADLESS) try { for (const ev of ["pointerdown", "pointerup", "keydown"]) document.addEventListener(ev, () => { if (sleeping) setTimeout(requestRenderNow, 0); }, { capture: true, passive: true }); } catch (e) {}
 function loop(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const dt = Math.min(0.1, Math.max(0, now - last) / 1000); last = now;
   acc += dt * S.speed * (S.slowmo > 0 ? 0.35 : 1);
   let steps = 0;
   while (acc >= CONST.DT && steps < 12) { update(CONST.DT); acc -= CONST.DT; steps++; }
   if (steps >= 12) acc = 0;
-  render();
-  if (typeof TITLE_ON !== "undefined" && TITLE_ON) { // 타이틀 퍼레이드
-    if (!parade) { const c = $("parade"); c.width = 680; c.height = 300; parade = c.getContext("2d"); parade.setTransform(2, 0, 0, 2, 0, 0); }
-    drawParade(parade, 340, 150, now / 1000);
+  const title = isTitle(), idle = isIdle(), key = curKey();
+  if (key !== stateKey) { stateKey = key; forceR = true; fpsT = 0; fpsN = 0; }
+  GFX_RFPS = GFX_SAVE || GFX_LOW ? 30 : 60;
+  if (title) { // 타이틀(전체 덮음): 보드/HUD 는 전환 때 1회만, 퍼레이드만 20fps
+    if (forceR) { forceR = false; render(); }
+    if (now - lastP >= 1000 / 20 - 1.5) {
+      lastP = now;
+      if (!parade) parade = $("parade").getContext("2d");
+      drawParade(parade, 340, 150, now / 1000);
+    }
+  } else if (idle) { // 정지: 남은 연출(15fps)이 끝나면 잠든다
+    const busy = fxBusy() || !simStopped();
+    if (forceR || (busy && now - lastR >= 1000 / 15 - 1.5)) { forceR = false; lastR = now; render(); }
+    if (!busy) { sleeping = true; idleSig = curSig(); sleepT = setTimeout(sleepTick, 250); return; }
+  } else {
+    const gap = now - lastR;
+    if (forceR || gap >= 1000 / GFX_RFPS - 1.5) {
+      forceR = false; lastR = now;
+      // 런타임 자동 하향: 평상시(60fps 목표) 2초 평균 fps < 40 이면 저사양 고정
+      if (!GFX_LOW && !GFX_SAVE && GFX_AUTO && !(typeof document !== "undefined" && document.hidden) && gap < 500) {
+        fpsT += gap; fpsN++;
+        if (fpsT >= 2000) { if (fpsN * 1000 / fpsT < 40) GFX_LOW = true; fpsT = 0; fpsN = 0; }
+      } else { fpsT = 0; fpsN = 0; }
+      render();
+    }
   }
   requestAnimationFrame(loop);
 }

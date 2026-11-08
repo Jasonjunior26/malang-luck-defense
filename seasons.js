@@ -29,18 +29,18 @@
     { k: "luckyWeek", n: "상위 확률 ×2", t: "bool" },
   ];
   const MOD = Object.fromEntries(MODS.map((m) => [m.k, m]));
-  const ROUND_OPTS = [[50, "50"], [70, "70"], [100, "100"], [200, "엔드리스"]];
+  const ROUND_OPTS = [[50, "50"], [60, "60"], [70, "70"], [100, "100"], [200, "엔드리스"]]; // 기본 60 (rules 에 rounds 가 없으면 CONST.ROUNDS_BASE=60)
   const PRESETS = [
     { n: "맨몸 서바이벌", r: { noGrade: 1, startMin: 0, noSell: true } },
     { n: "하드코어", r: { hpMul: 1.8, mobSpeed: 1.2, bossTime: -5 } },
     { n: "운빨 파티", r: { luckyWeek: true, drawCost: 20, killReward: 1.5 } },
     { n: "마라톤", r: { rounds: 100, hpMul: 0.9 } },
-    { n: "한 우물", r: { clanBan: [1, 2], heroPool: ["buung"] } },
+    { n: "한 우물", r: { clanBan: [1, 2], heroPool: ["owlsage"] } },
     { n: "엔드리스", r: { rounds: 200 } },
   ];
   function ruleChips(rules) { // 규칙 -> 짧은 칩 문구 배열
     const R = rules || {}, out = [], hs = g("HEROES") || [], cl = g("CLANS") || [];
-    if (R.rounds === 200) out.push("엔드리스"); else if (R.rounds && R.rounds !== 50) out.push(R.rounds + "라운드");
+    if (R.rounds === 200) out.push("엔드리스"); else if (R.rounds && R.rounds !== 60) out.push(R.rounds + "라운드");
     for (const m of MODS) {
       const v = R[m.k]; if (v === undefined || v === false) continue;
       if (m.t === "num") out.push(m.k === "noGrade" ? m.f(v) + " 제외" : m.k === "startMin" ? "시작 💎" + v : m.k === "drawCost" ? "뽑기 " + v : m.n + " " + m.f(v));
@@ -57,14 +57,14 @@
     const m = /^범위 오류: (\w+)$/.exec(r.err || "");
     return { ok: false, err: RULE_ERR[r.err] || (m ? (MOD[m[1]] ? MOD[m[1]].n : m[1]) + " 값이 범위 밖이에요" : "규칙이 올바르지 않아요") };
   }
-  // 마법사 상태 -> rules (rounds 50 은 생략)
+  // 마법사 상태 -> rules (기본 rounds 60 은 생략)
   function buildRules(W) {
     const R = {}; for (const k of Object.keys(W.mods || {})) R[k] = W.mods[k];
-    if (W.rounds && W.rounds !== 50) R.rounds = W.rounds;
+    if (W.rounds && W.rounds !== 60) R.rounds = W.rounds;
     return R;
   }
   const modCount = (W) => Object.keys(W.mods || {}).length;
-  function presetState(p) { const r = { ...p.r }, rounds = r.rounds || 50; delete r.rounds; return { mods: r, rounds }; }
+  function presetState(p) { const r = { ...p.r }, rounds = r.rounds || 60; delete r.rounds; return { mods: r, rounds }; }
   const stepVal = (m, v, d) => Math.max(m.min, Math.min(m.max, r1(v + d * m.st)));
 
   function validateCreate(F, today) { // F: {name,start,end,max,daily,rules} -> {ok,body}|{ok:false,err}
@@ -280,7 +280,7 @@
   // ---------- 만들기 (4단계) ----------
   function startWizard() {
     const t = today();
-    W = { step: 1, preset: -1, mods: {}, rounds: 50, name: "", start: t, end: addDays(t, 13), max: LIM.DEF_PLAYERS, daily: null };
+    W = { step: 1, preset: -1, mods: {}, rounds: 60, name: "", start: t, end: addDays(t, 13), max: LIM.DEF_PLAYERS, daily: null };
     wizard();
   }
   function wizard() {
@@ -292,7 +292,7 @@
     const cards = PRESETS.map((p, i) => `<button class="psrow ${W.preset === i ? "sel" : ""}" data-i="${i}"><span class="psn">${p.n}</span>${chipHtml(p.r)}</button>`).join("") + `<button class="psrow ${W.preset === 99 ? "sel" : ""}" data-i="99"><span class="psn">직접 구성</span></button>`;
     shell("시즌 만들기", `${dots(1)}${cards}<button class="psb g" id="psX">취소</button>`);
     document.querySelectorAll("#box .psrow").forEach((b) => { b.onclick = () => {
-      const i = +b.dataset.i; W.preset = i; const st = i === 99 ? { mods: {}, rounds: 50 } : presetState(PRESETS[i]); W.mods = st.mods; W.rounds = st.rounds; W.step = 2; wizard(); }; });
+      const i = +b.dataset.i; W.preset = i; const st = i === 99 ? { mods: {}, rounds: 60 } : presetState(PRESETS[i]); W.mods = st.mods; W.rounds = st.rounds; W.step = 2; wizard(); }; });
     $("psX").onclick = openList;
   }
   function modEditor(m) {
@@ -306,7 +306,7 @@
     if (k in W.mods) { delete W.mods[k]; return ""; }
     if (modCount(W) >= 3) return "모디파이어는 최대 3개예요";
     const m = MOD[k], hs = g("HEROES") || [];
-    W.mods[k] = m.t === "bool" ? true : m.t === "clans" ? [1] : m.t === "hero" ? [hs[0] ? hs[0].id : "buung"] : m.def;
+    W.mods[k] = m.t === "bool" ? true : m.t === "clans" ? [1] : m.t === "hero" ? [hs[0] ? hs[0].id : "bee"] : m.def;
     return "";
   }
   function step2(msg) {
