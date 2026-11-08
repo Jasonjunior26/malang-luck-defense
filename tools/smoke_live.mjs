@@ -32,7 +32,7 @@ const post = async (b) => { const r = await fetch(URL_, { method: "POST", header
 const ver = createEngine; const E = createEngine();
 console.log("dev", dev);
 console.log("register", JSON.stringify(await post({ action: "register", name: "스모크점검" })));
-const mine = { hero: "weasel", up: { atk: 1, rew: 1, disc: 0, start: 0 } };
+const mine = { design: "weasel", items: { atk: 1 }, equip: [] }; // 내 영웅 v2 형식(GAME_VER 7)
 for (const [label, m] of [["운빨", null], ["나만의", mine]]) {
   const seed = 1000 + Math.floor(Math.random() * 900000);
   const b = bot(seed, null, m); const r = b.r;

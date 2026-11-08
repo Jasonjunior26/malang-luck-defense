@@ -134,7 +134,7 @@ if (mode === "ab") {
   const list = (process.env.SC || "low3,low3eco,e4,e4eco,leg1,leg1eco").split(",");
   console.log(SHDR);
   for (const f of list) console.log(srow(f, batch(N, { force: f, eco: f.endsWith("eco") ? 0.5 : 0 })));
-} else if (mode === "mine") { // 내 영웅 v2: 운빨 리그(시드 영웅) vs 기본 영웅(능력 없음) vs 풀빌드(전투력 상한 = 최악의 경우) 장착 조합별
+} else if (mode === "mine") { // 내 영웅 v2: 운빨 리그(시드 영웅) vs 기본 영웅(능력 없음) vs 풀빌드(전투력 상한 없음: 보유 전부 적용) 장착 조합별
   const E = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/engine.js")).href);
   const full = {}; for (const it of E.MY_ITEMS) full[it.id] = it.max;
   const noSk = Object.fromEntries(Object.entries(full).filter(([k]) => !k.startsWith("sk_")));
@@ -143,7 +143,7 @@ if (mode === "ab") {
   for (const eq of (process.env.EQ || "sk_storm+sk_meteor,sk_nova+sk_storm,sk_chain+sk_storm,sk_beam+sk_meteor").split(",")) L.push(["풀빌드 " + eq, { mine: { design: "cat", items: full, equip: eq.split("+") } }]);
   if (process.env.HALF) { const half = {}; for (const it of E.MY_ITEMS) half[it.id] = Math.ceil(it.max / 2); L.push(["절반빌드 sk_storm+sk_meteor", { mine: { design: "cat", items: half, equip: ["sk_storm", "sk_meteor"] } }]); }
   if (process.env.ONE) { L.length = 2; for (const it of E.MY_ITEMS) if (!it.sk && it.id !== "coin") L.push(["단독 " + it.id + " " + it.max, { mine: { design: "cat", items: { [it.id]: it.max }, equip: [] } }]); }
-  if (process.env.BUILDS) { L.length = 2; for (const [nm, b] of Object.entries(JSON.parse(process.env.BUILDS))) L.push([nm + " (전투력 " + E.myPower(b.items) + ")", { mine: { design: "cat", equip: [], ...b } }]); } // {"이름":{items,equip}}
+  if (process.env.BUILDS) { L.length = 2; for (const [nm, b] of Object.entries(JSON.parse(process.env.BUILDS))) L.push([nm, { mine: { design: "cat", equip: [], ...b } }]); } // {"이름":{items,equip}}
   console.log(HDR);
   for (const [nm, o] of L) { const v = o.mine ? E.validateMine(o.mine) : { ok: true }; if (!v.ok) { console.log("invalid", nm, v.err); continue; } console.log(row(nm, batch(N, o))); }
 } else if (mode === "table") {

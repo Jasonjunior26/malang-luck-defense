@@ -157,6 +157,6 @@ ok(/2026-11-08/.test(mig) && /\/ 7/.test(mig) && /Asia\/Seoul/.test(mig) && /whe
 ok(/rank\(\) over \(partition by t\.is_mine order by t\.points desc, t\.gold desc, t\.silver desc, t\.bronze desc\)/.test(mig) && /grant select on public\.leaderboard_points to anon/.test(mig) && /revoke all on public\.season_final_points/.test(mig), "010: 리그별 승점 순위/동점 규칙/권한");
 ok(!fs.existsSync(path.join(root, "supabase/migrations/008_x.sql")) && fs.readdirSync(path.join(root, "supabase/migrations")).every((f) => !f.startsWith("008")), "008 번호는 계속 비워 둠");
 const engine = rd("supabase/functions/submit-score/engine.js");
-ok(/const WEEK_ANCHOR = "2026-11-08"/.test(engine) && /function seasonIdOf/.test(engine) && /const ENGINE_VER = "7"/.test(engine + rd("game.js") + data) , "서버 번들에 주간 시즌 규칙 포함, GAME_VER 7(내 영웅 v2)");
+ok(/const WEEK_ANCHOR = "2026-11-08"/.test(engine) && /function seasonIdOf/.test(engine) && /const ENGINE_VER = "8"/.test(engine + rd("game.js") + data) , "서버 번들에 주간 시즌 규칙 포함, GAME_VER 7(내 영웅 v2)");
 const sw = rd("sw.js"); ok(!/v24-coin-market-btn/.test(sw) && /CACHE_VERSION = 'v\d+-/.test(sw), "sw CACHE_VERSION 갱신");
 console.log(`pass ${pass} fail ${fail}`); process.exit(fail ? 1 : 0);

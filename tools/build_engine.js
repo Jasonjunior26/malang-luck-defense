@@ -34,7 +34,7 @@ ${heroesSrc}
 ${rulesSrc}
 export { validateRules, rulesHash };
 ${mineSrc}
-export { validateMine, applyMine, coinsFor, MY_HERO, MY_DESIGNS, MY_ITEMS, MY_CATS, MY_EQUIP_MAX, MY_POWER_CAP, MY_POWER_ALL, MY_FULL_COST, MY_REQ_TXT, myReqOk, myPower, itemCost, mineTotalCost, mineCoinLv, migrateLegacyMine };
+export { validateMine, applyMine, coinsFor, MY_HERO, MY_DESIGNS, MY_ITEMS, MY_CATS, MY_EQUIP_MAX, MY_FULL_COST, MY_REQ_TXT, myReqOk, itemCost, mineTotalCost, mineCoinLv, migrateLegacyMine };
 
 // 시뮬 한 판을 헤드리스로 만든다. 반환 객체로 GAME.* / update 를 구동한다.
 export function createEngine() {

@@ -647,7 +647,7 @@ function upChoice(c, row, x) {
 const LS_KEY = "malang-ranks2";
 const remote = () => CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
 const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Content-Type": "application/json" }; if (String(k).startsWith("eyJ")) h.Authorization = "Bearer " + k; return h; }; // sb_publishable_ 키는 JWT 가 아니므로 Bearer 로 보내지 않는다
-const GAME_VER = "7";
+const GAME_VER = "8";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
 function scoreParts(res) {
@@ -679,6 +679,7 @@ function deviceId() {
 }
 const qGet = () => { try { const q = JSON.parse(lsGet(QUEUE_KEY, "[]")); return Array.isArray(q) ? q : []; } catch { return []; } };
 const qSet = (q) => lsSet(QUEUE_KEY, JSON.stringify(q.slice(-QUEUE_MAX)));
+const INFLIGHT = new Set(); // 지금 전송 중인 대기열 항목 qid(flushQueue 와 겹쳐 보내지 않게)
 // Edge Function 호출. 반환 {st: HTTP 상태(네트워크 실패=0), d: 응답 JSON}
 async function api(action, body = {}) {
   try {
@@ -754,6 +755,7 @@ async function flushQueue() {
     for (const item of qGet()) {
       const cs = phaseNow().season; // 이전 시즌에 쌓인 기록: 서버는 도착 시각의 시즌에 저장하므로 새 시즌을 오염시키지 않게 버린다
       if (item.season && cs && item.season !== cs.id) { qSet(qGet().filter((x) => x.qid !== item.qid)); continue; }
+      if (INFLIGHT.has(item.qid)) continue; // 지금 submitScore 가 보내는 중인 판은 건너뛴다(이중 전송 방지)
       let r = await postScore(item);
       if (r.st === "drop" && r.d.error === "no_player" && (await ensureRegistered()) === "ok") r = await postScore(item);
       if (r.st === "retry") break;
@@ -787,9 +789,15 @@ async function submitScore(P) {
     if (lb != null && P.score <= lb) { flushQueue(); return { st: "skip", d: { season_best: lb } }; } // 서버 확정 시즌 최고 이하는 순위를 바꾸지 못한다 -> 재생 검증 요청 자체를 생략
     const item = { qid: Date.now() + "-" + Math.random().toString(36).slice(2, 8), season: sid0, mode: "daily", seed: S.seed, ver: GAME_VER, inputs: S.inputs, claimedScore: P.score, claimedRound: P.R, win: !!P.win, device_id: deviceId() };
     if (S.mine) { item.mine = S.mine; item.hero_name = MyHero.heroName(); } // 서버가 같은 강화를 적용해 재생한다
-    let r = await postScore(item);
-    if (r.st === "drop" && r.d.error === "no_player") { lsSet(NAME_OK, ""); if ((await ensureRegistered()) === "ok") r = await postScore(item); }
-    if (r.st === "retry") { qSet([...qGet(), item]); return { st: "queued", d: r.d }; }
+    // 보내기 전에 먼저 대기열에 저장한다: 검증이 느린 동안 앱이 닫히거나 화면을 나가도 다음 접속 때 flushQueue 가 이어서 보낸다. 서버가 확정 응답(성공/거부)을 주면 그때 지운다.
+    qSet([...qGet(), item]); INFLIGHT.add(item.qid);
+    let r;
+    try {
+      r = await postScore(item);
+      if (r.st === "drop" && r.d.error === "no_player") { lsSet(NAME_OK, ""); if ((await ensureRegistered()) === "ok") r = await postScore(item); }
+    } finally { INFLIGHT.delete(item.qid); }
+    if (r.st === "retry") return { st: "queued", d: r.d }; // 이미 대기열에 있다
+    qSet(qGet().filter((x) => x.qid !== item.qid));
     flushQueue(); // 이전에 밀린 기록도 이어서 전송
     if (r.st === "ok" && r.d && r.d.ok) {
       const ssid = (r.d.season && r.d.season.id) || sid0;
@@ -819,17 +827,16 @@ function rankResultHtml(r, P) {
     return { html: m || "랭킹 등록에 실패했어요", cheer: false };
   }
   const best = d.season_best, rb = d.rank_before, ra = d.rank_after, newBest = d.prev_best == null || best > d.prev_best;
+  // 큰 줄 1 + 작은 줄 1: 순위 변동 / (점수 변화 · 다음 순위까지)
   let h = r.st === "local" ? "<small>(이 기기 기록 · 서버 미설정)</small>" : "";
-  if (newBest) h += rb == null ? `시즌 첫 기록 <b>${ra}위</b>${d.total ? ` <small>/ ${d.total}명</small>` : ""}`
-    : ra < rb ? `최고점 갱신<br><b>${rb}위 → ${ra}위 ▲${rb - ra}</b>` : `최고점 갱신 <b>${ra}위</b> 유지`;
-  else h += `시즌 최고(${nf(best)}점)에 못 미쳤어요<br>현재 <b>${ra}위</b>`;
-  if (newBest && d.prev_best != null) h += `<small>${nf(d.prev_best)}점 → ${nf(best)}점</small>`;
-  if (ra === 1) h += `<small>현재 1위</small>`;
-  else {
-    if (d.next_score != null) h += `<small>다음 순위까지 ${nf(d.next_score - best + 1)}점!</small>`;
-    if (ra > 2 && d.top_score != null) h += `<small>1위까지 ${nf(d.top_score - best + 1)}점</small>`;
-  }
-  if (d.saved === false && d.best != null) h += `<small>최고 기록 ${nf(d.best)}점</small>`;
+  const sm = [];
+  if (newBest) {
+    h += rb == null ? `시즌 첫 기록 <b>${ra}위</b>` : ra < rb ? `<b>${rb}위 → ${ra}위 ▲${rb - ra}</b>` : `최고점 갱신 <b>${ra}위</b>`;
+    if (d.prev_best != null) sm.push(`${nf(d.prev_best)} → ${nf(best)}점`);
+  } else { h += `현재 <b>${ra}위</b>`; sm.push(`시즌 최고 ${nf(best)}점에 못 미쳤어요`); }
+  if (ra === 1) sm.push("현재 1위"); else if (d.next_score != null) sm.push(`다음 순위까지 ${nf(d.next_score - best + 1)}점`);
+  if (d.saved === false && d.best != null) sm.push(`최고 ${nf(d.best)}점`);
+  if (sm.length) h += `<small>${sm.join(" · ")}</small>`;
   return { html: h, cheer: newBest };
 }
 async function finishRank(P) {
@@ -1087,21 +1094,23 @@ async function showRanks(tab = "season", again = false, board = "rand", sid = nu
   const s = seasonById(sid), past = sid < cur.id, rangeTxt = (x) => `${md(x.start)}(${dowKo(x.start)})~${md(x.end)}(${dowKo(x.end)})`;
   const left = dayDiff(kstDate(), cur.end);
   const when = `${rangeTxt(cur)} · ${left <= 0 ? "오늘 24시 종료" : "종료까지 " + left + "일"}`;
-  // 시즌 순위 탭은 시즌 이름이 ◀▶ 줄에 있으므로 기간만
-  const sub = tab === "points" ? "시즌 최종 1·2·3위에게 승점 +3·+2·+1" : tab === "season" ? (past ? rangeTxt(s) : when) : `${esc(cur.name)} · ${when}`;
-  const T = [["season", "시즌 순위"], ["points", "누적 승점"]];
-  const tb = (arr, attr, on, cls) => `<div class="tabs rkt ${cls}" role="tablist">${arr.map(([k, l]) => `<button role="tab" ${attr}="${k}" aria-selected="${on === k}" class="${on === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
-  const isRec = tab === "mine"; // 최상위 탭: 운빨 리그 | 나만의 영웅 리그 | 내 기록 (보조 탭은 리그 안에서만)
-  const boards = `<div class="tabs rkt" role="tablist">${Object.entries(RK_LEAGUE).map(([k, l]) => `<button role="tab" data-b="${k}" aria-selected="${!isRec && board === k}" class="${!isRec && board === k ? "on" : ""}">${l}</button>`).join("")}<button role="tab" data-t="mine" aria-selected="${isRec}" class="${isRec ? "on" : ""}">내 기록</button></div>`;
-  const tabs = isRec ? "" : tb(T, "data-t", tab, "sub");
-  const nav = tab !== "season" ? "" : `<div class="rknav"><button data-s="${sid - 1}" aria-label="이전 시즌" ${sid <= 1 ? "disabled" : ""}>◀</button><span>${esc(s.name)}${past ? " (종료)" : ""}</span><button data-s="${sid + 1}" aria-label="다음 시즌" ${past ? "" : "disabled"}>▶</button></div>`;
-  const head = `<h2>랭킹</h2>${boards}${tabs}${remote() ? "" : "<small>이 기기 기록 (서버 미설정)</small><br>"}${nav}<small class="rksub">${sub}</small>`;
+  // 정보 위계: 1줄 리그 탭(운빨|내 영웅|내 기록) / 2줄 시즌 ◀▶ + 순위|승점 / 목록(여기만 스크롤) / 하단 고정(내 순위 1줄 + 메타 1줄 + 버튼)
+  const rs = (x) => `${md(x.start)}~${md(x.end)}`;
+  const metaTxt = (n) => (tab === "points" ? "시즌 최종 1·2·3위 승점 +3·+2·+1" : tab === "mine" ? `${esc(cur.name)} · ${rs(cur)}` : past ? rs(s) : `${rs(cur)} · ${left <= 0 ? "오늘 종료" : left + "일 남음"}`) + (n ? ` · ${n}명` : "") + (remote() ? "" : " · 이 기기 기록");
+  const isRec = tab === "mine"; // 최상위 탭: 운빨 리그 | 내 영웅 리그 | 내 기록 (보조 탭은 리그 안에서만)
+  const on1 = (k) => (!isRec && board === k);
+  const boards = `<div class="tabs rkt" role="tablist">${Object.entries(RK_LEAGUE).map(([k, l]) => `<button role="tab" data-b="${k}" aria-selected="${on1(k)}" class="${on1(k) ? "on" : ""}">${l}</button>`).join("")}<button role="tab" data-t="mine" aria-selected="${isRec}" class="${isRec ? "on" : ""}">내 기록</button></div>`;
+  const sub2 = `<div class="tabs rkt sub" role="tablist">${[["season", "순위"], ["points", "승점"]].map(([k, l]) => `<button role="tab" data-t="${k}" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const nav = tab === "season" ? `<div class="rknav"><button data-s="${sid - 1}" aria-label="이전 시즌" ${sid <= 1 ? "disabled" : ""}>◀</button><span>${esc(s.name)}${past ? " (종료)" : ""}</span><button data-s="${sid + 1}" aria-label="다음 시즌" ${past ? "" : "disabled"}>▶</button></div>` : `<div class="rknav"><span>누적 승점</span></div>`;
+  const head = `${boards}${isRec ? "" : `<div class="rkbar">${nav}${sub2}</div>`}`;
   // 새로고침: 지난 시즌 순위(고정)만 없음. 불러오기 실패면 '다시 시도', 기준 시각이 없으면(내 기록) '새로고침'
-  const foot = (me, at, fail) => `<div class="stk">${me || ""}${past && tab === "season" && !fail ? "" : `<button class="rkref" id="rkRef" ${BTNR}>${fail ? "다시 시도" : at ? `${hhmm(at)} 기준 · 새로고침` : "새로고침"}</button>`}${again ? `<button class="wide green" id="again">다시 하기</button><button class="wide mini" id="rkHome" ${BTNR}>홈으로</button>` : `<button class="wide" id="close">닫기</button>`}</div>`;
+  const foot = (me, at, fail, n) => `<div class="stk">${me || ""}<div class="rkmeta"><span>${fail ? "" : metaTxt(n)}</span>${past && tab === "season" && !fail ? "" : `<button class="rkref" id="rkRef" ${BTNR}>${fail ? "다시 시도" : at ? `${hhmm(at)} 기준 ↻` : "새로고침 ↻"}</button>`}</div>${again ? `<div class="rkbtn"><button class="wide green" id="again">다시 하기</button><button class="wide mini" id="rkHome" ${BTNR}>홈으로</button></div>` : `<button class="wide" id="close">닫기</button>`}</div>`;
+  const shell = (body, f) => `<div class="rkw">${head}<div class="rkl">${body}</div>${f || ""}</div>`;
   const wire = () => {
     document.querySelectorAll("button[data-t]").forEach((b) => (b.onclick = () => showRanks(b.dataset.t, again, board, sid)));
     document.querySelectorAll("button[data-b]").forEach((b) => (b.onclick = () => showRanks(tab === "mine" ? "season" : tab, again, b.dataset.b, sid)));
     document.querySelectorAll("button[data-s]").forEach((b) => (b.onclick = () => { if (!b.disabled) showRanks("season", again, board, +b.dataset.s); }));
+    document.querySelectorAll(".rows li[data-x]").forEach((li) => (li.onclick = () => li.classList.toggle("open"))); // 줄을 누르면 보조 정보(영웅·빌드·승점) 펼침
     if ($("again")) $("again").onclick = () => restartGame();
     if ($("rkHome")) $("rkHome").onclick = goHome;
     if ($("close")) $("close").onclick = closeModal;
@@ -1111,7 +1120,7 @@ async function showRanks(tab = "season", again = false, board = "rand", sid = nu
       RK_REF = Date.now(); showRanks(tab, again, board, sid, true);
     };
   };
-  modal(`${head}<p>불러오는 중…</p>`);
+  modal(shell("<p>불러오는 중…</p>"));
   const isMe = (r) => nm && String(r.name).toLowerCase() === nm.toLowerCase(), medal = ["🥇", "🥈", "🥉"];
   let R = null, M, pf = null;
   try {
@@ -1121,40 +1130,41 @@ async function showRanks(tab = "season", again = false, board = "rand", sid = nu
       R = await fetchRanks(sid, board, { force });
       if (nm && !R.unsup && R.total > R.rows.length && R.rows.findIndex(isMe) < 0) M = await fetchMyRank(sid, board, nm, { force }); // 상위 N 밖일 때만 내 순위를 따로 한 건 조회
     }
-  } catch { if (tok !== RK_TOK) return; modal(`${head}<p>불러오지 못했어요</p>${foot("", 0, true)}`); wire(); return; }
+  } catch { if (tok !== RK_TOK) return; modal(shell("<p>불러오지 못했어요</p>", foot("", 0, true))); wire(); return; }
   if (tok !== RK_TOK) return; // 그 사이 다른 탭/시즌을 눌렀다
   let body, meBar = "";
-  const meBox = (no, name, sc, small) => `<ul class="rows" style="margin:6px 0"><li class="me"><span class="no" style="width:auto;min-width:28px">${no}</span><span class="nm">${esc(name)} (나)</span><span class="sc">${sc}</span><small>${small}</small></li></ul>`;
+  const meBox = (no, name, sc, small) => `<ul class="rows mebar"><li class="me"><span class="no">${no}</span><span class="nm">${esc(name)}${small ? `<small class="rs">${small}</small>` : ""}</span><span class="sc">${sc}</span></li></ul>`; // 내 순위 한 줄(하단 고정)
+  const row = (cls, no, name, tag, sc, xt) => `<li class="${cls}"${xt ? " data-x" : ""}><span class="no">${no}</span><span class="nm">${name}${tag ? `<small class="rs">${tag}</small>` : ""}</span><span class="sc">${sc}</span>${xt ? `<div class="xt">${xt}</div>` : ""}</li>`; // 핵심 3칸 + 눌러서 펼치는 보조 줄
   if (tab === "mine") {
     let rows = [];
     if (pf) rows = (pf.mine || []).map((x) => ({ seed: x.seed, score: x.score, wave: x.round, win: x.win, hero: x.hero, build: x.build }));
     else if (!remote()) rows = localRows().filter((r) => r.name === nm && kstDate(Date.parse(r.played_at)) >= cur.start && kstDate(Date.parse(r.played_at)) <= cur.end).map((r) => ({ seed: r.seed, score: r.score, wave: r.wave, win: r.win })).reverse();
     const top = rows.reduce((a, x) => Math.max(a, x.score), 0);
     const sd = (n) => { const t = String(n); return t.length === 8 ? `${+t.slice(4, 6)}/${+t.slice(6)}` : ""; };
-    body = `<ul class="rows">${rows.map((x) => `<li class="${x.score === top ? "me" : ""}"><span class="no" style="width:auto;min-width:40px;font-size:14px">${sd(x.seed)}</span><span class="nm">${x.win ? "클리어" : "R" + x.wave}</span><span class="sc">${nf(x.score)}점</span>${x.score === top ? "<small>시즌 최고</small>" : ""}${buildTag(x.build)}</li>`).join("") || "<li>이번 시즌 기록이 아직 없어요</li>"}</ul>`;
+    body = `<ul class="rows">${rows.map((x) => row(x.score === top ? "me" : "", sd(x.seed), x.win ? "클리어" : "R" + x.wave, x.score === top ? "시즌 최고" : "", nf(x.score) + "점", buildTag(x.build))).join("") || "<li>이번 시즌 기록이 아직 없어요</li>"}</ul>`;
     if (!nm) body = "<ul class=\"rows\"><li>닉네임을 정하면 기록이 보여요</li></ul>";
   } else if (tab === "points") {
-    const li = R.rows.map((r) => `<li class="${isMe(r) ? "me" : ""}"><span class="no">${medal[r.rank - 1] || r.rank}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.points}승점</span><small>금${r.gold} 은${r.silver} 동${r.bronze} · 시즌 ${r.last_season}</small></li>`).join("");
-    body = `<small>${R.unsup ? "" : `${R.total}명`}</small><ul class="rows">${li || `<li>${R.unsup ? "승점 집계 준비 중이에요" : "아직 승점이 없어요"}</li>`}</ul>`;
+    const li = R.rows.map((r) => row(isMe(r) ? "me" : "", medal[r.rank - 1] || r.rank, esc(r.name), "", r.points + "승점", `<small>금${r.gold} 은${r.silver} 동${r.bronze} · 시즌 ${r.last_season}</small>`)).join("");
+    body = `<ul class="rows">${li || `<li>${R.unsup ? "승점 집계 준비 중이에요" : "아직 승점이 없어요"}</li>`}</ul>`;
     const k = nm ? R.rows.findIndex(isMe) : -1;
     if (k >= 0) meBar = meBox(R.rows[k].rank + "위", nm, R.rows[k].points + "승점", `금${R.rows[k].gold} 은${R.rows[k].silver} 동${R.rows[k].bronze}`);
     else if (!nm) meBar = "";
-    else if (!R.unsup && R.rows.length) meBar = "<small>내 승점이 아직 없어요</small>"; // 목록이 비면 본문 문구 하나만
+    else if (!R.unsup && R.rows.length) meBar = "<small class=\"rkmsg\">내 승점이 아직 없어요</small>"; // 목록이 비면 본문 문구 하나만
   } else {
-    const li = R.rows.map((r, i) => `<li class="${isMe(r) ? "me" : ""}"><span class="no">${medal[(r.rank || i + 1) - 1] || r.rank || i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${nf(r.score)}점</span><small>R${r.wave}${r.win ? " 클리어" : ""}${heroTag(r.hero, r.hero_name)}${past && (r.rank || i + 1) <= 3 ? ` · 승점 +${POINTS[(r.rank || i + 1) - 1]}` : ""}</small>${buildTag(r.build)}</li>`).join("");
-    body = `<small>${R.unsup ? "" : `${R.total}명 참가`}</small><ul class="rows">${li || `<li>${R.unsup ? "나만의 영웅 리그는 준비 중이에요" : past ? "이 시즌에는 기록이 없어요" : "아직 기록이 없어요"}</li>`}</ul>`;
+    const li = R.rows.map((r, i) => { const rk = r.rank || i + 1, ht = heroTag(r.hero, r.hero_name).replace(/^ · /, ""), pt = past && rk <= 3 ? `승점 +${POINTS[rk - 1]}` : ""; return row(isMe(r) ? "me" : "", medal[rk - 1] || rk, esc(r.name), `R${r.wave}${r.win ? " 클리어" : ""}`, nf(r.score) + "점", [ht, pt].filter(Boolean).map((t) => `<small>${t}</small>`).join("") + buildTag(r.build)); }).join("");
+    body = `<ul class="rows">${li || `<li>${R.unsup ? "나만의 영웅 리그는 준비 중이에요" : past ? "이 시즌에는 기록이 없어요" : "아직 기록이 없어요"}</li>`}</ul>`;
     let mine = null; const k = nm ? R.rows.findIndex(isMe) : -1, top = R.rows[0] ? R.rows[0].score : null;
     if (k >= 0) mine = { rank: R.rows[k].rank || k + 1, score: R.rows[k].score, top, next: k > 0 ? R.rows[k - 1].score : null };
     else if (M) mine = { rank: M.rank, score: M.score, top, next: null };
     if (mine) {
-      const gap = past ? "" : mine.rank === 1 ? "현재 1위" : `${mine.next != null ? `다음 순위까지 ${nf(mine.next - mine.score + 1)}점` : ""}${mine.rank > 2 && top != null ? `${mine.next != null ? " · " : ""}1위까지 ${nf(top - mine.score + 1)}점` : ""}`;
+      const gap = past || mine.rank === 1 || mine.next == null ? "" : `다음 +${nf(mine.next - mine.score + 1)}`;
       meBar = meBox(mine.rank + "위", nm, nf(mine.score) + "점", gap);
     } else if (!nm) meBar = "";
     else if (R.unsup || !R.rows.length) meBar = ""; // 목록이 비면 본문 문구 하나만
-    else if (M === undefined && R.total > R.rows.length) meBar = "<small>내 순위를 불러오지 못했어요</small>";
-    else meBar = `<small>${past ? "이 시즌에는 기록이 없어요" : "이번 시즌 기록이 아직 없어요"}</small>`;
+    else if (M === undefined && R.total > R.rows.length) meBar = "<small class=\"rkmsg\">내 순위를 불러오지 못했어요</small>";
+    else meBar = `<small class="rkmsg">${past ? "이 시즌에는 기록이 없어요" : "이번 시즌 기록이 아직 없어요"}</small>`;
   }
-  modal(`${head}${body}${foot(tab === "mine" ? "" : meBar, R ? R.at : 0)}`);
+  modal(shell(body, foot(tab === "mine" ? "" : meBar, R ? R.at : 0, false, R && !R.unsup && tab !== "mine" ? R.total : 0)));
   wire();
 }
 function restartGame() {
@@ -1172,7 +1182,7 @@ function uiGameOver(result) {
   if (isBest) lsSet(bk, String(P.score));
   const parts = `<div class="sc2">라운드 ${P.R} x ${CONST.SCORE.ROUND}<b>${P.R * CONST.SCORE.ROUND}</b><br>처치 ${P.kills}기<b>${P.kills}</b><br>필드 유닛 점수 ${P.U}<b>${P.uPts}</b>${win ? `<br>클리어 보너스${P.left ? ` (남은 ${Math.floor(P.left)}초)` : ""}<b>${CONST.SCORE.WIN + CONST.SCORE.WIN_SEC * Math.floor(P.left)}</b>` : ""}</div>`;
   const firstToday = !priv && !S.mineSettled && lsGet("malang-myhero-day", "") !== todayKey(); // 정산 전에 판정(myhero.js KEY_DAY: 코인이 지급된 오늘 첫 판)
-  const coin = priv ? null : MyHero.settle(S, P);
+  const coin = priv || !S.mine ? null : MyHero.settle(S, P); // 코인 줄은 내 영웅 판에만
   const cp = coin && coin.parts, luckSum = cp ? cp.boss + cp.gold + cp.grade : 0;
   const cl = cp ? [["기본", cp.base], ["보스 주머니", cp.boss], ["황금 몹", cp.gold], ["첫 등급", cp.grade], ["내 영웅", cp.hero], ["신기록", cp.rec], ["오늘 첫 판", cp.daily]].filter((e) => e[1] > 0).map((e) => `<li>${e[0]}<b>+${e[1]}</b></li>`).join("") : "";
   const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> 코인</div><div class="cgs">보유 ${nf(coin.total)}</div>${luckSum > 0 ? `<div class="cgl">운빨 +${luckSum}</div>` : ""}${firstToday && coin.gain > 0 ? `<div class="cgl d">오늘 첫 판 보너스</div>` : ""}${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
