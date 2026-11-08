@@ -32,7 +32,7 @@ function newGame(mode, forceSeed, rules, mine) {
   CONST.ROUNDS = R.rounds || CONST.ROUNDS_BASE;
   const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
-  let hero = heroOfDay(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
+  let hero = pickHero(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
   let M = null;
   if (mine && !rules) { const v = validateMine(mine); if (!v.ok) throw new Error(v.err); M = v.mine; hero = applyMine(HEROES.find((h) => h.id === M.hero), M); } // 규칙(시즌/프라이빗) 판에는 내 영웅 미적용
   const hx = hero.fx || {};
@@ -405,8 +405,7 @@ const GAME = {
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
   start(mode, seed, rules, mine) {
-    if (!rules && !HEADLESS && mode === "practice") { try { const q = new URLSearchParams(location.search).get("rules"); if (q) rules = JSON.parse(q); } catch (e) { rules = null; } } // 개발용: ?rules={"hpMul":1.5} 연습 모드 전용(랭킹 제외)
-    newGame(mode === "practice" ? "practice" : "daily", seed, rules, mine); S.paused = false; S.sel = -1; return S; },
+    newGame("daily", seed, rules, mine); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 

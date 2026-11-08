@@ -48,7 +48,7 @@ let pass = 0, fail = 0;
 const check = (name, cond, extra = "") => { (cond ? pass++ : fail++); if (!cond || process.env.V) console.log((cond ? "PASS " : "FAIL ") + name + " " + extra); };
 const times = [];
 for (let i = 0; i < N; i++) {
-  const g = clientRun(1000 + i, { mode: i % 3 === 2 ? "practice" : "daily", up: i % 2 ? 8 : 99 }); // practice 판도 seed 만 알면 재현 가능한지 확인
+  const g = clientRun(1000 + i, { mode: "daily", up: i % 2 ? 8 : 99 }); // practice 판도 seed 만 알면 재현 가능한지 확인
   const t0 = Date.now(); const v = replay(g.seed, g.inputs); const dt = Date.now() - t0; times.push(dt);
   const same = v.ok && v.result.score === g.r.score && v.result.round === g.r.round && v.result.win === g.r.win && v.result.kills === g.r.kills && v.result.hero === g.r.hero;
   console.log(`run${i} seed=${g.seed} hero=${g.r.hero} round=${g.r.round} win=${g.r.win} score=${g.r.score} inputs=${g.inputs.length} replay=${v.ok ? v.result.score : v.error} ${dt}ms ${same ? "MATCH" : "MISMATCH"}`);

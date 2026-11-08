@@ -11,7 +11,7 @@ let pass = 0, fail = 0;
 const check = (n, c, x = "") => { (c ? pass++ : fail++); if (!c || process.env.V) console.log((c ? "PASS " : "FAIL ") + n + " " + x); };
 let topSeen = new Set();
 for (let i = 0; i < N; i++) {
-  const g = clientRun(2000 + i, { mode: i % 3 === 2 ? "practice" : "daily", up: i % 2 ? 8 : 99 });
+  const g = clientRun(2000 + i, { mode: "daily", up: i % 2 ? 8 : 99 });
   const v = replay(g.seed, g.inputs), bd = g.r.build;
   const shapeOk = !!bd && cleanBuild(bd) !== null && bd.clans.length === 4;
   check(`run${i} build 모양/범위`, shapeOk, JSON.stringify(bd));

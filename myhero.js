@@ -1,10 +1,10 @@
 "use strict";
-// myhero.js - '내 영웅': 등록(최대 3, 이름 직접 정함) / 판 시작 선택 / 시장(영웅별 강화) / 판 끝 코인 정산.
+// myhero.js - '코인 마켓'(홈 하단 버튼; 내 영웅 등록·이름·강화 시장의 단일 진입점): 등록(최대 3, 이름 직접 정함) / 판 시작 선택 / 시장(영웅별 강화) / 판 끝 코인 정산.
 // 규칙·수치(MY_HERO, validateMine, applyMine, coinsFor)는 data.js MYHERO 구간(서버 리플레이와 공유). 설계·서버 연동: docs/내영웅_진행.md
-// 저장: localStorage "malang-myhero" = {v:1, coins, heroes:[{id, name, up:{atk,rew,disc,start}}]}, "malang-myhero-pick" = 마지막 선택(랜덤이면 "")
+// 저장: localStorage "malang-myhero" = {v:1, coins, heroes:[{id, name, up:{atk,rew,disc,start}}]}
 // ui.js 의 modal/closeModal/$/esc/lsGet/lsSet/sfx/checkName/NAME_ERR_MSG/nf 를 쓴다. 최상위 이름은 window.MyHero 하나만 만든다.
 window.MyHero = (function () {
-  const KEY = "malang-myhero", PICK = "malang-myhero-pick";
+  const KEY = "malang-myhero";
   const baseOf = (id) => HEROES.find((h) => h.id === id);
   const zeroUp = () => ({ atk: 0, rew: 0, disc: 0, start: 0 });
   function load() {
@@ -27,21 +27,23 @@ window.MyHero = (function () {
   let cur = null; // 이번 판의 내 영웅 {id, name} (랜덤이면 null)
   const lvLine = (h) => MY_HERO.DIRS.map((d) => `${d.ico}${h.up[d.k]}`).join(" ");
 
-  // ---- 판 시작 선택: 등록된 영웅이 없으면 바로 시작(기존 흐름 그대로) ----
-  function pick(go) { // go(mine|null)
+  // ---- 나만의 영웅 리그 시작: 내 영웅만 고른다(랜덤 항목 없음). 등록이 없으면 등록 안내. 운빨 리그는 선택창 없이 ui.js 가 mine=null 로 바로 시작. ----
+  function pickMine(go) { // go(mine)
     const hs = list();
-    if (!hs.length) { cur = null; go(null); return; }
-    const last = lsGet(PICK, "");
-    const rows = hs.map((h) => `<button class="wide ${last === h.id ? "green" : ""}" data-h="${esc(h.id)}">🦸 ${esc(h.name)}<br><small>${esc(baseOf(h.id).name)} · ${lvLine(h)}</small></button>`).join("");
-    modal(`<h2>어떤 영웅으로 할까요?</h2><button class="wide ${last === "" ? "green" : ""}" id="mhRand">🎲 랜덤 영웅<br><small>기존 방식 · 판마다 새로 정해져요</small></button>${rows}<button class="wide mini" id="mhNo" ${BTNR}>닫기</button>`);
+    if (!hs.length) {
+      modal(`<h2>🦸 나만의 영웅 리그</h2><p>등록한 영웅이 없어요.<br>먼저 🪙 코인 마켓에서 영웅을 등록해요!</p><button class="wide green" id="mhReg">🪙 코인 마켓 가기</button><button class="wide mini" id="mhNo" ${BTNR}>닫기</button>`);
+      $("mhNo").onclick = closeModal; $("mhReg").onclick = () => open();
+      return;
+    }
+    const rows = hs.map((h) => `<button class="wide" data-h="${esc(h.id)}">🦸 ${esc(h.name)}<br><small>${esc(baseOf(h.id).name)} · ${lvLine(h)}</small></button>`).join("");
+    modal(`<h2>🦸 어떤 영웅으로 도전할까요?</h2>${rows}<button class="wide mini" id="mhNo" ${BTNR}>닫기</button>`);
     $("mhNo").onclick = closeModal;
-    $("mhRand").onclick = () => { lsSet(PICK, ""); cur = null; closeModal(); go(null); };
     document.querySelectorAll("#box [data-h]").forEach((b) => (b.onclick = () => {
       const h = list().find((x) => x.id === b.dataset.h); if (!h) return;
-      lsSet(PICK, h.id); cur = { id: h.id, name: h.name }; closeModal(); go(mineOf(h));
+      cur = { id: h.id, name: h.name }; closeModal(); go(mineOf(h));
     }));
   }
-  // 다시 하기: 같은 선택으로(강화는 저장된 최신값). 영웅이 지워졌으면 랜덤.
+  // 다시 하기: 같은 리그 유지(내 영웅이면 같은 영웅(강화는 저장된 최신값). 영웅이 지워졌으면 운빨 리그.
   function again() {
     if (!cur) return null;
     const h = list().find((x) => x.id === cur.id);
@@ -53,23 +55,47 @@ window.MyHero = (function () {
   function label(s) { return s && s.mine && cur ? `${cur.name} (${s.hero.name})` : s && s.hero ? s.hero.name : ""; }
   const heroName = () => (cur ? cur.name : "");
 
-  // ---- 판 끝 정산: 한 판에 한 번. 비공개 시즌 판은 호출하지 않는다. 연습은 절반. ----
+  // ---- 판 끝 정산: 한 판에 한 번. 비공개 시즌 판은 호출하지 않는다. ----
+  // 운 층(docs/코인마켓_설계.md 5.2): 게임 시뮬 난수와 무관한 별도 스트림(seed 파생)을 정산 단계에서만 굴린다 -> 점수·재생 검증 불변.
+  // 보스 코인 주머니(5라운드마다 1기), 황금 몹(라운드마다 1.5%), 첫 등급 보너스(히든/에픽/레전더리 이상 도달 시).
+  const BAG = [[0.72, 1], [0.92, 3], [0.99, 8], [1.01, 25]];
+  function luck(seed, R, win, top) {
+    const rnd = mulberry32(((seed | 0) ^ 0xC01DC01D ^ Math.imul(R | 0, 2654435761)) >>> 0);
+    const bosses = Math.max(0, Math.floor((R - 1) / 5)) + (win ? 1 : 0);
+    let boss = 0, gold = 0, grade = 0;
+    for (let i = 0; i < bosses; i++) { const x = rnd(); boss += BAG.find((e) => x < e[0])[1]; }
+    for (let r = 1; r <= R; r++) if (rnd() < 0.015) gold += 2 + Math.floor(rnd() * 5);
+    if (top >= 4) grade += 2; if (top >= 5) grade += 5; if (top >= 6) grade += 15;
+    return { boss, gold, grade };
+  }
+  const KEY_REC = "malang-myhero-rec", KEY_DAY = "malang-myhero-day", COIN_MAX = 250;
+  // ---- 판 끝 정산: 한 판에 한 번. 비공개 시즌 판은 호출하지 않는다. 결과 {gain,total,parts} ----
   function settle(s, P) {
     if (!s || s.mineSettled) return { gain: 0, total: coins() };
     s.mineSettled = true;
     const rew = s.mine ? s.mine.up.rew : 0;
-    let gain = coinsFor(P.R, P.kills, !!P.win, rew);
-    if (s.mode === "practice") gain = Math.floor(gain / 2);
+    const base = coinsFor(P.R, P.kills, !!P.win, rew);
+    const lk = luck(s.seed, P.R, !!P.win, s.topGrade | 0);
+    const hero = s.mine ? Math.floor(base * 0.05) : 0;
+    let rec = 0; // 신기록: 영웅별 최고 라운드 갱신분 x2 (최대 20, 첫 판은 0)
+    const hid = s.hero ? s.hero.id : "";
+    let rc = {}; try { rc = JSON.parse(lsGet(KEY_REC, "{}")) || {}; } catch { rc = {}; }
+    if (hid) { const old = Number(rc[hid]) || 0; if (old > 0 && P.R > old) rec = Math.min(20, (P.R - old) * 2); if (P.R > old) { rc[hid] = P.R; lsSet(KEY_REC, JSON.stringify(rc)); } }
+    const sub = base + lk.boss + lk.gold + lk.grade + hero + rec;
+    const today = todayKey();
+    const daily = lsGet(KEY_DAY, "") !== today ? Math.min(15, Math.floor(sub * 0.2)) : 0;
+    lsSet(KEY_DAY, today);
+    let gain = Math.min(COIN_MAX, sub + daily);
     const d = load(); d.coins += gain; save(d);
-    return { gain, total: d.coins };
+    return { gain, total: d.coins, parts: { base, boss: lk.boss, gold: lk.gold, grade: lk.grade, hero, rec, daily } };
   }
 
-  // ---- 내 영웅 관리 화면 ----
+  // ---- 코인 마켓(영웅 관리) 화면 ----
   function open(back) {
     const d = load();
     const slots = d.heroes.map((h) => `<li><span class="nm">🦸 ${esc(h.name)}<br><small>${esc(baseOf(h.id).name)} · ${lvLine(h)} (${myUpSum(h.up)}/${MY_HERO.TOTAL_CAP})</small></span><button class="mini" data-m="${esc(h.id)}" style="flex:none;min-width:64px">🛒 강화</button></li>`);
     for (let i = d.heroes.length; i < MY_HERO.MAX; i++) slots.push(`<li><span class="nm" style="opacity:.6">빈 자리</span><button class="mini" data-add="1" style="flex:none;min-width:64px">＋ 등록</button></li>`);
-    modal(`<h2>🦸 내 영웅</h2><small>마음에 드는 영웅 ${MY_HERO.MAX}명까지 등록하고 이름을 붙여요. 등록은 무료!<br>판이 끝나면 🪙 코인을 받고, 영웅마다 따로 강화해요.</small><div class="sc2" style="text-align:center">🪙 보유 코인 <b>${nf(d.coins)}</b></div><ul class="rows">${slots.join("")}</ul><button class="wide" id="mhX">${back ? "뒤로" : "닫기"}</button>`);
+    modal(`<h2>🪙 코인 마켓</h2><small>마음에 드는 영웅 ${MY_HERO.MAX}명까지 등록하고 이름을 붙여요. 등록은 무료!<br>판이 끝나면 🪙 코인을 받고, 영웅마다 따로 강화해요.</small><div class="sc2" style="text-align:center">🪙 보유 코인 <b>${nf(d.coins)}</b></div><ul class="rows">${slots.join("")}</ul><button class="wide" id="mhX">${back ? "뒤로" : "닫기"}</button>`);
     $("mhX").onclick = () => (back ? back() : closeModal());
     document.querySelectorAll("#box [data-m]").forEach((b) => (b.onclick = () => market(b.dataset.m, back)));
     document.querySelectorAll("#box [data-add]").forEach((b) => (b.onclick = () => choose(back)));
@@ -107,7 +133,7 @@ window.MyHero = (function () {
       const btn = maxed ? `<button class="mini" disabled style="flex:none;min-width:84px">최대</button>` : full ? `<button class="mini" disabled style="flex:none;min-width:84px">상한</button>` : `<button class="mini ${can ? "" : "off"}" data-b="${dir.k}" style="flex:none;min-width:84px">🪙 ${cost}</button>`;
       return `<li><span class="nm">${dir.ico} ${dir.name} Lv${lv}/${dir.max}<br><small>${lv ? dir.txt(lv) : "강화 전"}${!maxed ? ` → ${dir.txt(lv + 1)}` : ""}</small></span>${btn}</li>`;
     }).join("");
-    modal(`<h2>🛒 ${esc(h.name)}</h2><small>${esc(baseOf(id).name)} · 강화 ${sum}/${MY_HERO.TOTAL_CAP}단계</small><div class="sc2" style="text-align:center">🪙 보유 코인 <b>${nf(d.coins)}</b></div>${msg ? `<small style="color:#c0392b">${esc(msg)}</small>` : ""}<ul class="rows">${rows}</ul><small>강화는 랭킹 도전·연습에서만 적용돼요 (시즌 규칙 판 제외)</small><button class="wide" id="mhX">뒤로</button>`);
+    modal(`<h2>🛒 ${esc(h.name)}</h2><small>${esc(baseOf(id).name)} · 강화 ${sum}/${MY_HERO.TOTAL_CAP}단계</small><div class="sc2" style="text-align:center">🪙 보유 코인 <b>${nf(d.coins)}</b></div>${msg ? `<small style="color:#c0392b">${esc(msg)}</small>` : ""}<ul class="rows">${rows}</ul><small>강화는 랭킹 도전에서만 적용돼요 (시즌 규칙 판 제외)</small><button class="wide" id="mhX">뒤로</button>`);
     $("mhX").onclick = () => open(back);
     document.querySelectorAll("#box [data-b]").forEach((b) => (b.onclick = () => buy(id, b.dataset.b, back)));
   }
@@ -119,5 +145,5 @@ window.MyHero = (function () {
     d.coins -= cost; h.up[k] = lv + 1; save(d); sfx("reso"); market(id, back);
   }
 
-  return { list, coins, pick, again, clear, label, heroName, settle, open, mineOf };
+  return { list, coins, pickMine, again, clear, label, heroName, settle, luck, open, mineOf };
 })();

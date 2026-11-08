@@ -9,7 +9,7 @@
 - 🎲 뽑기(50💎)로 랜덤 유닛을 배치, 같은 등급 두 마리를 탭해서 합성 → 한 단계 위 랜덤 유닛.
 - 시작 시 **히어로 1명이 랜덤 칸에 배치**되고 패시브가 붙는다 (행운/상인/번개/얼음).
 - **미네랄 수입 규칙도 랜덤** (처치/월급/웨이브/도박).
-- 히어로와 규칙은 **날짜 시드**로 정해져서 그날 모두가 같은 조건에서 경쟁한다.
+- 홈에는 두 버튼이 있다: **🎲 운빨 리그 도전**(영웅·뽑기 운이 판마다 새로 정해짐)과 **🦸 나만의 영웅 리그 도전**(등록해 강화한 내 영웅으로 도전, 별도 보드). 하단 **🪙 코인 마켓**에서 영웅 등록·이름·강화를 한다.
 - 몬스터가 40마리 쌓이면 끝. 점수 = 웨이브×100 + 처치×2.
 
 ## 랭킹 서버 (Supabase + Edge Function + GitHub Pages)
@@ -43,8 +43,8 @@
 3. 그다음 GitHub Pages 에 이번 변경(index.html, ui.js, data.js, sw.js 등)을 push. 기존 이용자는 첫 실행 때 닉네임을 정하게 된다(예전에 입력한 닉네임이 있으면 자동 등록 시도, 중복이면 새로 정하기).
 
 ### 시즌 운영
-- **다음 시즌 추가**: `data.js` 의 `SEASONS` 배열 끝에 `{ id: 2, name: "시즌 2", start: "2026-11-16", end: "2026-12-06" }` 처럼 추가(KST 날짜, 양끝 포함, 겹치지 않게, id 는 증가). 그다음 `node tools/build_engine.js` → `supabase functions deploy submit-score --no-verify-jwt` → 페이지 배포 + `sw.js` 의 `CACHE_VERSION` 올리기. DB 변경은 필요 없다(`scores.season` 이 시즌 번호를 기억).
-- **종료 후**: 시즌이 끝나면 서버가 등록을 거부하고 앱은 "시즌 종료/준비 중" + 연습 모드만 연다. 최종 순위는 `leaderboard_season?season=eq.1` 로 계속 조회된다(앱 UI 는 현재/마지막 시즌 중심, 이전 시즌 선택 UI 는 아직 없음). 시즌 사이 공백 기간에는 일일 챌린지가 닫힌다.
+- **공개 시즌은 자동**: 일요일 00:00 ~ 토요일 24:00 (KST) 7일 고정 반복, 시즌 id 는 날짜에서 계산(`data.js` `seasonIdOf`, 앵커 2026-11-08 = 시즌 2). 더 이상 `SEASONS` 에 시즌을 추가하지 않는다(옛 시즌 1 만 남음). 규칙을 바꾸면 `node tools/build_engine.js` -> `supabase functions deploy submit-score --no-verify-jwt` -> 페이지 배포 + `sw.js` `CACHE_VERSION`.
+- **랭킹/승점**: 시즌이 바뀌면 보드는 새로 시작, 지난 시즌 최종 순위는 랭킹 화면의 `◀ 이전` 으로 본다. 시즌 최종 1·2·3위에게 승점 3·2·1, 리그별 누적 승점은 `🏅 누적 승점` 탭(서버 `supabase/migrations/010_season_points.sql`, 크론 없음). 설계·호출 저감·배포 순서는 `docs/시즌랭킹_재설계.md`.
 - **닉네임/계정 이전**: 프로필 화면의 "이전 코드"는 `device_id`(UUID) 그대로다. 아는 사람은 그 계정을 쓸 수 있으니 노출 주의. 운영자가 부적절한 닉네임을 바꾸려면 SQL Editor 에서 `update players set name=... where lower(name)=lower(...)`.
 
 ### 동작 확인 체크리스트
@@ -56,7 +56,6 @@
 - [ ] Dashboard → Table Editor → `scores` 에 행이 생기고 `inputs_hash`, `device_id` 가 채워져 있다
 - [ ] 같은 기기에서 같은 날 더 낮은 점수를 올려도 기존 기록이 유지된다(더 높을 때만 갱신)
 - [ ] 비행기 모드(오프라인)로 등록 → 이후 온라인에서 앱을 열면 자동 재전송된다(`localStorage` 의 `malang-queue`)
-- [ ] 연습 모드는 서버에 가지 않는다(네트워크 탭에 submit-score 요청 없음)
 - [ ] 브라우저 콘솔에서 anon 키로 `POST /rest/v1/scores` 를 보내면 401/403 으로 거부된다(직접 쓰기 금지 확인)
 - [ ] Dashboard → Edge Functions → submit-score → Logs 에 `mismatch`/오류가 없다
 

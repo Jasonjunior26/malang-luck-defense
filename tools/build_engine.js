@@ -27,7 +27,7 @@ export const ENGINE_VER = ${JSON.stringify(ver)};
 
 // ----- 시즌/닉네임 규칙: data.js 의 SEASONS-BEGIN~END 구간 (단일 출처) -----
 ${seasonSrc}
-export { SEASONS, kstDate, dayDiff, seasonPhase, checkName };
+export { SEASONS, WEEK_ANCHOR, kstDate, dayDiff, addDays, seasonById, seasonIdOf, seasonPhase, checkName };
 
 // ----- 프라이빗 시즌 규칙: data.js 의 RULES-BEGIN~END 구간 (validateRules 는 HEROES 를 참조하므로 HEROES 도 모듈 수준으로 추출) -----
 ${heroesSrc}

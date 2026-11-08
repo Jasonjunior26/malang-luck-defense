@@ -77,12 +77,12 @@ console.log("코인 예시: R20/300처치", coinsFor(20, 300, false, 0), " R35/7
   ctx.lsGet = (k, d = null) => (k in store ? store[k] : d); ctx.lsSet = (k, v) => { store[k] = v; };
   ctx.esc = (x) => String(x); ctx.nf = (n) => String(n); ctx.sfx = () => {}; ctx.BTNR = ""; ctx.closeModal = () => { html = ""; };
   ctx.$ = el; ctx.NAME_ERR_MSG = { len: "len", chars: "chars", bad: "bad" };
-  ctx.modal = (h) => { html = h; els.mhNm = { value: "" }; els.mhMsg = { textContent: "" }; for (const k of ["mhX", "mhOk", "mhRand", "mhNo"]) els[k] = { onclick: null }; btns = {}; for (const m of h.matchAll(/data-(m|add|p|b|h)="([^"]*)"/g)) btns[m[1] + ":" + m[2]] = { dataset: { [m[1]]: m[2] }, onclick: null }; };
+  ctx.modal = (h) => { html = h; els.mhNm = { value: "" }; els.mhMsg = { textContent: "" }; for (const k of ["mhX", "mhOk", "mhReg", "mhNo"]) els[k] = { onclick: null }; btns = {}; for (const m of h.matchAll(/data-(m|add|p|b|h)="([^"]*)"/g)) btns[m[1] + ":" + m[2]] = { dataset: { [m[1]]: m[2] }, onclick: null }; };
   ctx.document = { querySelectorAll: (sel) => { const m = /\[data-(\w+)\]/.exec(sel); return m ? Object.values(btns).filter((b) => m[1] in b.dataset) : []; } };
   vm.runInContext(rd("data.js") + "\n" + rd("myhero.js"), ctx);
   const MH = ctx.MyHero, run = (c) => vm.runInContext(c, ctx);
   ok(MH.list().length === 0 && MH.coins() === 0, "초기 빈 상태");
-  let started = "none"; MH.pick((m) => { started = m; }); ok(started === null, "등록 없으면 바로 시작(선택창 없음)");
+  let started = "none"; MH.pickMine((m) => { started = m; }); ok(started === "none" && /등록한 영웅이 없어요/.test(html) && !!els.mhReg, "등록 없으면 시작 안 하고 등록 안내");
   MH.open(); btns["add:1"].onclick(); btns["p:darami"].onclick();
   els.mhNm.value = "a"; els.mhOk.onclick(); ok(MH.list().length === 0 && els.mhMsg.textContent === "len", "이름 길이 거부");
   els.mhNm.value = "씨발이"; els.mhOk.onclick(); ok(MH.list().length === 0 && els.mhMsg.textContent === "bad", "금지어 거부");
@@ -90,9 +90,18 @@ console.log("코인 예시: R20/300처치", coinsFor(20, 300, false, 0), " R35/7
   for (const [id, nm] of [["hwarang", "불꽃이"], ["fairy", "요정이"], ["turtle", "거북이"]]) { MH.open(); if (btns["add:1"]) { btns["add:1"].onclick(); btns["p:" + id].onclick(); els.mhNm.value = nm; els.mhOk.onclick(); } }
   ok(MH.list().length === 3, "최대 3종 (4번째 등록 자리 없음)");
   // 코인 정산: 한 판 한 번만
-  const S1 = { mode: "daily", mine: null }; const r1 = MH.settle(S1, { R: 40, kills: 1600, win: false });
-  ok(r1.gain === 31 + 32 && MH.coins() === 63, "정산 " + JSON.stringify(r1)); ok(MH.settle(S1, { R: 40, kills: 1600 }).gain === 0, "이중 정산 방지");
-  ok(MH.settle({ mode: "practice", mine: null }, { R: 40, kills: 1600 }).gain === 31, "연습은 절반");
+  const S1 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "darami" } }; const r1 = MH.settle(S1, { R: 40, kills: 1600, win: false });
+  const L1 = MH.luck(4242, 40, false, 4), sub1 = 63 + L1.boss + L1.gold + L1.grade;
+  ok(r1.parts.base === 63 && r1.parts.boss === L1.boss && r1.parts.grade === 2 && r1.parts.daily === Math.min(15, Math.floor(sub1 * 0.2)) && r1.gain === sub1 + r1.parts.daily && MH.coins() === r1.gain, "정산 " + JSON.stringify(r1));
+  ok(MH.settle(S1, { R: 40, kills: 1600 }).gain === 0, "이중 정산 방지");
+  const S2 = { mode: "daily", mine: null, seed: 4242, topGrade: 4, hero: { id: "fairy" } }, r2 = MH.settle(S2, { R: 40, kills: 1600 });
+  ok(r2.parts.daily === 0 && r2.gain === sub1, "연습 제거: 절반 규칙 없음, 오늘 두 번째 판은 일일 보너스 없음 " + JSON.stringify(r2));
+  ok(JSON.stringify(MH.luck(4242, 40, false, 4)) === JSON.stringify(L1) && MH.luck(1, 3, false, 0).boss === 0 && MH.luck(1, 6, false, 0).boss >= 1 && MH.luck(1, 20, false, 6).grade === 22, "운 층 결정적/보스 5라운드마다/등급 합");
+  { const r = MH.settle({ mode: "daily", mine: null, seed: 4242, topGrade: 0, hero: { id: "darami" } }, { R: 50, kills: 1600 }); // 신기록: 이 영웅 이전 최고 R40 -> +10 라운드 x2
+    ok(r.parts.rec === 20, "신기록 +20 " + JSON.stringify(r.parts)); const r0 = MH.settle({ mode: "daily", mine: null, seed: 1, hero: { id: "newhero" } }, { R: 30, kills: 0 }); ok(r0.parts.rec === 0, "첫 판 신기록 0"); }
+  { const rm = MH.settle({ mode: "daily", mine: { up: { rew: 0 } }, seed: 9, topGrade: 0, hero: { id: "zz" } }, { R: 40, kills: 1600 }); ok(rm.parts.hero === 3, "내 영웅 +5% " + rm.parts.hero); }
+  ok(MH.settle({ mode: "daily", mine: null, seed: 5, hero: { id: "darami" } }, { R: 500, kills: 90000, win: true }).gain <= 250, "판당 상한 250");
+  { const d = JSON.parse(store["malang-myhero"]); d.coins = 94; store["malang-myhero"] = JSON.stringify(d); }
   // 강화: 94코인
   MH.open(); btns["m:darami"].onclick(); ok(/🪙 60/.test(html), "1단계 60코인"); btns["b:atk"].onclick();
   ok(MH.list()[0].up.atk === 1 && MH.coins() === 94 - 60, "구매 반영 " + MH.coins());
@@ -108,8 +117,8 @@ console.log("코인 예시: R20/300처치", coinsFor(20, 300, false, 0), " R35/7
   ok(MH.list().length === 0 && MH.coins() === 0, "손상 저장값 걸러냄");
   // 선택창
   store["malang-myhero"] = JSON.stringify({ v: 1, coins: 0, heroes: [{ id: "darami", name: "다람이1", up: { atk: 2 } }] });
-  let got = "none"; MH.pick((m) => { got = m; }); btns["h:darami"].onclick();
+  let got = "none"; MH.pickMine((m) => { got = m; }); ok(!/mhRand|랜덤/.test(html), "선택창에 랜덤 항목 없음"); btns["h:darami"].onclick();
   ok(got && got.hero === "darami" && got.up.atk === 2, "내 영웅 선택 -> mine 전달"); ok(MH.heroName() === "다람이1" && MH.again().hero === "darami", "again/heroName");
-  MH.pick((m) => { got = m; }); els.mhRand.onclick(); ok(got === null && MH.again() === null, "랜덤 선택");
+  MH.clear(); ok(MH.again() === null, "clear 후 다시 하기는 운빨 리그(mine=null)");
 }
 console.log(`pass ${pass} fail ${fail}`); process.exit(fail ? 1 : 0);

@@ -3,20 +3,37 @@ export const ENGINE_VER = "4";
 
 // ----- 시즌/닉네임 규칙: data.js 의 SEASONS-BEGIN~END 구간 (단일 출처) -----
 // SEASONS-BEGIN
-// 시즌 정의의 단일 출처. 날짜는 KST(한국 시간) "YYYY-MM-DD", start/end 양끝 포함. 다음 시즌은 배열 끝에 추가한다(겹치지 않게).
+// 시즌 규칙(단일 출처, 클라/서버/SQL season_current() 가 같은 규칙): 공개 시즌은 일요일 00:00 KST ~ 토요일 24:00 KST 7일 고정 반복.
+// 시즌 id 는 날짜에서 계산한다(설정 행 없음). 옛 시즌(SEASONS)은 불변 기록 + 주간 시즌의 앵커 이전 구간.
+// 날짜는 KST "YYYY-MM-DD", start/end 양끝 포함.
 const SEASONS = [
- { id: 1, name: "시즌 1", start: "2026-10-27", end: "2026-11-15" },
+ { id: 1, name: "시즌 1", start: "2026-10-27", end: "2026-11-07" }, // 옛 시즌(원래 11-15 까지였으나 주간 전환으로 토요일 11-07 에 마감)
 ];
+const WEEK_ANCHOR = "2026-11-08"; // 일요일. 이날부터 주간 시즌: id 2 = 11-08~11-14, id 3 = 11-15~11-21 ...
+const WEEK_FIRST_ID = 2;
 function kstDate(ms) { // 한국 날짜 "YYYY-MM-DD" (기기 시간대와 무관)
  return new Date((ms == null ? Date.now() : ms) + 9 * 3600e3).toISOString().slice(0, 10);
 }
 function dayDiff(a, b) { return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5); }
-// 해당 날짜의 시즌 단계: live(진행중) / before(시작 전, season=다음 시즌) / after(마지막 시즌 종료) / none
-function seasonPhase(date) {
+function addDays(d, n) { return new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10); }
+function seasonById(id) { // 시즌 id -> {id,name,start,end}. 1 미만/정수 아님은 null (미래 시즌도 계산해 돌려줌)
+ if (!Number.isInteger(id) || id < 1) return null;
+ const o = SEASONS.find((s) => s.id === id); if (o) return o;
+ if (id < WEEK_FIRST_ID) return null;
+ const st = addDays(WEEK_ANCHOR, (id - WEEK_FIRST_ID) * 7);
+ return { id, name: "시즌 " + id, start: st, end: addDays(st, 6) };
+}
+function seasonIdOf(date) { // 날짜 -> 시즌 id (옛 시즌 시작 전이면 0)
  const d = date || kstDate();
- for (const s of SEASONS) if (d >= s.start && d <= s.end) return { phase: "live", season: s };
- for (const s of SEASONS) if (d < s.start) return { phase: "before", season: s };
- if (SEASONS.length) return { phase: "after", season: SEASONS[SEASONS.length - 1] };
+ if (d >= WEEK_ANCHOR) return WEEK_FIRST_ID + Math.floor(dayDiff(WEEK_ANCHOR, d) / 7);
+ for (const s of SEASONS) if (d >= s.start && d <= s.end) return s.id;
+ return 0;
+}
+// 해당 날짜의 시즌 단계: live(진행중) / before(옛 시즌 시작 전, season=첫 시즌) / none. 주간 전환 이후에는 항상 live.
+function seasonPhase(date) {
+ const d = date || kstDate(), id = seasonIdOf(d);
+ if (id) return { phase: "live", season: seasonById(id) };
+ if (SEASONS.length && d < SEASONS[0].start) return { phase: "before", season: SEASONS[0] };
  return { phase: "none", season: null };
 }
 const NAME_BAD = ["fuck", "shit", "씨발", "시발", "병신", "좆"];
@@ -32,7 +49,7 @@ function checkName(raw, extraBad) {
  return { ok: true, name };
 }
 
-export { SEASONS, kstDate, dayDiff, seasonPhase, checkName };
+export { SEASONS, WEEK_ANCHOR, kstDate, dayDiff, addDays, seasonById, seasonIdOf, seasonPhase, checkName };
 
 // ----- 프라이빗 시즌 규칙: data.js 의 RULES-BEGIN~END 구간 (validateRules 는 HEROES 를 참조하므로 HEROES 도 모듈 수준으로 추출) -----
 const HEROES = [
@@ -57,6 +74,7 @@ const HEROES = [
  {"id":"ember","name":"불씨 도깨비","prob":4,"rule":"보스 제한시간 +10초, 화상 지속 +30%","fx":{"bossTime":10,"burnDur":1.3},"look":{"shape":[1.05,0.98],"c1":"#ff7043","c2":"#ffe0b2","c3":"#ffb300","base":[["ear","bump","#ff7043"],["tail","ember","#ffb300"]],"face":["sharp","fang"],"parts":[["hat","crown","#ffb300"],["acc","lavadrip","#ff5722"]]}},
  {"id":"moleart","name":"합성 장인 두더쥐","prob":4,"rule":"합성할 때마다 미네랄 +3","fx":{"mergeMin":3},"look":{"shape":[1.05,0.92],"c1":"#6d5b6a","c2":"#d9c8d6","c3":"#7ad0c8","base":[["ear","nub","#d9c8d6"],["nose","pink","#ffb3c6"],["mark","belly","#d9c8d6"]],"face":["sleepy","smile"],"parts":[["hat","headband","#ffd54f"],["acc","gem","#7ad0c8"]]}},
 ];
+
 // RULES-BEGIN
 // ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
 // 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
@@ -336,20 +354,37 @@ const CONST = {
 
 // ---------- 시즌 / 닉네임 규칙 (서버 번들 build_engine 이 SEASONS-BEGIN~END 를 그대로 추출해 함수도 같은 정의를 쓴다) ----------
 // SEASONS-BEGIN
-// 시즌 정의의 단일 출처. 날짜는 KST(한국 시간) "YYYY-MM-DD", start/end 양끝 포함. 다음 시즌은 배열 끝에 추가한다(겹치지 않게).
+// 시즌 규칙(단일 출처, 클라/서버/SQL season_current() 가 같은 규칙): 공개 시즌은 일요일 00:00 KST ~ 토요일 24:00 KST 7일 고정 반복.
+// 시즌 id 는 날짜에서 계산한다(설정 행 없음). 옛 시즌(SEASONS)은 불변 기록 + 주간 시즌의 앵커 이전 구간.
+// 날짜는 KST "YYYY-MM-DD", start/end 양끝 포함.
 const SEASONS = [
- { id: 1, name: "시즌 1", start: "2026-10-27", end: "2026-11-15" },
+ { id: 1, name: "시즌 1", start: "2026-10-27", end: "2026-11-07" }, // 옛 시즌(원래 11-15 까지였으나 주간 전환으로 토요일 11-07 에 마감)
 ];
+const WEEK_ANCHOR = "2026-11-08"; // 일요일. 이날부터 주간 시즌: id 2 = 11-08~11-14, id 3 = 11-15~11-21 ...
+const WEEK_FIRST_ID = 2;
 function kstDate(ms) { // 한국 날짜 "YYYY-MM-DD" (기기 시간대와 무관)
  return new Date((ms == null ? Date.now() : ms) + 9 * 3600e3).toISOString().slice(0, 10);
 }
 function dayDiff(a, b) { return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 864e5); }
-// 해당 날짜의 시즌 단계: live(진행중) / before(시작 전, season=다음 시즌) / after(마지막 시즌 종료) / none
-function seasonPhase(date) {
+function addDays(d, n) { return new Date(Date.parse(d + "T00:00:00Z") + n * 864e5).toISOString().slice(0, 10); }
+function seasonById(id) { // 시즌 id -> {id,name,start,end}. 1 미만/정수 아님은 null (미래 시즌도 계산해 돌려줌)
+ if (!Number.isInteger(id) || id < 1) return null;
+ const o = SEASONS.find((s) => s.id === id); if (o) return o;
+ if (id < WEEK_FIRST_ID) return null;
+ const st = addDays(WEEK_ANCHOR, (id - WEEK_FIRST_ID) * 7);
+ return { id, name: "시즌 " + id, start: st, end: addDays(st, 6) };
+}
+function seasonIdOf(date) { // 날짜 -> 시즌 id (옛 시즌 시작 전이면 0)
  const d = date || kstDate();
- for (const s of SEASONS) if (d >= s.start && d <= s.end) return { phase: "live", season: s };
- for (const s of SEASONS) if (d < s.start) return { phase: "before", season: s };
- if (SEASONS.length) return { phase: "after", season: SEASONS[SEASONS.length - 1] };
+ if (d >= WEEK_ANCHOR) return WEEK_FIRST_ID + Math.floor(dayDiff(WEEK_ANCHOR, d) / 7);
+ for (const s of SEASONS) if (d >= s.start && d <= s.end) return s.id;
+ return 0;
+}
+// 해당 날짜의 시즌 단계: live(진행중) / before(옛 시즌 시작 전, season=첫 시즌) / none. 주간 전환 이후에는 항상 live.
+function seasonPhase(date) {
+ const d = date || kstDate(), id = seasonIdOf(d);
+ if (id) return { phase: "live", season: seasonById(id) };
+ if (SEASONS.length && d < SEASONS[0].start) return { phase: "before", season: SEASONS[0] };
  return { phase: "none", season: null };
 }
 const NAME_BAD = ["fuck", "shit", "씨발", "시발", "병신", "좆"];
@@ -435,7 +470,7 @@ function makeRngs(seed) {
   misc: mulberry32((seed ^ 0x3C3C3C3C) >>> 0),
  };
 }
-function heroOfDay(rngHero, pool) {
+function pickHero(rngHero, pool) {
  if (pool && pool.length) { // 규칙 heroPool: 풀 안에서 확률 비례(원래 확률 가중) 선택, 난수 1회 소비는 동일
   const hs = HEROES.filter((h) => pool.indexOf(h.id) >= 0), tot = hs.reduce((a, h) => a + h.prob, 0);
   let y = rngHero() * tot;
@@ -599,7 +634,7 @@ function newGame(mode, forceSeed, rules, mine) {
   CONST.ROUNDS = R.rounds || CONST.ROUNDS_BASE;
   const seed = forceSeed || Math.floor(Math.random() * 2147483646) + 1; // 매 판 새 시드 (랭킹 판도 서버가 이 시드로 재현 검증)
   const rng = makeRngs(seed);
-  let hero = heroOfDay(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
+  let hero = pickHero(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
   let M = null;
   if (mine && !rules) { const v = validateMine(mine); if (!v.ok) throw new Error(v.err); M = v.mine; hero = applyMine(HEROES.find((h) => h.id === M.hero), M); } // 규칙(시즌/프라이빗) 판에는 내 영웅 미적용
   const hx = hero.fx || {};
@@ -972,8 +1007,7 @@ const GAME = {
   select(i) { S.sel = i >= 0 && S.slots[i] && S.sel !== i ? i : -1; },
   setSpeed(n) { S.speed = n === 2 || n === 3 ? n : 1; },
   start(mode, seed, rules, mine) {
-    if (!rules && !HEADLESS && mode === "practice") { try { const q = new URLSearchParams(location.search).get("rules"); if (q) rules = JSON.parse(q); } catch (e) { rules = null; } } // 개발용: ?rules={"hpMul":1.5} 연습 모드 전용(랭킹 제외)
-    newGame(mode === "practice" ? "practice" : "daily", seed, rules, mine); S.paused = false; S.sel = -1; return S; },
+    newGame("daily", seed, rules, mine); S.paused = false; S.sel = -1; return S; },
 };
 function hasBatchim(s) { const c = s.charCodeAt(s.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
 

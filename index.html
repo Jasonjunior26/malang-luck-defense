@@ -103,21 +103,16 @@
   .logo { font-size:50px; line-height:1.02; color:#fff; -webkit-text-stroke:2px #e0558a; paint-order:stroke fill; text-shadow:0 5px 0 #e0558a,0 10px 14px #0003; animation:float 2.2s ease-in-out infinite; } .logo span { color:#fff4a8; -webkit-text-stroke-color:#e08a00; text-shadow:0 5px 0 #e08a00,0 10px 14px #0003; }
   @keyframes float { 50% { transform:translateY(-8px) rotate(-1deg); } }
   #parade { width:min(92vw,340px); height:auto; aspect-ratio:340/150; display:block; }
-  /* 오늘의 조건 카드: 타이포 3단계 18/14/12, 폰트는 body(Jua) 상속 */
-  #todayBox { display:flex; align-items:center; gap:12px; width:min(92vw,340px); box-sizing:border-box; background:#fffaf0cc; border-radius:18px; padding:10px 14px; text-align:left; font-size:14px; line-height:1.35; }
-  #heroMini { flex:none; width:84px; height:84px; display:block; }
-  #todayTxt { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
-  #todayTxt .tt-sub { font-size:12px; opacity:.7; } #todayTxt .tt-name { font-size:18px; line-height:1.2; color:var(--pink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #todayTxt .tt-rule { font-size:14px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; word-break:keep-all; }
   .tiny { font-size:12px; opacity:.7; margin:0; }
   /* 타이틀 전용 버튼: 동일 너비/높이/폰트/정중앙 */
   #title .tbtn { box-sizing:border-box; width:min(92vw,340px); height:50px; padding:0 12px; margin:0; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:18px; line-height:1; white-space:nowrap; text-align:center; flex:none; }
   #title .tbtn.primary { background:linear-gradient(#ff9bbb,var(--pink)); box-shadow:0 5px 0 var(--pink2),0 8px 10px #0002; }
   #title .tbtn.secondary { background:linear-gradient(#a5e8ff,var(--blue)); box-shadow:0 5px 0 var(--blue2),0 8px 10px #0002; }
+  #title #start, #title #startMine { font-size:clamp(14px,4.6vw,18px); }
   #title .tbtn.ghost { background:#fffaf0aa; color:var(--ink); text-shadow:none; box-shadow:none; border:3px solid var(--pink); height:50px; }
   #title .tbtn.ghost:active { transform:translateY(2px); }
   #title { gap:10px; }
-  @media (max-height:700px) { .logo { font-size:40px; } #title { gap:7px; padding:10px 16px; } #title .tbtn { height:44px; font-size:17px; } #heroMini { width:76px; height:76px; } #todayBox { padding:7px 12px; } .tiny { display:none; } }
+  @media (max-height:700px) { .logo { font-size:40px; } #title { gap:7px; padding:10px 16px; } #title .tbtn { height:44px; font-size:17px; } .tiny { display:none; } }
 
   /* ---- 스운디 UI ---- */
   #cWave.boss { background:linear-gradient(#ffe0e0,#ffb3b3); } #cWave.boss.urgent { animation:pulse .35s infinite alternate; } #cWave.boss.urgent b { color:#d4182e; }
@@ -135,7 +130,6 @@
   table.pt { width:100%; border-collapse:collapse; font-size:12px; } table.pt td { padding:3px 2px; border-bottom:1px solid #0001; text-align:center; } table.pt canvas { width:26px; height:26px; margin:0 1px; vertical-align:middle; } table.pt tr.lk { background:#fff0a8; }
   .pk { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:8px 0; } .pk .opt { background:#fff; border:3px solid var(--gc,#ddd); border-radius:16px; padding:8px 4px; cursor:pointer; font-size:13px; line-height:1.3; } .pk .opt:active { transform:scale(.96); } .pk .opt canvas { width:56px; height:56px; display:block; margin:0 auto 2px; } .pk .opt.dim { opacity:.45; }
   .sc2 { text-align:left; font-size:13px; background:#fff; border-radius:12px; padding:6px 10px; margin:6px 0; line-height:1.55; } .sc2 b { float:right; }
-  #heroMini { width:64px; height:64px; display:block; margin:0 auto; }
   /* ---- 시즌 배너 / 닉네임 / 랭킹 보조 ---- */
   #seasonBox { box-sizing:border-box; width:min(92vw,340px); flex:none; background:linear-gradient(#fff7d6,#ffe9a8); border:3px solid #fff; border-radius:16px; padding:6px 10px 7px; text-align:left; line-height:1.3; cursor:pointer; box-shadow:0 3px 0 #e0b45a66; }
   #seasonBox.sprint { background:linear-gradient(#ffe3d8,#ffb9a0); animation:pulse .9s infinite alternate; }
@@ -155,7 +149,7 @@
     #app { max-width:none; display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto; align-content:center; column-gap:10px; row-gap:6px; padding-top:calc(6px + env(safe-area-inset-top)); padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
     #cvWrap { grid-column:1; grid-row:1 / 5; align-self:center; margin:0; }
     #hud { grid-column:2; grid-row:1; } #clanRows { grid-column:2; grid-row:2; } #infoCard { grid-column:2; grid-row:3; } #bar { grid-column:2; grid-row:4; }
-    #title { flex-direction:column; flex-wrap:wrap; align-content:center; justify-content:center; gap:6px 14px; padding:8px; } .logo { font-size:34px; } #parade,#seasonBox,#todayBox { display:none !important; } #title .tbtn { height:44px; width:min(44vw,300px); } .tiny { display:none; } #a2hs { width:min(44vw,300px); }
+    #title { flex-direction:column; flex-wrap:wrap; align-content:center; justify-content:center; gap:6px 14px; padding:8px; } .logo { font-size:34px; } #parade,#seasonBox { display:none !important; } #title .tbtn { height:44px; width:min(44vw,300px); } .tiny { display:none; } #a2hs { width:min(44vw,300px); }
     #box { max-height:96%; }
   }
   /* ---- v13 레이아웃: 두 줄 동일 높이(--rowh), HUD 4등분, 히어로 좁게/무리 넓게, 모달·버튼 정중앙 ---- */
@@ -268,12 +262,11 @@
   <div class="logo">말랑<br><span>운빨 디펜스</span></div>
   <canvas id="parade" width="340" height="150"></canvas>
   <div id="seasonBox"></div>
-  <div id="todayBox"><canvas id="heroMini" width="84" height="84"></canvas><div id="todayTxt"></div></div>
-  <button id="start" class="tbtn primary">▶ 랭킹 도전</button>
-  <button id="startP" class="tbtn secondary">🎲 연습 모드</button>
-  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button><button id="myhero" class="tbtn ghost">🦸 내 영웅</button></div>
+  <button id="start" class="tbtn primary">🎲 운빨 리그 도전</button>
+  <button id="startMine" class="tbtn primary">🦸 나만의 영웅 리그 도전</button>
+  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button><button id="myhero" class="tbtn ghost">🪙 코인 마켓</button></div>
   <div id="a2hs"><span id="a2hsTxt"></span><button id="a2hsX" aria-label="닫기">✕</button></div>
-  <p class="tiny">히어로와 뽑기 운은 판마다 새로 정해져요</p>
+  <p class="tiny">운빨 리그는 영웅도 뽑기 운도 판마다 새로 정해져요</p>
 </div>
 <div id="modal"><div id="box"></div></div>
 <div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno">게임 계속</button><button id="cok" class="mini" style="flex-direction:row">홈 이동</button></div></div></div>

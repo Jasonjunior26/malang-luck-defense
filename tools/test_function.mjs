@@ -75,7 +75,7 @@ const setNow = (kstDay, hh = 12) => { globalThis.__NOW__ = Date.parse(`${kstDay}
 setNow("2026-10-27");
 await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/index.ts")).href);
 const { replay, ENGINE_VER } = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/replay.js")).href);
-const { seasonPhase, checkName } = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/engine.js")).href);
+const { seasonPhase, seasonIdOf, seasonById, checkName } = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/engine.js")).href);
 
 const seedOf = (day) => +day.replace(/-/g, "");
 const seed = seedOf("2026-10-27");
@@ -89,8 +89,9 @@ let fail = 0, pass = 0; const t = (n, got, want) => { const ok = got[0] === want
 const tb = (n, ok) => { ok ? pass++ : fail++; console.log(ok ? "PASS" : "FAIL", n); };
 
 // ---- 시즌 정의 / 닉네임 규칙 (data.js 단일 출처가 engine.js 로 들어왔는지) ----
-tb("시즌 정의: 10/27 live, 11/15 live, 10/26 before, 11/16 after",
-  seasonPhase("2026-10-27").phase === "live" && seasonPhase("2026-11-15").phase === "live" && seasonPhase("2026-10-26").phase === "before" && seasonPhase("2026-11-16").phase === "after");
+tb("시즌 정의: 10/27 live(시즌1), 11/07 시즌1 마지막, 11/08(일) 시즌2, 10/26 before, after 없음",
+  seasonPhase("2026-10-27").phase === "live" && seasonIdOf("2026-11-07") === 1 && seasonIdOf("2026-11-08") === 2 && seasonPhase("2026-10-26").phase === "before" && seasonPhase("2029-01-01").phase === "live");
+tb("주간 시즌: 일~토 7일, 11/14(토)=2, 11/15(일 00시 KST)=3, id 로 기간 복원", seasonIdOf("2026-11-14") === 2 && seasonIdOf("2026-11-15") === 3 && seasonById(3).start === "2026-11-15" && seasonById(3).end === "2026-11-21" && new Date(seasonById(7).start + "T00:00:00Z").getUTCDay() === 0);
 tb("닉네임 규칙: 길이/문자/금칙/공백정리", !checkName("a").ok && !checkName("가".repeat(11)).ok && !checkName("a<b>").ok && !checkName("씨 발").ok && checkName("  말랑  이 ").name === "말랑 이");
 
 // ---- 닉네임 등록 ----
@@ -142,11 +143,16 @@ tb("저장된 이름은 players 의 닉네임", rpcCalls.filter((c) => c[0] === 
 setNow("2026-10-26");
 t("시즌 시작 전 제출 거부", await post({ ...base, seed: seedOf("2026-10-26") }), [403, "season_not_started"]);
 setNow("2026-11-16");
-t("시즌 종료 후 제출 거부", await post({ ...base, seed: seedOf("2026-11-16") }), [403, "season_closed"]);
 const pAfter = await call({ action: "profile", device_id: dev });
-tb("시즌 종료 후 프로필은 phase=after", pAfter[2].phase === "after");
-setNow("2026-11-15", 23); // 마지막 날(양끝 포함)
-t("시즌 마지막 날은 허용", await (async () => { const sd = seedOf("2026-11-15"), r2 = replay(sd, inputs).result; return post({ ...base, seed: sd, claimedScore: r2.score, claimedRound: r2.round, win: r2.win }); })(), [200, "ok"]);
+tb("주간 전환 후에는 항상 live(after 없음), 프로필 시즌 id=3", pAfter[2].phase === "live" && pAfter[2].season?.id === 3);
+setNow("2026-11-07", 23); // 옛 시즌 마지막 날(양끝 포함)
+t("옛 시즌 마지막 날은 허용", await (async () => { const sd = seedOf("2026-11-07"), r2 = replay(sd, inputs).result; return post({ ...base, seed: sd, claimedScore: r2.score, claimedRound: r2.round, win: r2.win }); })(), [200, "ok"]);
+{ // 시즌 경계: 토요일 23:59:59 KST 는 시즌 2, 일요일 00:00:00 KST 는 시즌 3 (서버 시각 기준 저장)
+  const mkq = (day) => { const sd = seedOf(day), r2 = replay(sd, inputs).result; return { ...base, seed: sd, claimedScore: r2.score, claimedRound: r2.round, win: r2.win }; };
+  globalThis.__NOW__ = Date.parse("2026-11-14T23:59:59+09:00"); const a = await call(mkq("2026-11-14"));
+  globalThis.__NOW__ = Date.parse("2026-11-15T00:00:00+09:00"); const b2 = await call(mkq("2026-11-15"));
+  tb("경계: 토 23:59:59 KST 제출=시즌 2, 일 00:00:00 KST 제출=시즌 3", a[2].season?.id === 2 && b2[2].season?.id === 3);
+}
 
 // ---- 시즌 최고점만 반영 + 순위 ----
 setNow("2026-10-27");

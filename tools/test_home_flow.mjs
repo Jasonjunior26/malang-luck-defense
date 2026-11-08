@@ -52,5 +52,20 @@ ok(/id="cno"[^>]*>게임 계속</.test(html) && /id="cok"[^>]*>홈 이동</.test
 ok(ui.includes('uiConfirm("홈으로 나갈까요?\\n진행 중인 게임은 종료돼요."'), "모달 문구");
 const dctx = vm.createContext({}); vm.runInContext(fs.readFileSync(path.join(root, "data.js"), "utf8") + "\n;this.H=HEROES;", dctx);
 for (const h of dctx.H) { ok(h.rule.length <= 30, "설명 길이 " + h.id + " " + h.rule.length); ok(!/표 참조|합계|차감|Lv/.test(h.rule), "금지어 " + h.id); }
+// 6. 홈 두 버튼(운빨 리그 / 나만의 영웅 리그) + 오늘의 영웅 카드 제거
+ok(/id="start"[^>]*>🎲 운빨 리그 도전</.test(html) && /id="startMine"[^>]*>🦸 나만의 영웅 리그 도전</.test(html) && /id="myhero"[^>]*>🪙 코인 마켓</.test(html), "홈 버튼 라벨");
+ok(!/todayBox|todayTxt|heroMini/.test(html + ui), "오늘의 영웅 카드 잔재 없음");
+{ const cl = (g) => { const i = ui.indexOf("const enter = (league)"), j = ui.indexOf('$("myhero").onclick', i); return ui.slice(i, j); };
+  const calls = []; const c2 = vm.createContext({ console }); const e = (r) => r;
+  let open = true, name = "닉";
+  Object.assign(c2, { dailyOpen: () => open, showSeasonClosed: () => calls.push("closed"), myName: () => name, showNick: (_a, cb) => { calls.push("nick"); c2._cb = cb; },
+    MyHero: { pickMine: (f) => { calls.push("pickMine"); f({ hero: "darami" }); } }, startRun: (m, s, r, mine) => calls.push("run:" + (mine ? mine.hero : "null")), guard: (f) => f });
+  vm.runInContext(cl() .replace(/\$\("start"\)\.onclick = guard\(/, "var A = (").replace(/\$\("startMine"\)\.onclick = guard\(/, "var B = (") + ";", c2);
+  const r = (f) => { calls.length = 0; vm.runInContext(f + "()", c2); return calls.join(","); };
+  ok(r("A") === "run:null", "운빨 리그: 선택창 없이 mine=null 로 시작: " + r("A"));
+  ok(r("B") === "pickMine,run:darami", "나만의 영웅 리그: 내 영웅 선택 후 시작");
+  open = false; ok(r("A") === "closed" && r("B") === "closed", "시즌 밖: 두 버튼 모두 안내"); open = true;
+  name = ""; ok(r("A") === "nick", "닉 없으면 닉네임 먼저"); c2._cb(); ok(calls.join(",") === "nick,run:null", "닉 확인 후 운빨 시작");
+  r("B"); ok(calls.join(",") === "nick", "나만의 영웅도 닉네임 먼저"); c2._cb(); ok(calls.join(",") === "nick,pickMine,run:darami", "닉 확인 후 선택창"); }
 console.log(fail ? "FAIL" : "PASS", pass + " ok, " + fail + " fail");
 process.exit(fail ? 1 : 0);

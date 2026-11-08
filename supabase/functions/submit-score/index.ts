@@ -191,6 +191,7 @@ Deno.serve(async (req: Request) => {
       p_season: seasonInfo!.id, p_score: r.score, p_round: r.round, p_win: r.win, p_mode: "daily", p_seed: seed, p_hero: r.hero,
       p_units: { count: r.units, pts: r.unitPts, kills: r.kills, draws: r.draws }, p_build: cleanBuild(r.build),
       p_ver: b.ver, p_inputs_hash: inputsHash, p_device_id: dev,
+      ...(mine ? { p_is_mine: true } : {}), // 보드 분리(009): 내 영웅 판은 내 영웅 보드로. 랜덤 판은 생략(009 전후 모두 동작)
     }));
     if (row?.o_status === "no_player") return fail(409, "no_player");
     if (mine && row?.o_saved) { // 랭킹에 보일 영웅 이름(007 마이그레이션 필요). 실패해도 점수 저장은 유지
