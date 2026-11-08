@@ -27,7 +27,7 @@ function play(seed, opt = {}) {
   const e = createEngine();
   if (opt.up) { e.CONST.UP_STEP = opt.up[0]; e.CONST.UP_STEP2 = opt.up[1]; }
   if (TUNE) for (const [k, v] of Object.entries(TUNE)) { const R = e.dbg.ROUNDS[+k.slice(1) - 1]; if (k[0] === "h") R[5] = v; else if (k[0] === "t") R[10] = v; else if (k[0] === "a") R[6] = v; } // 튜닝용: {"h55":hp,"t60":초,"a57":방어}
-  const S = e.start(seed, opt.hero ? { heroPool: [opt.hero] } : null), G = e.GAME, K = e.CONST, D = e.dbg;
+  const S = opt.mine ? e.start(seed, null, opt.mine) : e.start(seed, opt.hero ? { heroPool: [opt.hero] } : null), G = e.GAME, K = e.CONST, D = e.dbg;
   const power = () => { const p = [0, 0, 0, 0]; for (const s of S.slots) if (s && !s.hero) p[s.ch & 3] += PTS(s.ch >> 2) * s.n; return p; };
   let main = -1;
   const best = () => { if (main >= 0) return main; const p = power(); let b = 0; for (let c = 1; c < 4; c++) if (p[c] > p[b]) b = c; if (opt.focusR && S.round >= opt.focusR) main = b; return b; };
@@ -134,6 +134,18 @@ if (mode === "ab") {
   const list = (process.env.SC || "low3,low3eco,e4,e4eco,leg1,leg1eco").split(",");
   console.log(SHDR);
   for (const f of list) console.log(srow(f, batch(N, { force: f, eco: f.endsWith("eco") ? 0.5 : 0 })));
+} else if (mode === "mine") { // 내 영웅 v2: 운빨 리그(시드 영웅) vs 기본 영웅(능력 없음) vs 풀빌드(전투력 상한 = 최악의 경우) 장착 조합별
+  const E = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/engine.js")).href);
+  const full = {}; for (const it of E.MY_ITEMS) full[it.id] = it.max;
+  const noSk = Object.fromEntries(Object.entries(full).filter(([k]) => !k.startsWith("sk_")));
+  const L = [["운빨 리그(시드 영웅)", {}], ["내 영웅 기본(능력 없음)", { mine: { design: "cat", items: {}, equip: [] } }],
+    ["풀빌드 스킬 미장착", { mine: { design: "cat", items: noSk, equip: [] } }]];
+  for (const eq of (process.env.EQ || "sk_storm+sk_meteor,sk_nova+sk_storm,sk_chain+sk_storm,sk_beam+sk_meteor").split(",")) L.push(["풀빌드 " + eq, { mine: { design: "cat", items: full, equip: eq.split("+") } }]);
+  if (process.env.HALF) { const half = {}; for (const it of E.MY_ITEMS) half[it.id] = Math.ceil(it.max / 2); L.push(["절반빌드 sk_storm+sk_meteor", { mine: { design: "cat", items: half, equip: ["sk_storm", "sk_meteor"] } }]); }
+  if (process.env.ONE) { L.length = 2; for (const it of E.MY_ITEMS) if (!it.sk && it.id !== "coin") L.push(["단독 " + it.id + " " + it.max, { mine: { design: "cat", items: { [it.id]: it.max }, equip: [] } }]); }
+  if (process.env.BUILDS) { L.length = 2; for (const [nm, b] of Object.entries(JSON.parse(process.env.BUILDS))) L.push([nm + " (전투력 " + E.myPower(b.items) + ")", { mine: { design: "cat", equip: [], ...b } }]); } // {"이름":{items,equip}}
+  console.log(HDR);
+  for (const [nm, o] of L) { const v = o.mine ? E.validateMine(o.mine) : { ok: true }; if (!v.ok) { console.log("invalid", nm, v.err); continue; } console.log(row(nm, batch(N, o))); }
 } else if (mode === "table") {
   const e = createEngine(); e.start(1, null);
   console.log("| R | 이름 | 개체 HP(배율 적용) | 수 | 라운드 총 HP | 방어 | 시간 |\n|---|---|---|---|---|---|---|");

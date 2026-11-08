@@ -63,7 +63,7 @@ function newGame(mode, forceSeed, rules, mine) {
   const rng = makeRngs(seed);
   let hero = pickHero(rng.hero, R.heroPool); // 내 영웅이어도 난수는 똑같이 소비한다(이후 시드 흐름 동일)
   let M = null;
-  if (mine && !rules) { const v = validateMine(mine); if (!v.ok) throw new Error(v.err); M = v.mine; hero = applyMine(HEROES.find((h) => h.id === M.hero), M); } // 규칙(시즌/프라이빗) 판에는 내 영웅 미적용
+  if (mine && !rules) { const v = validateMine(mine); if (!v.ok) throw new Error(v.err); M = v.mine; hero = applyMine(M); } // 규칙(시즌/프라이빗) 판에는 내 영웅 미적용. 내 영웅 = 기본 영웅(일반 공격) + 시장 능력(data.js MYHERO)
   const hx = hero.fx || {};
   UP_MUL = hx.upCost || 1; // 히어로가 바꾸는 상수는 매 판 기준값에서 다시 계산 (판매가·뽑기 비용)
   if (CONST.DRAW_COST0 == null) CONST.DRAW_COST0 = CONST.DRAW_COST;
@@ -161,13 +161,17 @@ function segDist(px, py, ax, ay, bx, by) {
 
 // ---------- 발사 ----------
 // 유닛 정의 (일반 유닛은 CHARS, 히어로는 고정 수치)
-function defOf(u) {
-  const rm = rangeMul(u), sp = S.hero.fx.atkSpd || 1; // 사거리 강화·히어로 보정, 공격 속도(번개 족제비)
-  if (u.hero) return { fx: "shot", atk: HERO_UNIT.atk, cd: HERO_UNIT.cd / sp, range: HERO_UNIT.range * rm, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
+function defOf(u, sup) {
+  const rm = rangeMul(u), hx = S.hero.fx, sp = hx.atkSpd || 1; // 사거리 강화·히어로 보정, 공격 속도(번개 족제비)
+  if (u.hero) { // 내 영웅: heroAtk(영웅 근력), hsk/hsk2(장착 스킬 = 기본/필살 공격 방식). 운빨 리그 영웅은 셋 다 없음
+    const ha = HERO_UNIT.atk * (hx.heroAtk || 1), k = (sup && hx.hsk2) || hx.hsk;
+    if (!k) return { fx: "shot", atk: ha, cd: HERO_UNIT.cd / sp, range: HERO_UNIT.range * rm, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
+    return { fx: k.fx, atk: ha * k.k, cd: (HERO_UNIT.cd * k.cd) / sp, range: HERO_UNIT.range * rm, aoe: k.aoe, pierce: k.pierce || 0, st: k.st, shot: k.shot, grade: 3 };
+  }
   const c = CHARS[u.ch]; return { fx: c.fx, atk: c.atk, cd: c.cd / sp, range: c.range * rm, aoe: c.aoe, pierce: c.pierce || 0, st: c.st, shot: c.shot, grade: c.grade };
 }
 function launch(u, i, f) {
-  const p = slotPos(i), d = defOf(u);
+  const p = slotPos(i), d = defOf(u, f.sup);
   let m = f.m;
   if (!m || m.hp <= 0) { m = nearest(p, d.range + 30); if (!m) return; }
   sfx(u.hero ? "atk4" : "atk" + (u.ch & 3));
@@ -521,13 +525,14 @@ function update(dt) {
     if (!HEADLESS && sparkOk && !u.hero && GRADES[u.ch >> 2].style.sparkPerSec > 0) gradeParticles(u.ch, p.x, p.y, dt, (pt) => S.parts.push(pt));
     u.cd -= dt;
     if (u.cd > 0) continue;
-    const d = defOf(u);
+    // 히어로 4번째 공격 = 필살: 이번 공격이 필살인지 먼저 정해 그 정의(hsk2 의 cd·모션)를 쓴다. hsk/hsk2 없으면 defOf 가 sup 를 무시 -> v6 와 동일
+    const sup = !!u.hero && ((u.shots || 0) + 1) % 4 === 0;
+    const d = defOf(u, sup);
     const best = nearest(p, d.range);
     if (!best) continue;
     const q = trackPoint(best.d);
     u.cd = d.cd;
     u.shots = (u.shots || 0) + 1;
-    const sup = !!u.hero && u.shots % 4 === 0;
     u.anim = { t: 0.45, dur: 0.45, ang: Math.atan2(q.y - p.y, q.x - p.x), hero: !!u.hero, style: MOT[d.fx], fx: d.fx };
     u.fire = { t: 0.16, m: best, sup };
     if (u.hero) ring(p.x, p.y + 14, sup ? "#ff9f1c" : "#ffd54f", sup ? 60 : 36, 0.5);

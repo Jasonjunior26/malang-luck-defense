@@ -150,13 +150,13 @@ ok(/P\.score <= lb\) \{ flushQueue\(\); return \{ st: "skip"/.test(sub), "개인
 ok(sub.includes("sbestSet(bd0, ssid, r.d.season_best)") && sub.includes("if (r.d.saved)") && sub.includes("rcDrop("), "서버 확정 최고만 기록 + 갱신 시 캐시 폐기");
 ok(/season: sid0/.test(sub) && /item\.season !== cs\.id/.test(ui), "큐 항목에 시즌 id, 지난 시즌 큐는 폐기");
 ok(ui.includes("LEAGUE[S.mine ? \"mine\" : \"rand\"]") && ui.includes("나만의 영웅 리그\" : \"운빨 리그\"} 랭킹 보기"), "(a) 판 종료 화면에 리그명 표시(제목/버튼)");
-ok(/\$\{LEAGUE\[board\]\}/.test(cut(ui, "async function showRanks(", "function restartGame()")) && /data-b=/.test(ui) && /data-s=/.test(ui) && /data-t="\$\{k\}"/.test(ui), "랭킹 모달: 리그명 제목, 리그 토글, 시즌 선택, 탭");
+ok(/RK_LEAGUE/.test(cut(ui, "async function showRanks(", "function restartGame()")) && /data-b=/.test(ui) && /data-s=/.test(ui) && /data-t=/.test(ui) && /role="tab"/.test(ui) && /aria-selected/.test(ui), "랭킹 모달: 리그 탭+내 기록 탭, 보조 탭, 시즌 선택, role=tab/aria-selected");
 ok(!/api\("profile"\)/.test(cut(ui, "async function refreshTitle()", "function showSeasonClosed")), "홈 진입은 Edge Function(profile) 호출 없음");
 const mig = rd("supabase/migrations/010_season_points.sql");
 ok(/2026-11-08/.test(mig) && /\/ 7/.test(mig) && /Asia\/Seoul/.test(mig) && /when 1 then 3 when 2 then 2 else 1/.test(mig) && /b\.season < public\.season_current\(\)/.test(mig), "010: season_current(앵커·7일·KST), 승점 3/2/1, 끝난 시즌만");
 ok(/rank\(\) over \(partition by t\.is_mine order by t\.points desc, t\.gold desc, t\.silver desc, t\.bronze desc\)/.test(mig) && /grant select on public\.leaderboard_points to anon/.test(mig) && /revoke all on public\.season_final_points/.test(mig), "010: 리그별 승점 순위/동점 규칙/권한");
 ok(!fs.existsSync(path.join(root, "supabase/migrations/008_x.sql")) && fs.readdirSync(path.join(root, "supabase/migrations")).every((f) => !f.startsWith("008")), "008 번호는 계속 비워 둠");
 const engine = rd("supabase/functions/submit-score/engine.js");
-ok(/const WEEK_ANCHOR = "2026-11-08"/.test(engine) && /function seasonIdOf/.test(engine) && /const ENGINE_VER = "6"/.test(engine + rd("game.js") + data) , "서버 번들에 주간 시즌 규칙 포함, GAME_VER 6 유지");
+ok(/const WEEK_ANCHOR = "2026-11-08"/.test(engine) && /function seasonIdOf/.test(engine) && /const ENGINE_VER = "7"/.test(engine + rd("game.js") + data) , "서버 번들에 주간 시즌 규칙 포함, GAME_VER 7(내 영웅 v2)");
 const sw = rd("sw.js"); ok(!/v24-coin-market-btn/.test(sw) && /CACHE_VERSION = 'v\d+-/.test(sw), "sw CACHE_VERSION 갱신");
 console.log(`pass ${pass} fail ${fail}`); process.exit(fail ? 1 : 0);

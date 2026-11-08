@@ -130,6 +130,8 @@
   table.pt { width:100%; border-collapse:collapse; font-size:12px; } table.pt td { padding:3px 2px; border-bottom:1px solid #0001; text-align:center; } table.pt canvas { width:26px; height:26px; margin:0 1px; vertical-align:middle; } table.pt tr.lk { background:#fff0a8; }
   .pk { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:8px 0; } .pk .opt { background:#fff; border:3px solid var(--gc,#ddd); border-radius:16px; padding:8px 4px; cursor:pointer; font-size:13px; line-height:1.3; } .pk .opt:active { transform:scale(.96); } .pk .opt canvas { width:56px; height:56px; display:block; margin:0 auto 2px; } .pk .opt.dim { opacity:.45; }
   .sc2 { text-align:left; font-size:13px; background:#fff; border-radius:12px; padding:6px 10px; margin:6px 0; line-height:1.55; } .sc2 b { float:right; }
+  .cg { text-align:center; background:#fff; border-radius:12px; padding:8px 10px; margin:6px 0; } .cgn { font-size:30px; font-weight:900; color:#c98a00; line-height:1.15; } .cgs { font-size:12px; opacity:.65; } .cgl { display:inline-block; margin:4px 3px 0; padding:2px 10px; border-radius:99px; background:#7c4dff; color:#fff; font-size:13px; font-weight:700; } .cgl.d { background:#d9487a; }
+  .cgd { margin-top:4px; font-size:12px; text-align:left; } .cgd summary { cursor:pointer; text-align:center; opacity:.65; } .cgd ul { list-style:none; margin:4px 0 0; padding:0; } .cgd li { padding:1px 4px; } .cgd li b { float:right; }
   /* ---- 시즌 배너 / 닉네임 / 랭킹 보조 ---- */
   #seasonBox { box-sizing:border-box; width:min(92vw,340px); flex:none; background:linear-gradient(#fff7d6,#ffe9a8); border:3px solid #fff; border-radius:16px; padding:6px 10px 7px; text-align:left; line-height:1.3; cursor:pointer; box-shadow:0 3px 0 #e0b45a66; }
   #seasonBox.sprint { background:linear-gradient(#ffe3d8,#ffb9a0); animation:pulse .9s 10 alternate; }
@@ -142,6 +144,11 @@
   .rk.cheer { background:#fff0a8; outline:3px solid var(--gold); animation:glow 1s 8 alternate; }
   .nkmsg { min-height:18px; margin:4px 0; font-size:12px; color:#d4182e; }
   .codebox { font-size:12px; word-break:break-all; background:#fff; border-radius:10px; padding:6px; margin:6px 0; user-select:all; }
+  /* 랭킹 화면: 최상위 탭(리그/내 기록) + 보조 탭(시즌/승점) */
+  .rkt { margin:6px 0 4px; gap:4px; } .rkt button { height:40px; min-height:40px; padding:4px 2px; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.15; } .rkt button.on { background:var(--gold,#ffcf4a); }
+  .rkt.sub button { min-height:34px; font-size:13px; background:#fff3d6; box-shadow:none; } .rkt.sub button.on { background:#f3e1b4; box-shadow:inset 0 -3px 0 #d8bf86; }
+  .rknav { display:flex; align-items:center; gap:6px; margin:2px 0; } .rknav span { flex:1; font-size:14px; font-weight:700; } .rknav button { min-width:44px; min-height:40px; padding:2px 8px; font-size:13px; }
+  .rksub { display:block; margin:2px 0 6px; } .rkref { display:block; margin:2px auto 4px; padding:4px 8px; min-height:0; border:0; background:none; box-shadow:none; font-size:12px; opacity:.6; color:var(--ink); text-decoration:underline; }
   .stk { position:sticky; bottom:-1px; padding-top:6px; background:linear-gradient(#fff1cf00,#fff1cf 8px); }
   #a2hs { display:none; width:min(92vw,340px); align-items:center; gap:8px; background:#fffaf0cc; border:2px dashed var(--pink); border-radius:14px; padding:6px 8px 6px 12px; font-size:12px; line-height:1.3; text-align:left; } #a2hs.on { display:flex; } #a2hs span { flex:1; } #a2hs button { flex:none; min-width:44px; min-height:44px; padding:0; margin:-6px 0; font-size:16px; background:none; box-shadow:none; color:var(--ink); text-shadow:none; }
   /* 가로 모드: 왼쪽 캔버스, 오른쪽 조작부 */
@@ -235,6 +242,78 @@
   /* 절전(html.save): 무한 CSS 애니메이션 끄기 */
   html.save .logo { animation:none; } html.save #vig.on { animation:none; }
   #save.off { opacity:.6; }
+  /* ---- 내 영웅 v2: 홈 코인 마켓 버튼 + 코인 마켓/영웅 고르기/장착 화면 (myhero.js) ---- */
+  #title .tbtn.gold { background:linear-gradient(#ffe08a,var(--gold)); box-shadow:0 5px 0 #d08a00,0 8px 10px #0002; color:#fff; font-size:clamp(14px,4.6vw,18px); }
+  #title #myCoins { background:#fff; color:#b06a00; text-shadow:none; border-radius:999px; padding:3px 10px; font-size:14px; font-weight:800; min-width:24px; }
+  #box .mhsub { display:block; text-align:center; opacity:.65; font-size:12px; margin:2px 0 6px; }
+  #box .mhmsg { min-height:16px; color:#c0392b; font-size:12px; margin:2px 0; text-align:center; }
+  #box .mhmsg:empty { min-height:0; }
+  #box .mhnote { font-size:15px; line-height:1.45; margin:4px 0 12px; }
+  #box canvas.mhpt { display:block; width:100%; height:auto; aspect-ratio:1; }
+  #box canvas.mhbig { display:block; width:96px; height:96px; margin:0 auto; }
+  #box .mhdg { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin:4px 0 10px; }
+  #box .mhdc { padding:4px 2px 5px; border-radius:14px; background:#fff; color:var(--ink); box-shadow:0 2px 0 #e8d3ad; display:flex; flex-direction:column; align-items:center; gap:1px; font-size:12px; font-weight:700; text-shadow:none; min-width:0; }
+  #box .mhdc:active:not(:disabled) { transform:translateY(2px); box-shadow:none; }
+  #box .mhdc canvas { width:min(100%,60px); }
+  #box .mhdc span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  #box .mhdc.got { background:#fff4c2; box-shadow:0 0 0 2px var(--gold); }
+  #box .mhdc em { position:absolute; top:3px; right:3px; font-style:normal; font-size:9px; background:var(--gold); color:#fff; border-radius:6px; padding:1px 4px; }
+  #box .mhpks li { flex-wrap:nowrap; gap:6px; padding:5px 6px; }
+  #box .mhpks canvas { width:44px; flex:none; }
+  #box .mhpks .nm b { font-size:15px; } #box .mhpks .nm small { text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #box .mhpks button { flex:none; min-width:52px; height:40px; padding:0 8px; font-size:14px; flex-direction:row; justify-content:center; }
+  /* 시장 */
+  #box .mktop { position:sticky; top:-18px; z-index:2; margin:-18px -18px 6px; padding:10px 12px 6px; background:#fff6dc; border-bottom:2px solid #f0dcb0; border-radius:22px 22px 0 0; }
+  #box .mkbar { display:flex; align-items:center; gap:6px; }
+  #box .mkhs { display:flex; gap:6px; flex:1; min-width:0; }
+  #box .mkhc { width:42px; height:42px; flex:none; padding:1px; border-radius:50%; background:#fff; box-shadow:none; border:2px solid #ead7b0; color:#c9a56a; font-size:20px; text-shadow:none; }
+  #box .mkhc.on { border-color:var(--pink); box-shadow:0 0 0 2px #ffd0de; }
+  #box .mkhc canvas { width:100%; height:100%; border-radius:50%; display:block; }
+  #box .mkhc.add { border-style:dashed; }
+  #box .mkcoin { flex:none; font-size:17px; background:#fff; border-radius:999px; padding:4px 12px; color:#b06a00; border:2px solid #ffd77a; white-space:nowrap; }
+  #box .mkme { display:flex; align-items:center; gap:6px; margin:6px 0 5px; font-size:12px; text-align:left; }
+  #box .mkme .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } #box .mkme b { font-size:14px; }
+  #box .mkme button { flex:none; height:32px; padding:0 14px; font-size:13px; flex-direction:row; border-radius:12px; }
+  #box .mktabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+  #box .mktabs button { height:32px; padding:0 2px; font-size:12px; border-radius:10px; background:#fff; color:var(--ink); text-shadow:none; box-shadow:none; border:2px solid #ead7b0; white-space:nowrap; overflow:hidden; }
+  #box .mktabs button.on { background:var(--pink); color:#fff; border-color:var(--pink2); }
+  #box .mkgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; text-align:left; margin-bottom:10px; }
+  #box .mkc { background:#fff; border-radius:14px; padding:8px; display:flex; flex-direction:column; gap:3px; border:2px solid #f3e3c2; min-width:0; }
+  #box .mkc .mkh { display:flex; align-items:center; gap:4px; min-width:0; } #box .mkc .mkh b { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #box .mki { font-size:20px; line-height:1; flex:none; }
+  #box .mkc p { margin:0; font-size:11px; line-height:1.3; opacity:.8; flex:1; text-align:left; word-break:keep-all; }
+  #box .mkdot { display:flex; gap:3px; flex-wrap:wrap; align-items:center; } #box .mkdot i { width:10px; height:10px; border-radius:50%; background:#fff; border:2px solid #cdbb98; box-sizing:border-box; } #box .mkdot i.on { background:#f0a400; border-color:#b87900; }
+  #box .mkdot em { font-style:normal; font-size:11px; font-weight:800; color:#a06a00; margin-left:2px; }
+  #box .mktag { font-size:10px; color:#8a6a45; opacity:.8; }
+  #box .mkbuy { height:40px; padding:0 6px; font-size:14px; border-radius:10px; background:linear-gradient(#9be8ad,var(--green)); box-shadow:0 3px 0 var(--green2); }
+  #box .mkbuy.off { background:#eee9e0; color:#a99a85; box-shadow:none; border:2px dashed #cfc3ae; text-shadow:none; filter:grayscale(1); }
+  #box .mkbuy.nope { animation:mknope .3s; } @keyframes mknope { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
+  #box .mktoast { position:fixed; left:50%; bottom:84px; transform:translateX(-50%); background:#3d2b1fe6; color:#fff; font-size:13px; padding:6px 14px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:20; white-space:nowrap; } #box .mktoast.on { opacity:1; }
+  #box .mklk { grid-column:1/-1; background:#f7f2e9; border-radius:12px; padding:0 8px; text-align:left; font-size:12px; color:#7a6750; }
+  #box .mklk summary { min-height:40px; display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:800; font-size:13px; } #box .mklk summary small { font-weight:400; opacity:.75; font-size:11px; }
+  #box .mklk ul { list-style:none; margin:0 0 6px; padding:0; } #box .mklk li { display:flex; align-items:center; gap:6px; padding:4px 0; border-top:1px solid #ece2d0; } #box .mklk li b { flex:1; font-size:12px; } #box .mklk li .mki { font-size:16px; }
+  #box .mkneed { font-size:10px; color:#c0392b; text-align:center; }
+  #box .mkst { min-height:40px; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:10px; background:#f4efe6; color:#8a7760; text-align:center; line-height:1.15; padding:0 4px; }
+  #box .mkc.max { border-color:#ffd77a; background:#fffaf0; } #box .mkc.max .mkst { background:#fff0b8; color:#b06a00; font-weight:800; }
+  #box .mkc.lock { opacity:.7; } #box .mkc.lock .mkst { font-size:10px; }
+  #box .mkc.got { animation:mkgot .45s ease-out; } @keyframes mkgot { 40% { transform:scale(1.05); border-color:var(--gold); } }
+  /* 장착 */
+  #box h3 { margin:10px 0 4px; font-size:14px; text-align:left; }
+  #box .eqhd { display:flex; align-items:center; justify-content:center; gap:8px; } #box .eqhd canvas { width:40px; }
+  #box .mhg { position:relative; height:22px; border-radius:11px; background:#f1e6cf; overflow:hidden; margin:6px 0 2px; }
+  #box .mhg i { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#9be8ad,var(--green)); border-radius:11px; }
+  #box .mhg span { position:relative; font-size:12px; font-weight:800; line-height:22px; }
+  #box .eqslots { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
+  #box .eqs { min-height:46px; padding:4px; font-size:13px; border-radius:12px; background:#fff; color:#b3a48c; text-shadow:none; box-shadow:none; border:2px dashed #e3cfa6; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.2; }
+  #box .eqs small { font-size:10px; opacity:.8; } #box .eqs.on { color:var(--ink); border:2px solid var(--pink); background:#fff0f5; }
+  #box .eqs:disabled { filter:none; opacity:1; }
+  #box .eqsk { display:flex; flex-wrap:wrap; gap:4px; }
+  #box .eqsk button { height:40px; padding:0 8px; font-size:12px; border-radius:10px; background:#fff; color:var(--ink); text-shadow:none; box-shadow:none; border:2px solid #ead7b0; }
+  #box .eqsk button.on { border-color:var(--pink); background:#ffe3ec; }
+  #box .eqn li { flex-wrap:nowrap; gap:4px; padding:5px 6px; } #box .eqn li.off { opacity:.6; }
+  #box .eqn .nm { font-size:13px; min-width:0; white-space:normal; } #box .eqn .nm small { text-align:left; white-space:normal; word-break:keep-all; line-height:1.25; opacity:.65; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #box .eqn button { flex:none; width:40px; height:40px; padding:0; font-size:18px; border-radius:10px; flex-direction:row; justify-content:center; }
+  #box .eqv { flex:none; min-width:34px; text-align:center; font-size:13px; }
 </style>
 </head>
 <body>
@@ -276,7 +355,8 @@
   <div id="seasonBox"></div>
   <button id="start" class="tbtn primary">🎲 운빨 리그 도전</button>
   <button id="startMine" class="tbtn primary">🦸 나만의 영웅 리그 도전</button>
-  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button><button id="myhero" class="tbtn ghost">🪙 코인 마켓</button></div>
+  <button id="myhero" class="tbtn gold">🪙 코인 마켓<span id="myCoins">0</span></button>
+  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button></div>
   <div id="a2hs"><span id="a2hsTxt"></span><button id="a2hsX" aria-label="닫기">✕</button></div>
   <p class="tiny">운빨 리그는 영웅도 뽑기 운도 판마다 새로 정해져요</p>
 </div>

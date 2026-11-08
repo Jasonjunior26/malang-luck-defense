@@ -376,44 +376,145 @@ function unitPoints(slots) {
 }
 
 // MYHERO-BEGIN
-// ---------- '내 영웅': 기존 영웅 중 최대 3종을 등록하고 영웅별로 강화한다. 서버 리플레이도 같은 함수를 쓴다(단일 출처). docs/내영웅_진행.md ----------
-// 강화는 mine = {hero:"영웅id", up:{atk,rew,disc,start}} 로 판 시작 때만 주어지며 랜덤 영웅 판·규칙(시즌/프라이빗) 판에는 적용되지 않는다.
-const MY_HERO = {
- MAX: 3, TOTAL_CAP: 10, // 영웅 1종당 강화 단계 총합 상한(폭주 방지)
- COST: [60, 100, 160, 240, 340], // 방향별 n단계째 비용(코인). 1단계 60 -> 5단계 누적 900
- DIRS: [
-  { k: "atk", name: "공격", ico: "⚔️", max: 5, per: 0.03, txt: (l) => `유닛 공격력 +${l * 3}%` },
-  { k: "rew", name: "보상", ico: "🎁", max: 5, per: 0.04, txt: (l) => `처치 보상 +${l * 4}% · 코인 +${l * 5}%` },
-  { k: "disc", name: "할인", ico: "🏷️", max: 3, per: 0.04, txt: (l) => `공업 강화 비용 -${l * 4}%` },
-  { k: "start", name: "시작 자원", ico: "💎", max: 5, per: 8, txt: (l) => `시작 미네랄 +${l * 8}` },
- ],
-};
-const myUpSum = (up) => MY_HERO.DIRS.reduce((a, d) => a + ((up && up[d.k]) | 0), 0);
-// 검증/정리. 반환 {ok, mine} | {ok:false, err}
+// ---------- '내 영웅' v2 (GAME_VER 7): 디자인 20종 중 하나 + 코인 시장에서 산 능력. 서버 리플레이도 같은 함수를 쓴다(단일 출처). docs/내영웅_v2_스펙.md ----------
+// mine = { design:"디자인id", items:{ 품목id: 켠 단계(1..max) }, equip:["스킬 품목id", ...최대 MY_EQUIP_MAX] }
+// items 는 이번 판에 "켠" 능력이다(보유 단계 이하, 전투력 합 <= MY_POWER_CAP). 보유 단계(구매 기록)는 클라이언트(myhero.js) 저장값에만 있다.
+// 기본 영웅은 모든 디자인이 같다(일반 공격만, 특수 능력 없음). 능력은 전부 items 에서 온다. 운빨 리그(HEROES 10종)는 이 구간과 무관.
+// 랜덤 영웅 판·규칙(프라이빗 시즌) 판에는 적용되지 않는다(game.js newGame / replay.js).
+const MY_DESIGNS = [
+ { id: "bee", name: "꿀벌" }, { id: "goose", name: "거위" }, { id: "weasel", name: "족제비" }, { id: "whale", name: "고래" }, { id: "hedgehog", name: "고슴도치" },
+ { id: "chameleon", name: "카멜레온" }, { id: "frog", name: "개구리" }, { id: "penguin", name: "펭귄" }, { id: "fennec", name: "사막여우" }, { id: "owlsage", name: "부엉이" },
+ { id: "fox", name: "여우" }, { id: "cat", name: "고양이" }, { id: "bunny", name: "토끼" }, { id: "bear", name: "곰" }, { id: "panda", name: "판다" },
+ { id: "dragon", name: "아기 용" }, { id: "unicorn", name: "유니콘" }, { id: "octopus", name: "문어" }, { id: "turtle", name: "거북이" }, { id: "raccoon", name: "너구리" },
+];
+const MY_CATS = [
+ { k: "atk", name: "공격", ico: "⚔️" }, { k: "skill", name: "영웅·스킬", ico: "✨" }, { k: "reward", name: "보상", ico: "🎁" },
+ { k: "eco", name: "경제", ico: "💎" }, { k: "guard", name: "방어·생존", ico: "🛡️" }, { k: "special", name: "특수", ico: "🔮" },
+];
+const MY_EQUIP_MAX = 2; // 장착 스킬 칸: [0] 기본 공격을 대체, [1] 필살(4번째 공격, 피해 x3)을 대체. [1] 이 없으면 필살도 [0] 방식
+// 단계별 비용(코인): b 에서 시작해 단계마다 x g, 5 단위 반올림. 근거·판수 표: docs/내영웅_v2_스펙.md, tools/myhero_cost_sim.mjs
+const myCost = (b, n, g) => Array.from({ length: n }, (_, i) => Math.round((b * Math.pow(g, i)) / 5) * 5);
+const myPct = (x) => +(x * 100).toFixed(2);
+// 스킬(영웅 유닛 공격 방식). fx/shot/aoe/st/pierce 는 같은 공격 방식의 CHARS 값을 옮겨 적은 것(그림·이펙트 재사용). k = 히어로 기본 피해 대비 배율, cd = 공격 간격 배율
+const SK = (id, name, ico, tier, fx, shot, aoe, st, pierce, k, cd, b, txt) => ({ id, name, ico, cat: "skill", max: 1, pw: 0, cost: [b], tier, sk: { fx, shot, aoe, st, pierce, k, cd }, txt: () => txt });
+const MY_ITEMS = [
+ // 공격
+ { id: "atk", name: "공격 훈련", ico: "⚔️", cat: "atk", max: 10, pw: 1, cost: myCost(25, 10, 1.38), txt: (l) => `모든 유닛 공격력 +${myPct(0.005 * l)}%`, ap: (f, l) => { f.atkMul = 1 + 0.005 * l; } },
+ { id: "spd", name: "속사 훈련", ico: "💨", cat: "atk", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `모든 유닛 공격 속도 +${myPct(0.008 * l)}%`, ap: (f, l) => { f.atkSpd = 1 + 0.008 * l; } },
+ { id: "range", name: "매의 눈", ico: "🎯", cat: "atk", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `모든 유닛 사거리 +${l}%`, ap: (f, l) => { f.rangeMul = 0.01 * l; } },
+ { id: "boss", name: "보스 사냥", ico: "🗡️", cat: "atk", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `보스에게 주는 피해 +${l}%`, ap: (f, l) => { f.bossDmg = 1 + 0.01 * l; } },
+ { id: "growth", name: "성장 본능", ico: "📈", cat: "atk", max: 5, pw: 1, cost: myCost(50, 5, 1.55), txt: (l) => `라운드마다 모든 피해 +${myPct(0.0003 * l)}% 누적`, ap: (f, l) => { f.roundDmg = 0.0003 * l; } },
+ // 영웅·스킬
+ { id: "hpow", name: "영웅 근력", ico: "💪", cat: "skill", max: 10, pw: 1, cost: myCost(20, 10, 1.35), txt: (l) => `영웅 유닛 피해 +${l * 20}%`, ap: (f, l) => { f.heroAtk = 1 + 0.2 * l; } },
+ { id: "hlv", name: "영웅 지휘", ico: "🎖️", cat: "skill", max: 5, pw: 1, cost: myCost(45, 5, 1.55), txt: (l) => `영웅 유닛 Lv = 최고 공업 x ${50 + l * 10}%`, ap: (f, l) => { f.heroLvK = 0.5 + 0.1 * l; } },
+ SK("sk_tongue", "끈끈 혀", "👅", 1, "tongue", ["tongue", "#ff6f9c"], null, { slow: 0.15, dur: 1.5 }, 0, 1.1, 0.8, 120, "영웅 공격이 혀 채찍으로 바뀜(빠름·둔화 15%)"),
+ SK("sk_slash", "불씨 할퀴기", "🐾", 1, "slash", ["claw", "#ff7a2e"], null, { burn: 0.4, dur: 2 }, 0, 1, 0.6, 120, "영웅 공격이 할퀴기로 바뀜(아주 빠름·화상)"),
+ SK("sk_wave", "물결 파동", "🌊", 1, "wave", ["bubblewave", "#7fc4ff"], null, { slow: 0.2, dur: 1.5 }, 0, 1.15, 1, 120, "영웅 공격이 물결로 바뀜(둔화 20%)"),
+ SK("sk_lob", "대나무 투척", "🎋", 1, "lob", ["bamboo", "#6fcf7f"], { R: 50, sp: 0.6, delay: 0 }, null, 0, 0.9, 1.15, 120, "영웅 공격이 던지기로 바뀜(범위 피해)"),
+ SK("sk_chain", "연쇄 번개", "⚡", 2, "chain", ["lightning", "#ffd54f"], { jumps: 3, R: 70, fall: 0.7 }, null, 0.05, 0.85, 1, 300, "영웅 공격이 3번 튀는 번개로 바뀜"),
+ SK("sk_breath", "불꽃 숨결", "🔥", 2, "breath", ["flame", "#ff8f4d"], { R: 42, sp: 0.4, delay: 0 }, { burn: 0.4, dur: 2 }, 0, 0.9, 1, 300, "영웅 공격이 불꽃 숨결로 바뀜(범위·화상)"),
+ SK("sk_roar", "대지 포효", "🪨", 2, "roar", ["quake", "#8fb27a"], { R: 55, sp: 0.5, delay: 0 }, null, 0, 1, 1.2, 300, "영웅 공격이 포효로 바뀜(범위 피해)"),
+ SK("sk_beam", "달빛 광선", "🌙", 2, "beam", ["moonbeam", "#b9c4e6"], { line: 16, sp: 0.6 }, null, 0.4, 0.9, 1.05, 300, "영웅 공격이 관통 광선으로 바뀜(방어 무시 40%)"),
+ SK("sk_nova", "불꽃 고리", "💫", 3, "nova", ["firering", "#ff7a5c"], { R: 138, sp: 1, all: 1 }, { burn: 0.4, dur: 2 }, 0, 0.5, 1.3, 600, "영웅 주변 전체를 불꽃 고리로 공격"),
+ SK("sk_meteor", "별똥 낙하", "☄️", 3, "meteor", ["meteor", "#ffd54f"], { R: 70, sp: 1, delay: 0.6 }, null, 0.1, 0.9, 1.6, 600, "영웅 공격이 늦게 떨어지는 큰 운석으로 바뀜"),
+ SK("sk_storm", "별빛 폭풍", "🌟", 3, "storm", ["starstorm", "#ffe27a"], { all: 1, sp: 1 }, null, 1, 0.3, 1.4, 600, "사거리 안 모든 적을 별빛으로 공격(방어 무시)"),
+ // 보상
+ { id: "kill", name: "사냥 보상", ico: "🎁", cat: "reward", max: 6, pw: 1, cost: myCost(35, 6, 1.45), txt: (l) => `처치 보상 +${myPct(0.0125 * l)}%`, ap: (f, l) => { f.killMul = 1 + 0.0125 * l; } },
+ { id: "bounty", name: "보스 현상금", ico: "💰", cat: "reward", max: 5, pw: 1, cost: myCost(30, 5, 1.5), txt: (l) => `보스 처치 미네랄 +${l * 3}`, ap: (f, l) => { f.bossBonus = 3 * l; } },
+ { id: "coin", name: "코인 행운", ico: "🪙", cat: "reward", max: 5, pw: 1, cost: myCost(60, 5, 1.6), txt: (l) => `이 영웅 판의 기본 코인 +${l * 5}%`, ap: () => {} }, // 게임 영향 없음(정산 coinsFor 의 4번째 인자 = mineCoinLv)
+ // 경제
+ { id: "start", name: "비상금", ico: "💎", cat: "eco", max: 6, pw: 1, cost: myCost(25, 6, 1.45), txt: (l) => `시작 미네랄 +${l * 4}`, ap: (f, l) => { f.startMin = 4 * l; } },
+ { id: "income", name: "꼬박꼬박", ico: "📦", cat: "eco", max: 3, pw: 2, cost: myCost(120, 3, 1.7), txt: (l) => `라운드마다 미네랄 +${l}`, ap: (f, l) => { f.roundMin = l; } },
+ { id: "drawc", name: "뽑기 할인", ico: "🎟️", cat: "eco", max: 1, pw: 4, cost: [900], txt: (l) => `뽑기 비용 -${l}`, ap: (f, l) => { f.drawCost = l; } },
+ { id: "upc", name: "공업 할인", ico: "🏷️", cat: "eco", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `공업 강화 비용 -${l}%`, ap: (f, l) => { f.upCost = 1 - 0.01 * l; } },
+ { id: "sell", name: "되팔기", ico: "♻️", cat: "eco", max: 4, pw: 1, cost: myCost(25, 4, 1.5), txt: (l) => `유닛 판매가 +${l * 5}%`, ap: (f, l) => { f.sellMul = 1 + 0.05 * l; } },
+ // 방어·생존
+ { id: "btime", name: "버티기", ico: "⏳", cat: "guard", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `보스 제한시간 +${l}초`, ap: (f, l) => { f.bossTime = l; } },
+ { id: "slow", name: "끈적 발판", ico: "🫧", cat: "guard", max: 5, pw: 1, cost: myCost(40, 5, 1.55), txt: (l) => `모든 몹 이동 속도 -${l}%`, ap: (f, l) => { f.mobSlow = 0.01 * l; } },
+ { id: "frost", name: "서리 기운", ico: "❄️", cat: "guard", max: 4, pw: 1, cost: myCost(40, 4, 1.55), txt: (l) => `모든 공격 둔화 +${myPct(0.015 * l)}%p`, ap: (f, l) => { f.slowPlus = 0.015 * l; } },
+ { id: "bhp", name: "보스 약화", ico: "🩹", cat: "guard", max: 5, pw: 1, cost: myCost(45, 5, 1.55), txt: (l) => `보스 체력 -${l}%`, ap: (f, l) => { f.bossHp = 1 - 0.01 * l; } },
+ // 특수
+ { id: "reso", name: "공명 감각", ico: "🌈", cat: "special", max: 1, pw: 4, cost: [1300], txt: () => "공명에 필요한 종류 1 줄임", ap: (f) => { f.resoEase = 1; } },
+ { id: "merge", name: "연금술", ico: "⚗️", cat: "special", max: 5, pw: 1, cost: myCost(60, 5, 1.55), txt: (l) => `합성 ${myPct(0.006 * l)}% 확률로 한 등급 더 위`, ap: (f, l) => { f.mergeUp = 0.006 * l; } },
+ { id: "trophy", name: "전리품 훈장", ico: "🏅", cat: "special", max: 1, pw: 4, cost: [1200], txt: () => "보스 6마리 처치마다 모든 무리 공업 +1", ap: (f) => { f.bossUp = 1; f.bossUpEvery = 6; } },
+ { id: "lucky", name: "행운 뽑기", ico: "🍀", cat: "special", max: 3, pw: 2, cost: [250, 500, 900], txt: (l) => `뽑기 ${[0, 16, 13, 10][l]}번째마다 무료`, ap: (f, l) => { f.freeDraw = [0, 16, 13, 10][l]; } },
+ { id: "burn", name: "불씨", ico: "🕯️", cat: "special", max: 4, pw: 1, cost: myCost(30, 4, 1.45), txt: (l) => `화상 지속 +${l * 10}%`, ap: (f, l) => { f.burnDur = 1 + 0.1 * l; } },
+];
+// 선행 조건(스킬만): 2단계 스킬은 1단계 스킬 하나 이상, 3단계 스킬은 2단계 스킬 하나 이상 보유. 스킬은 전투력 0 이라 보유한 스킬은 items 에 늘 같이 보낸다
+const MY_REQ_TXT = { 2: "1단계 스킬 하나 보유", 3: "2단계 스킬 하나 보유" };
+const myItem = (id) => MY_ITEMS.find((x) => x.id === id) || null;
+const myHasTier = (items, t) => MY_ITEMS.some((x) => x.tier === t && items[x.id] >= 1);
+function myReqOk(id, items) {
+ const it = myItem(id); if (!it || !it.tier || it.tier === 1) return !!it;
+ if (it.tier === 2) return myHasTier(items, 1);
+ return myHasTier(items, 2);
+}
+const myPower = (items) => MY_ITEMS.reduce((a, x) => a + ((items && items[x.id]) | 0) * x.pw, 0);
+// 전투력 상한: 한 판에 켤 수 있는 능력 단계 x pw 합. 산 능력(보유)은 전부 쓸 수 없고 상한 안에서 골라 켠다(= 개성). 서버는 구매를 확인 못 하므로 상한 조합이 최악의 경우(tools/sim_bot.mjs mine)
+const MY_POWER_CAP = 40, MY_POWER_ALL = MY_ITEMS.reduce((a, x) => a + x.max * x.pw, 0);
+// 다음 단계(lvNext, 1부터) 비용. 없는 품목·범위 밖이면 -1
+function itemCost(id, lvNext) { const it = myItem(id); return it && Number.isInteger(lvNext) && lvNext >= 1 && lvNext <= it.max ? it.cost[lvNext - 1] : -1; }
+function mineTotalCost(mine) { let t = 0; const it = (mine && mine.items) || {}; for (const k in it) for (let l = 1; l <= (it[k] | 0); l++) t += Math.max(0, itemCost(k, l)); return t; }
+const MY_FULL_COST = MY_ITEMS.reduce((a, x) => a + x.cost.reduce((s, c) => s + c, 0), 0);
+const mineCoinLv = (mine) => (mine && mine.items && mine.items.coin) | 0; // coinsFor 4번째 인자
+// 검증/정리. 반환 {ok, mine:{design,items,equip}} | {ok:false, err}. 레거시 {hero,up} 는 err "mine_legacy"(클라이언트가 migrateLegacyMine 으로 바꿔야 함)
 function validateMine(m) {
  if (m == null || typeof m !== "object" || Array.isArray(m)) return { ok: false, err: "mine 형식 오류" };
- if (typeof m.hero !== "string" || !HEROES.some((h) => h.id === m.hero)) return { ok: false, err: "mine 영웅 오류" };
- const up = {};
- for (const d of MY_HERO.DIRS) {
-  const v = m.up && m.up[d.k] != null ? m.up[d.k] : 0;
-  if (!Number.isInteger(v) || v < 0 || v > d.max) return { ok: false, err: "mine 강화 범위 오류: " + d.k };
-  up[d.k] = v;
+ if (m.design === undefined && m.hero !== undefined) return { ok: false, err: "mine_legacy" };
+ if (typeof m.design !== "string" || !MY_DESIGNS.some((d) => d.id === m.design)) return { ok: false, err: "mine 디자인 오류" };
+ const src = m.items == null ? {} : m.items;
+ if (typeof src !== "object" || Array.isArray(src)) return { ok: false, err: "mine items 형식 오류" };
+ const keys = Object.keys(src);
+ if (keys.length > MY_ITEMS.length) return { ok: false, err: "mine items 개수 초과" };
+ const items = {};
+ for (const it of MY_ITEMS) { // 카탈로그 순서로 정리(저장·해시 안정)
+  if (!(it.id in src)) continue;
+  const v = src[it.id];
+  if (!Number.isInteger(v) || v < 0 || v > it.max) return { ok: false, err: "mine 단계 범위 오류: " + it.id };
+  if (v > 0) items[it.id] = v;
  }
- if (myUpSum(up) > MY_HERO.TOTAL_CAP) return { ok: false, err: "mine 강화 총합 초과" };
- return { ok: true, mine: { hero: m.hero, up } };
+ for (const k of keys) if (!myItem(k)) return { ok: false, err: "mine 품목 오류: " + String(k).slice(0, 20) };
+ for (const k in items) if (!myReqOk(k, items)) return { ok: false, err: "mine 선행 조건 오류: " + k };
+ if (myPower(items) > MY_POWER_CAP) return { ok: false, err: "mine 전투력 상한 초과" };
+ const eq = m.equip == null ? [] : m.equip;
+ if (!Array.isArray(eq) || eq.length > MY_EQUIP_MAX) return { ok: false, err: "mine 장착 수 초과" };
+ for (let i = 0; i < eq.length; i++) {
+  const it = myItem(eq[i]);
+  if (!it || !it.sk || items[it.id] !== 1 || eq.indexOf(eq[i]) !== i) return { ok: false, err: "mine 장착 오류" };
+ }
+ return { ok: true, mine: { design: m.design, items, equip: eq.slice() } };
 }
-// 영웅 복사본에 강화를 얹는다(원본 HEROES 는 건드리지 않음). fx 키: startMin(기존) upCost(기존) + killMul atkMul(신규)
-function applyMine(base, mine) {
- const u = mine.up, fx = Object.assign({}, base.fx || {});
- if (u.start) fx.startMin = (fx.startMin || 0) + 8 * u.start;
- if (u.disc) fx.upCost = (fx.upCost || 1) * (1 - 0.04 * u.disc);
- if (u.rew) fx.killMul = 1 + 0.04 * u.rew;
- if (u.atk) fx.atkMul = 1 + 0.03 * u.atk;
- return Object.assign({}, base, { fx });
+// 기본 영웅(모든 디자인 공통): 일반 공격만, 특수 능력 없음
+const MY_BASE = { id: "", name: "", prob: 0, rule: "일반 공격", fx: {} };
+// 검증된 mine 으로 기본 영웅 복사본을 만든다. id = 디자인 id(그림 키). fx 키는 game.js 가 이미 읽는 것 + heroAtk/hsk/hsk2(영웅 유닛 공격)
+function applyMine(mine) {
+ if (arguments.length > 1) mine = arguments[1]; // 옛 호출 applyMine(base, mine) 호환
+ const d = MY_DESIGNS.find((x) => x.id === mine.design) || MY_DESIGNS[0], fx = {}, it = mine.items || {};
+ for (const x of MY_ITEMS) if (x.ap && it[x.id]) x.ap(fx, it[x.id]);
+ const eq = (mine.equip || []).map(myItem).filter((x) => x && x.sk);
+ if (eq[0]) fx.hsk = eq[0].sk;
+ if (eq[1]) fx.hsk2 = eq[1].sk;
+ const rule = eq.length ? `기본: ${eq[0].name}${eq[1] ? ` · 필살: ${eq[1].name}` : ""}` : MY_BASE.rule;
+ return Object.assign({}, MY_BASE, { id: d.id, name: d.name, rule, fx, look: null });
 }
-// 판이 끝났을 때 받는 코인: 10라운드부터 라운드당 1, 처치 50기당 1, 클리어 +30, 보상 강화 단계당 +5% (봇 기준 R40 약 64, R45 약 74, 클리어 100+)
-function coinsFor(round, kills, win, rewLv) {
+// 옛 저장 영웅 {hero, up:{atk,rew,disc,start}} -> 새 형식. 옛 강화는 구매액 전액 환불(refund 코인)하고 능력은 비운다(디자인 = 옛 영웅 id)
+function migrateLegacyMine(old) {
+ const hero = old && typeof old.hero === "string" ? old.hero : old && typeof old.id === "string" ? old.id : "";
+ const up = (old && old.up) || {};
+ let refund = 0;
+ for (const dd of MY_HERO.DIRS) { const lv = Math.max(0, Math.min(dd.max, up[dd.k] | 0)); for (let i = 0; i < lv; i++) refund += MY_HERO.COST[i]; }
+ return { design: MY_DESIGNS.some((x) => x.id === hero) ? hero : MY_DESIGNS[0].id, items: {}, equip: [], refund };
+}
+// 레거시(v1) 상수: 등록 수 MAX 와 환불 계산(migrateLegacyMine)에만 쓴다. 새 규칙은 MY_ITEMS
+const MY_HERO = {
+ MAX: 3, TOTAL_CAP: 10,
+ COST: [60, 100, 160, 240, 340],
+ DIRS: [{ k: "atk", max: 5 }, { k: "rew", max: 5 }, { k: "disc", max: 3 }, { k: "start", max: 5 }],
+};
+const myUpSum = (up) => MY_HERO.DIRS.reduce((a, d) => a + ((up && up[d.k]) | 0), 0);
+// 판이 끝났을 때 받는 기본 코인: 10라운드부터 라운드당 1, 처치 50기당 1, 클리어 +30, 코인 행운 단계당 +5% (4번째 인자 = mineCoinLv(mine))
+function coinsFor(round, kills, win, coinLv) {
  const base = Math.max(0, round - 9) + Math.floor(kills / 50) + (win ? 30 : 0);
- return Math.floor(base * (1 + 0.05 * (rewLv | 0)));
+ return Math.floor(base * (1 + 0.05 * (coinLv | 0)));
 }
 // MYHERO-END

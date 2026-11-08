@@ -98,6 +98,8 @@ const BACKS = {
   tidering(c, col, k) { const R = k.R; c.strokeStyle = col; c.lineWidth = R * 0.14; c.lineCap = "round"; c.setLineDash([R * 0.5, R * 0.3]); c.lineDashOffset = -k.t * R; c.beginPath(); c.ellipse(0, 0, R * 1.45, k.ry * 1.25, 0, 0, 7); c.stroke(); c.setLineDash([]); for (let i = 0; i < 4; i++) { const a = k.t * 1.2 + i * 1.57; _ellipse(c, Math.cos(a) * R * 1.45, Math.sin(a) * k.ry * 1.25, R * 0.11, R * 0.14, "#fff"); } },
   flamering(c, col, k) { const R = k.R; c.strokeStyle = col; c.lineWidth = R * 0.14; c.beginPath(); c.arc(0, 0, R * 1.4, 0, 7); c.stroke(); for (let i = 0; i < 9; i++) { c.save(); c.rotate(k.t * 0.8 + (i / 9) * 6.283); const f = 1 + Math.sin(k.t * 9 + i * 2) * 0.2; _poly(c, R, [1.3, -0.18, 1.8 * f, 0, 1.3, 0.18], i % 2 ? col : "#ffe27a"); c.restore(); } },
   constellation(c, col, k) { const R = k.R, pts = [[-1.2, -0.3], [-0.7, -1.3], [0, -1.0], [0.7, -1.45], [1.25, -0.5]]; c.strokeStyle = "rgba(255,226,122,.7)"; c.lineWidth = 1.3; c.beginPath(); pts.forEach(([x, y], i) => c[i ? "lineTo" : "moveTo"](x * R, y * R)); c.stroke(); pts.forEach(([x, y], i) => _spark(c, x * R, y * R, R * (0.17 + 0.07 * Math.sin(k.t * 4 + i * 1.7)), col)); },
+  // 내 영웅 디자인용(거북): 몸 뒤로 둥근 등딱지가 테두리처럼 보이고 육각 무늬
+  turtle(c, col, k) { const R = k.R; c.save(); c.translate(0, -R * 0.12); _ellipse(c, 0, 0, R * 1.22, R * 1.05, col, k.out, k.lw); c.strokeStyle = shade(col, -0.35); c.lineWidth = 1.3; c.lineCap = "round"; c.beginPath(); for (const sg of [-1, 1]) { c.moveTo(sg * R * 0.85, -R * 0.55); c.lineTo(sg * R * 1.02, -R * 0.2); c.moveTo(sg * R * 0.95, R * 0.1); c.lineTo(sg * R * 1.1, R * 0.4); } c.moveTo(-R * 0.3, -R * 0.98); c.lineTo(-R * 0.18, -R * 0.62); c.moveTo(R * 0.3, -R * 0.98); c.lineTo(R * 0.18, -R * 0.62); c.stroke(); c.fillStyle = "rgba(255,255,255,.28)"; c.beginPath(); c.ellipse(-R * 0.55, -R * 0.75, R * 0.2, R * 0.09, -0.6, 0, 7); c.fill(); c.restore(); },
 };
 const SHELLS = {
   coral(c, col, k) { const R = k.R; _ellipse(c, 0, -R * 0.25, R * 1.15, R * 0.95, mixHex(col, "#8a5a3a", 0.55), k.out, k.lw * 0.8); c.strokeStyle = col; c.lineWidth = R * 0.12; c.lineCap = "round"; c.beginPath(); for (const [x, a] of [[-0.55, -0.4], [0, 0], [0.55, 0.4]]) { c.moveTo(x * R, -R * 1.0); c.lineTo(x * R + a * R * 0.5, -R * 1.5); c.moveTo(x * R + a * R * 0.25, -R * 1.25); c.lineTo(x * R + a * R * 0.25 + R * 0.25, -R * 1.45); } c.stroke(); },
@@ -535,7 +537,30 @@ function drawUnit(c, idx, x, y, t, opt) {
   if (!opt.lite) drawAura(c, x, y, r, gs, t, "front");
   if (opt.selected) { c.strokeStyle = `rgba(255,255,255,${0.6 + 0.3 * Math.sin(t * 6)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y + r * 0.9, r * 1.2, r * 0.36, 0, 0, 7); c.stroke(); }
 }
-function _heroOf(id) { if (typeof id === "object" && id) return id; if (typeof id === "number") return HEROES[id]; return HEROES.find((h) => h.id === id) || HEROES[0]; }
+// ---------- 내 영웅 디자인 20종 ----------
+// 디자인 id 고정: 기존 10종(data.js HEROES.id) + 신규 10종(아래 MY_DESIGN_STYLE). graphics.js 는 id 문자열만으로 그린다(HEROES 조회 실패해도 안 터짐).
+const MY_DESIGN_IDS = ["bee", "goose", "weasel", "whale", "hedgehog", "chameleon", "frog", "penguin", "fennec", "owlsage", "fox", "cat", "bunny", "bear", "panda", "dragon", "unicorn", "octopus", "turtle", "raccoon"];
+const MY_DESIGN_STYLE = {
+  fox: { name: "여우", look: { shape: [1, 0.95], c1: "#ff8a3d", c2: "#fff1e0", c3: "#ffffff", base: [["ear", "point", "#ff8a3d"], ["tail", "fluffy", "#ff8a3d"], ["mark", "cheek", "#ffffff"]], face: ["sharp", "smile"], parts: [["hat", "sprout", "#6cc47a"], ["acc", "scarf", "#3b9dff"]] } },
+  cat: { name: "고양이", look: { shape: [1.02, 0.95], c1: "#ffc58a", c2: "#fff4e6", c3: "#d98a4a", base: [["ear", "point", "#ffc58a"], ["tail", "striped", "#ffc58a"], ["mark", "stripes", "#d98a4a"], ["whisker"]], face: ["big", "cat"], parts: [["acc", "bell", "#ffd54f"], ["hat", "headband", "#ff6fa5"]] } },
+  bunny: { name: "토끼", look: { shape: [0.98, 1.0], c1: "#fffaf6", c2: "#ffe0ea", c3: "#ffb3c6", base: [["ear", "long", "#fffaf6"], ["tail", "puff", "#ffffff"], ["mark", "cheek", "#ff9ec0"]], face: ["dot", "smile"], parts: [["hat", "flowerpair", "#ff9ec0"], ["acc", "clover", "#6cc47a"]] } },
+  bear: { name: "곰", look: { shape: [1.08, 0.97], c1: "#b07a4d", c2: "#f0d4b0", c3: "#8a5a2e", base: [["ear", "round", "#b07a4d"], ["tail", "puff", "#b07a4d"], ["nose", "pink", "#5a3a22"]], face: ["dot", "smile"], parts: [["hat", "acorncap", "#8a5a2e"], ["acc", "coinpaw", "#ffd54f"]] } },
+  panda: { name: "판다", look: { shape: [1.08, 0.97], c1: "#ffffff", c2: "#f4f4f4", c3: "#2b2b2b", base: [["ear", "round", "#2b2b2b"], ["tail", "puff", "#ffffff"], ["mark", "eyepatch", "#2b2b2b"]], face: ["dot", "smile"], parts: [["acc", "bamboo", "#6cc47a"], ["hat", "sprout", "#6cc47a"]] } },
+  dragon: { name: "용", look: { shape: [1.05, 0.97], c1: "#5fcf8a", c2: "#fff3c4", c3: "#ffb347", base: [["wing", "bat", "#3fa86a"], ["tail", "lizard", "#5fcf8a"], ["horn", "pair", "#ffd54f"], ["back", "spikes", "#ffb347"]], face: ["sharp", "fang"], parts: [["acc", "gem", "#ff5a5a"]] } },
+  unicorn: { name: "유니콘", look: { shape: [1, 0.97], c1: "#ffffff", c2: "#ffe6fb", c3: "#c79bff", base: [["ear", "point", "#ffffff"], ["mane", "galaxy", "#ff9ee0"], ["tail", "comet", "#c79bff"], ["horn", "single", "#ffd54f"], ["mark", "cheek", "#ff9ec0"]], face: ["big", "smile"], parts: [["hat", "flowerpair", "#c79bff"]] } },
+  octopus: { name: "문어", look: { shape: [1.08, 1.02], c1: "#c78bff", c2: "#f3dcff", c3: "#7a5fd0", base: [["tentacle", "wave", "#c78bff"], ["ear", "none"], ["mark", "spots", "#e7b8ff"]], face: ["big", "smile"], parts: [["hat", "headband", "#ff6fa5"], ["acc", "bubble", "#bfe6ff"]] } },
+  turtle: { name: "거북", look: { shape: [1.02, 0.92], c1: "#8fd96a", c2: "#f1f6c8", c3: "#4f9a4a", base: [["back", "turtle", "#4f9a4a"], ["ear", "none"], ["tail", "puff", "#8fd96a"], ["mark", "cheek", "#ff9ec0"]], face: ["sleepy", "smile"], parts: [["hat", "monocle", "#ffd54f"], ["acc", "leafcollar", "#6cc47a"]] } },
+  raccoon: { name: "너구리", look: { shape: [1.05, 0.95], c1: "#9aa3ad", c2: "#eef0f2", c3: "#3a3a46", base: [["ear", "round", "#6a727c"], ["tail", "striped", "#9aa3ad"], ["mark", "mask", "#3a3a46"]], face: ["sharp", "smile"], parts: [["hat", "tophat", "#3a3a46"], ["acc", "scarf", "#ff6a4a"]] } },
+};
+// id → 디자인 영웅 객체 {id,name,look}. 신규 10종은 자체 팔레트, 기존 10종은 HEROES(없으면 null)
+function designOf(id) {
+  if (typeof id === "object" && id) return id.look ? id : designOf(id.id || id.hero);
+  const d = MY_DESIGN_STYLE[id]; if (d) return d._o || (d._o = { id, name: d.name, look: d.look });
+  if (typeof HEROES !== "undefined") { const h = typeof id === "number" ? HEROES[id] : HEROES.find((x) => x.id === id); if (h) return h; }
+  return null;
+}
+function designName(id) { const h = designOf(id); return h ? h.name : String(id); }
+function _heroOf(id) { return designOf(id) || (typeof HEROES !== "undefined" ? HEROES[0] : designOf("fox")); }
 function _heroShots(c, x, y, r, t, sh) {
   for (let i = 0; i < 4; i++) { const on = i < sh, last = i === 3, px = x + (i - 1.5) * 7, py = y + r * 1.22; c.beginPath(); c.arc(px, py, last ? 3.2 + (sh === 3 ? Math.sin(t * 10) : 0) : 2.2, 0, 7); c.fillStyle = on ? "#ff7a2e" : "rgba(255,255,255,.7)"; c.fill(); c.strokeStyle = last ? "#ffb703" : "#8a6a3a"; c.lineWidth = 1.2; c.stroke(); }
 }
@@ -557,6 +582,8 @@ function drawHero(c, heroId, x, y, t, opt) {
   drawAura(c, x, y, r, gs, t, "front");
   if (sh === 3) { c.strokeStyle = `rgba(255,120,40,${0.5 + 0.4 * Math.sin(t * 10)})`; c.lineWidth = 3; c.beginPath(); c.arc(x, y, r * 1.15, 0, 7); c.stroke(); }
 }
+// 내 영웅 선택 그리드용: designId(20종 중 하나) 초상. drawPortrait 가 id 문자열을 그대로 받으므로 그 래퍼. 조회 실패 시 빈 캔버스.
+function drawDesignPortrait(canvas, designId, px) { if (!designOf(designId)) { px = px || 64; canvas.width = px; canvas.height = px; return; } drawPortrait(canvas, designId, px); }
 // 모달/확률표/선택 카드용 정적 초상. idxOrHero: 숫자(CHARS idx) 또는 {hero:id} 또는 hero id 문자열. px: 한 변 픽셀
 function drawPortrait(canvas, idxOrHero, px) {
   px = px || 64; if (canvas.width !== px) { canvas.width = px; canvas.height = px; }
@@ -576,6 +603,7 @@ const MOT_OF = { shot: "peck", tongue: "rear", slash: "lunge", wave: "rear", roa
 (function () {
   if (typeof CHARS !== "undefined") CHARS.forEach((ch) => { ATK[ch.key] = { mot: ch.fx === "shot" && ch.idx % 2 ? "hop" : MOT_OF[ch.fx], fx: ch.fx, shape: ch.shot[0], col: ch.shot[1], desc: ch.desc }; NAMES[ch.key] = ch.name; });
   if (typeof HEROES !== "undefined") HEROES.forEach((h) => { ATK[h.id] = { mot: "hop", fx: "shot", shape: "star", col: "#ffd54f", desc: h.rule }; NAMES[h.id] = h.name; });
+  for (const id in MY_DESIGN_STYLE) if (!ATK[id]) { ATK[id] = { mot: "hop", fx: "shot", shape: "star", col: "#ffd54f", desc: "내 영웅 디자인" }; NAMES[id] = MY_DESIGN_STYLE[id].name; }
 })();
 function motionOf(anim, r) {
   const m = { ox: 0, oy: 0, tilt: 0, hop: 0, sqa: 1 };
