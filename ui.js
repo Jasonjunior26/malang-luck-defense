@@ -575,9 +575,9 @@ function clanRowsHtml() {
     const lv = S.lv && S.lv[i] != null ? S.lv[i] : clanLevel(S, i); // 표시 Lv = 공업 구매 + 공명 보너스(상한 UP_LV_CAP). 단추 MAX = 구매 UP_MAX 회 기준(말풍선에 명시)
     const rn = S.rangeUp ? S.rangeUp[i] : 0, rc = GAME.rangeCost(i), rok = rc >= 0 && S.minerals >= rc && !S.over; // 사거리 단추: 💎비용 (+단계 뱃지), 최대면 MAX
     const cls = `cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}${_resoFlash[i] > 0 ? " flash" : ""}`;
-    return `<div class="${cls}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">공명 +${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span>` +
-      `<span class="uc up${ok ? " ok" : ""}${maxed ? " mx" : ""}" role="button" data-up="${i}" aria-label="${c.name} 공업">공업 ${maxed ? "<b>MAX</b>" : "<b>💎" + cost + "</b>"}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span>` +
-      `<span class="uc rg${rok ? " ok" : ""}${rc < 0 ? " mx" : ""}" role="button" data-rg="${i}" aria-label="${c.name} 사거리">사거리 ${rc < 0 ? "<b>MAX</b>" : "<b>💎" + rc + "</b>"}${rn > 0 ? `<u>+${rn}</u>` : ""}</span></div>`;
+    return `<div class="${cls}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill" title="공명">+${rb}</em>` : ""}</span><span class="sls${cap > 4 ? " n6" : ""}">${slots.join("")}</span>` +
+      `<span class="uc up${ok ? " ok" : ""}${maxed ? " mx" : ""}" role="button" data-up="${i}" aria-label="${c.name} 공업 강화" title="공업"><i class="ic">⬆️</i>${maxed ? "<b>MAX</b>" : "<b>💎" + cost + "</b>"}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span>` +
+      `<span class="uc rg${rok ? " ok" : ""}${rc < 0 ? " mx" : ""}" role="button" data-rg="${i}" aria-label="${c.name} 사거리 강화" title="사거리"><i class="ic">🎯</i>${rc < 0 ? "<b>MAX</b>" : "<b>💎" + rc + "</b>"}${rn > 0 ? `<u>+${rn}</u>` : ""}</span></div>`;
   }).join("");
 }
 // 정보 패널: 기본/히어로 선택 = 히어로 규칙 + 진행도(+보관 선택권), 유닛 선택 = 상세
@@ -608,7 +608,7 @@ function infoText(u) {
   const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = unitMul(u), d = defOf(u);
   const dps = (c.atk / d.cd) * mul * u.n, rg = Math.round(d.range), rgUp = rg > c.range ? ` <small>(+${Math.round((d.range / c.range - 1) * 100)}%)</small>` : "";
   const fxn = FX_NAME[c.fx] || c.fx;
-  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico}${cl.name} 공업 Lv${lv} (x${mul.toFixed(2)}) · 사거리 ${rg}${rgUp}${u.lock ? " · 🔒" : ""}</div>`;
+  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico} Lv${lv} ×${mul.toFixed(2)} · 🎯 ${rg}${rgUp}${u.lock ? " · 🔒" : ""}</div>`;
 }
 const FX_NAME = { shot: "투척", tongue: "혀 공격", slash: "할퀴기", wave: "음파", roar: "포효(광역)", beam: "광선(관통)", breath: "숨결(광역)", chain: "연쇄", lob: "포물선 폭탄", nova: "전체 파동", meteor: "유성", storm: "폭풍" };
 
@@ -1141,9 +1141,11 @@ async function fetchProfile(force) { // '내 기록' 탭 전용(Edge Function �
   return pf;
 }
 // 랭킹 줄 아래 한 줄: 무리별 '유닛수·Lv'(Lv=최종 공업 Lv, 공명 포함) + 판 중 최고 등급. build 가 없으면(구 기록) 빈 문자열.
-const buildTag = (b) => {
+const buildTag = (b) => { // 가장 Lv 높은 무리 하나(동률이면 유닛 수 많은 쪽) + 판 중 최고 등급 이름(색만, '최고' 말은 생략)
   if (!b || !Array.isArray(b.clans) || b.clans.length !== 4 || !(b.top >= 0 && b.top <= 7)) return "";
-  return `<small class="bd">${b.clans.map((c, i) => `${CLANS[i].ico}${c.n | 0}·Lv${c.lv | 0}`).join(" ")} · 최고 <b style="color:${GRADES[b.top].color}">${GRADES[b.top].name}</b></small>`;
+  let k = 0; b.clans.forEach((c, i) => { const m = b.clans[k]; if ((c.lv | 0) > (m.lv | 0) || ((c.lv | 0) === (m.lv | 0) && (c.n | 0) > (m.n | 0))) k = i; });
+  const c = b.clans[k];
+  return `<small class="bd">${CLANS[k].ico}${c.n | 0}·Lv${c.lv | 0} · <b style="color:${GRADES[b.top].color}">${GRADES[b.top].name}</b></small>`;
 };
 const heroTag = (id, hn) => { if (hn) return ` · 🦸${esc(hn)}`; const h = id && HEROES.find((x) => x.id === id); return h ? ` · ${esc(h.name.split(" ").pop())}` : ""; }; // 랭킹 줄에 쓴 히어로 이름(짧게)
 const dowKo = (d) => "일월화수목금토"[new Date(d + "T00:00:00Z").getUTCDay()];
@@ -1248,7 +1250,7 @@ function uiGameOver(result) {
   const coin = priv || !S.mine ? null : MyHero.settle(S, P); // 코인 줄은 내 영웅 판에만
   const cp = coin && coin.parts, luckSum = cp ? cp.boss + cp.gold + cp.grade : 0;
   const cl = cp ? [["기본", cp.base], ["보스 주머니", cp.boss], ["황금 몹", cp.gold], ["첫 등급", cp.grade], ["내 영웅", cp.hero], ["신기록", cp.rec], ["오늘 첫 판", cp.daily]].filter((e) => e[1] > 0).map((e) => `<li>${e[0]}<b>+${e[1]}</b></li>`).join("") : "";
-  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> <i class="coin">C</i> 코인 <small>보유 ${nf(coin.total)}</small></div>${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
+  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> <i class="coin">C</i> 코인</div><div class="cgs">보유 ${nf(coin.total)}</div>${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
   const why = res.why ? `<small>${esc(res.why)}</small><br>` : "";
   const rkBox = `<div class="rk pend" id="rk">${priv ? "등록 중…" : "랭킹 등록 중…"}</div>`, btns = `<button class="wide green" id="skip">🔁 다시 하기</button><div class="gor"><button class="mini" id="seeRank" ${BTNR}>${priv ? "시즌 순위" : "🏆 랭킹 보기"}</button>${HOMEBTN}</div>`;
   modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${esc(MyHero.label(S))} · ${priv ? esc(SeasonMod.run().name) : LEAGUE[S.mine ? "mine" : "rand"]}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${rkBox}${coinLine}${parts}${btns}`)
@@ -1358,14 +1360,24 @@ window.addEventListener("beforeinstallprompt", (e) => e.preventDefault()); // �
 function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard·Jua 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
   try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard", "400 38px Jua"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
 }
-function initRotGuard() { // 가로(터치 기기)면 index.html #rot 오버레이가 덮는다. 진행 중인 게임은 일시정지했다가 세로로 돌아오면 이어간다
+function initRotGuard() { // 진짜 가로(터치 기기)일 때만 html.rot → index.html #rot 오버레이. 세로에서 키보드가 올라와 뷰포트가 가로처럼 낮아져도(입력 중) 띄우지 않는다. 진행 중인 게임은 일시정지했다가 세로로 돌아오면 이어간다
   try {
     const mq = window.matchMedia("(orientation:landscape) and (pointer:coarse)"); let held = false;
+    const typing = () => { const a = document.activeElement; return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable); };
+    const isLand = () => { // 기기 방향(screen.orientation)이 있으면 그것이 기준(키보드에 안 흔들림), 없으면 미디어쿼리 + 폭 520px 이상 + 입력 중 아님
+      const so = screen.orientation && screen.orientation.type;
+      if (so) return so.startsWith("landscape") && matchMedia("(pointer:coarse)").matches && !typing();
+      return mq.matches && window.innerWidth >= 520 && !typing();
+    };
     const chk = () => {
-      if (mq.matches) { if (typeof S !== "undefined" && S && !S.paused && !S.over && !TITLE_ON) { S.paused = true; held = true; } }
+      const land = isLand(); document.documentElement.classList.toggle("rot", land);
+      if (land) { if (typeof S !== "undefined" && S && !S.paused && !S.over && !TITLE_ON) { S.paused = true; held = true; } }
       else if (held) { held = false; if (S && !S.over && !TITLE_ON && !MODAL_ON && !CONFIRM_ON) S.paused = false; }
     };
     if (mq.addEventListener) mq.addEventListener("change", chk); else if (mq.addListener) mq.addListener(chk);
+    window.addEventListener("resize", chk); window.addEventListener("orientationchange", chk);
+    if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener("change", chk);
+    document.addEventListener("focusin", chk); document.addEventListener("focusout", () => setTimeout(chk, 350)); // 키보드가 닫히는 동안 뷰포트가 아직 낮을 수 있어 늦춰 확인
     chk();
   } catch {}
 }

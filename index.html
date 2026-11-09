@@ -285,8 +285,9 @@
   body { -webkit-font-smoothing:antialiased; word-break:keep-all; overflow-wrap:anywhere; font-synthesis:none; }
   button, .chip, .cr { font-family:inherit; }
   button { -webkit-appearance:none; appearance:none; }
-  .cr { overflow:visible; } .cr .lv { width:auto; min-width:calc(var(--u)*58); } .cr .sls { overflow:hidden; }
-  .cr .sl { flex:0 1 calc(var(--u)*24); min-width:calc(var(--u)*12); width:auto; aspect-ratio:1; height:auto; max-height:calc(var(--u)*24); }
+  .cr { overflow:visible; } .cr .lv { width:auto; min-width:calc(var(--u)*34); flex-direction:row; align-items:center; gap:calc(var(--u)*3); } .cr .sls { overflow:visible; }
+  .cr .sl { flex:none; width:calc(var(--u)*24); height:calc(var(--u)*24); } /* 칸 크기는 고정 — 6칸이 돼도 캐릭터를 줄이지 않는다 */
+  .cr .sls.n6 .sl + .sl { margin-left:calc(var(--u)*-2); }
   #bar button { white-space:nowrap; overflow:hidden; text-overflow:clip; min-width:0; }
   #menu button small, #hud .chip small { white-space:nowrap; }
   #banner.on { will-change:transform,opacity; }
@@ -295,10 +296,10 @@
   #rot .ri { font-size:calc(var(--u)*56); line-height:1; display:block; transform:rotate(-90deg); animation:rotHint 1.6s ease-in-out 4 forwards; filter:drop-shadow(0 calc(var(--u)*3) 0 var(--sh2)); }
   #rot b { font-family:var(--font-cute); font-size:var(--fs-title); font-weight:600; } #rot small { font-size:var(--fs-body); color:var(--mute); }
   @keyframes rotHint { 0%,15% { transform:rotate(-90deg); } 55%,100% { transform:rotate(0); } }
-  @media (orientation:landscape) and (pointer:coarse) { #rot { display:flex; } }
+  html.rot #rot { display:flex; } /* ui.js initRotGuard 가 진짜 가로일 때만 켠다(키보드로 뷰포트가 낮아져도 X) */
   @media (prefers-reduced-motion:reduce) { #rot .ri { animation:none !important; } *,*::before,*::after { animation-iteration-count:1 !important; animation-duration:.01s !important; transition-duration:.01s !important; } #banner.gS.on { animation:banFade 2.4s forwards !important; } #banner.gM.on { animation:banFade 1.8s forwards !important; } .lg { animation:lgout .6s 3.4s forwards !important; } }
   /* 사거리 강화 칩 (무리 줄 🎯) + 좁은 화면(320~360) 줄 넘침 방지 */
-  .cr .uc.rg { min-width:calc(var(--u)*72); }
+  .cr .uc, .cr .uc.rg { min-width:calc(var(--u)*50); padding:0 calc(var(--u)*6); gap:calc(var(--u)*2); } .cr .uc .ic { font-style:normal; font-size:var(--fs-body); line-height:1; } .cr .uc u { top:calc(var(--u)*-8); }
   .cr .uc.rg.ok { background:linear-gradient(var(--blue-hi),var(--blue)); box-shadow:0 calc(var(--u)*3) 0 var(--blue2); }
   .cr .uc.rg.mx { opacity:.7; }
   .cr .uc.rg u { background:var(--blue2); color:var(--on-accent); }
