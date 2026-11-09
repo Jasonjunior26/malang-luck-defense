@@ -1,0 +1,3 @@
+# 운영 대시보드 로컬 데이터(이력 DB, 스냅샷). 저장소에 올리지 않는다.
+dashboard_data/
+dashboard_out/
