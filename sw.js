@@ -1,5 +1,5 @@
 // 서비스워커: 앱 셸 프리캐시 + stale-while-revalidate. 배포할 때마다 CACHE_VERSION 을 올린다.
-const CACHE_VERSION = 'v36-fonts-5';
+const CACHE_VERSION = 'v37-clanrow-6';
 const SHELL_CACHE = 'malang-shell-' + CACHE_VERSION;
 
 const SHELL = [

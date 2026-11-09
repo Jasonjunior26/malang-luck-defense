@@ -399,7 +399,7 @@ function uiConfirm(msg, onOk) {
 
 // ---------- 로그 / 배너 / 알림 ----------
 function uiLog(txt, col = "#5b3a1e") {
-  if (typeof txt === "string") { if (txt.includes("공명!")) sfx("reso"); else if (txt.includes("처치! 미네랄")) sfx("bossKill"); }
+  if (typeof txt === "string") { if (txt.includes("처치! 미네랄")) sfx("bossKill"); }
   const box = $("logBox"), d = document.createElement("div");
   d.className = "lg"; d.textContent = txt; d.style.color = col;
   box.appendChild(d);
@@ -439,8 +439,8 @@ function setW(id, pct) { const v = (Math.round(pct * 10) / 10) + "%", k = id + "
 function setDis(id, on) { const k = id + ".dis"; if (_txt[k] !== on) { _txt[k] = on; $(id).disabled = on; } }
 function setCls(id, cls, on) { const k = id + "." + cls; if (_txt[k] !== on) { _txt[k] = on; $(id).classList.toggle(cls, on); } }
 let _S = null, _hudFrame = 0, _lastRound = 0, _mobLv = 0, _lastSec = -1;
-// 공명 상태 추적(표시 전용): 발동/해제 순간 배너, 종류 수 증가 시 칩 강조, 단계 1종 전 힌트
-let _resoPrev = null, _resoPulse = [0, 0, 0, 0], _resoSeen = [0, 0, 0, 0]; // _resoSeen: 첫 발동음은 uiLog("공명!")가 담당
+// 공명 상태 추적(표시 전용): 발동=좌하단 로그+줄 반짝임(효과음·진동 1회), 해제만 중앙 배너. 첫 발동 로그(+💎50 통합)는 game.js 가 남긴다.
+let _resoPrev = null, _resoPulse = [0, 0, 0, 0], _resoFlash = [0, 0, 0, 0], _resoSeen = [0, 0, 0, 0]; // _resoSeen: 첫 발동은 game.js 로그가 담당(여기선 로그 생략)
 function trackReso() {
   const ez = S.hero && S.hero.fx.resoEase, nd = resonanceNeed(ez), cur = CLANS.map((_, i) => [resonanceCount(S.slots, i), resonanceBonus(S.slots, i, ez)]);
   const prev = _resoPrev; _resoPrev = cur;
@@ -448,12 +448,14 @@ function trackReso() {
   cur.forEach(([n, b], i) => {
     const [pn, pb] = prev[i], c = CLANS[i];
     if (n > pn) { _resoPulse[i] = 1; setTimeout(() => { _resoPulse[i] = 0; delete _txt.clanRows; }, 1900); delete _txt.clanRows; }
-    if (b > pb) { uiBanner(`${c.ico} ${c.name} 공명 +${b}Lv!`, "epic"); vib(60); if (_resoSeen[i]) sfx("reso"); _resoSeen[i] = 1; }
-    else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
-    else if (n > pn && (n === nd[0] - 1 || n === nd[1] - 1)) uiLog(`${c.ico} ${c.name} ${n + 1}종까지 1종 남음`, c.color);
+    if (b > pb) {
+      _resoFlash[i] = 1; setTimeout(() => { _resoFlash[i] = 0; delete _txt.clanRows; }, 1300); delete _txt.clanRows;
+      if (_resoSeen[i]) uiLog(`${c.ico} ${c.name} 공명 +${b}Lv`, c.color);
+      _resoSeen[i] = 1; sfx("reso"); vib(40);
+    } else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
   });
 }
-function uiReset() { _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
+function uiReset() { _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoFlash = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
 const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.hero && s.ch === ch && s.n < CONST.STACK_MAX);
 
 function updateHud() {
@@ -549,9 +551,12 @@ function clanRowsHtml() {
       else slots.push(k === shown.length && (n === nd[0] - 1 || n === nd[1] - 1) ? `<i class="sl nx">?</i>` : `<i class="sl"></i>`);
     }
     const up = S.up[i], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), ok = !maxed && S.minerals >= cost && !S.over;
-    const lv = S.lv && S.lv[i] != null ? S.lv[i] : clanLevel(S, i);
-    const rn = S.rangeUp ? S.rangeUp[i] : 0, rc = GAME.rangeCost(i), rok = rc >= 0 && S.minerals >= rc && !S.over; // 사거리 강화 칩: 🎯비용 (+단계 뱃지), 최대면 MAX
-    return `<div class="cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">+${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span><span class="uc rg${rok ? " ok" : ""}${rc < 0 ? " mx" : ""}" data-rg="${i}" title="사거리 강화 +${Math.round(CONST.RANGE_UP.STEP * 100)}%">🎯${rc < 0 ? "MAX" : rc}${rn > 0 ? `<u>+${rn}</u>` : ""}</span><span class="uc${ok ? " ok" : ""}" data-up="${i}">${maxed ? "MAX" : "⬆💎" + cost}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span></div>`;
+    const lv = S.lv && S.lv[i] != null ? S.lv[i] : clanLevel(S, i); // 표시 Lv = 공업 구매 + 공명 보너스(상한 UP_LV_CAP). 단추 MAX = 구매 UP_MAX 회 기준(말풍선에 명시)
+    const rn = S.rangeUp ? S.rangeUp[i] : 0, rc = GAME.rangeCost(i), rok = rc >= 0 && S.minerals >= rc && !S.over; // 사거리 단추: 💎비용 (+단계 뱃지), 최대면 MAX
+    const cls = `cr${rb ? " rz" : ""}${_resoPulse[i] > 0 ? " pulse" : ""}${_resoFlash[i] > 0 ? " flash" : ""}`;
+    return `<div class="${cls}" data-c="${i}" style="--cc:${c.color}"><span class="ci">${c.ico}</span><span class="lv"><b>Lv${lv}</b>${rb ? `<em class="pill">공명 +${rb}</em>` : ""}</span><span class="sls">${slots.join("")}</span>` +
+      `<span class="uc up${ok ? " ok" : ""}${maxed ? " mx" : ""}" role="button" data-up="${i}" aria-label="${c.name} 공업">공업 ${maxed ? "<b>MAX</b>" : "<b>💎" + cost + "</b>"}${S.upTickets > 0 ? `<u>🎫${S.upTickets}</u>` : ""}</span>` +
+      `<span class="uc rg${rok ? " ok" : ""}${rc < 0 ? " mx" : ""}" role="button" data-rg="${i}" aria-label="${c.name} 사거리">사거리 ${rc < 0 ? "<b>MAX</b>" : "<b>💎" + rc + "</b>"}${rn > 0 ? `<u>+${rn}</u>` : ""}</span></div>`;
   }).join("");
 }
 // 정보 패널: 기본/히어로 선택 = 히어로 규칙 + 진행도(+보관 선택권), 유닛 선택 = 상세
@@ -633,7 +638,7 @@ function uiTicket(grade) {
 function uiUpTicket() {
   queueModal(() => {
     if (S && !S.over && !TITLE_ON && !MODAL_ON && !CONFIRM_ON) S.paused = false;
-    if (S && S.upTickets > 0) { uiBanner(`⬆ 무료 공업권 +1! (무리 줄 ⬆칩 🎫${S.upTickets})`, "info"); sfx("ticket"); }
+    if (S && S.upTickets > 0) { uiLog(`🎫 공업권 +1 (보스) · 공업 단추에서 써요`); sfx("ticket"); }
   });
 }
 
@@ -651,11 +656,12 @@ function showPop(html, row, x, ms) {
 }
 function resoHint(c, row, x) {
   const R = CONST.RESONANCE, n = resonanceCount(S.slots, c), cl = CLANS[c], nd = resonanceNeed(S.hero && S.hero.fx.resoEase);
-  showPop(`<div>다른 등급 ${nd[0]}종 → 공업 <b>+${R[4]}Lv</b>, ${nd[1]}종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 영웅 제외 · 🎯 = 사거리 +${Math.round(CONST.RANGE_UP.STEP * 100)}%</small>`, row, x, 3200);
+  const more = n < nd[0] ? nd[0] - n : n < nd[1] ? nd[1] - n : 0, nb = n < nd[0] ? R[4] : R[6];
+  showPop(`<div>다른 등급 ${nd[0]}종이면 공업 <b>+${R[4]}Lv</b>, ${nd[1]}종이면 <b>+${R[6]}Lv</b></div><small>${cl.ico} 공명 ${n}종${more ? ` · ${more}종 더 모으면 +${nb}Lv` : " · 최대예요"} (영웅 제외)</small><small>Lv = 공업 구매 + 공명 (최대 ${CONST.UP_LV_CAP}) · 공업은 ${CONST.UP_MAX}번까지</small><small>사거리는 💎로 +${Math.round(CONST.RANGE_UP.STEP * 100)}%씩, ${CONST.RANGE_UP.MAX}번까지</small>`, row, x, 5000);
 }
 function upChoice(c, row, x) {
   const cl = CLANS[c], up = S.up[c], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), lv = S.lv[c];
-  showPop(`<div><b>${cl.ico} ${cl.name}</b> Lv${lv} → Lv${Math.min(CONST.UP_LV_CAP, lv + 1)}</div><button class="free" data-pick="t">🎫 무료 · ${S.upTickets}장</button><button class="paid" data-pick="m" ${!maxed && S.minerals >= cost ? "" : "disabled"}>${maxed ? "구매 MAX" : "💎 " + cost}</button>`, row, x, 6000);
+  showPop(`<div><b>${cl.ico} ${cl.name}</b> Lv${lv} → Lv${Math.min(CONST.UP_LV_CAP, lv + 1)}</div><small>🎫 공업권 = 보스 보상, 무료로 공업 1번</small><button class="free" data-pick="t">🎫 무료 · ${S.upTickets}장</button><button class="paid" data-pick="m" ${!maxed && S.minerals >= cost ? "" : "disabled"}>${maxed ? "구매 MAX" : "💎 " + cost}</button>`, row, x, 6000);
   $("pop").onclick = (e) => {
     const b = e.target.closest("button[data-pick]"); if (!b || b.disabled) return;
     hidePop();

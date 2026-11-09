@@ -998,7 +998,7 @@ function refreshLevels() {
     S.resonance[c] = S.reso[c];
     S.lv[c] = Math.min(CONST.UP_LV_CAP, clanLevel(S, c) + rb);
     if (S.lv[c] > mx) mx = S.lv[c];
-    if (rb > 0 && !S.resoGot[c]) { S.resoGot[c] = true; S.minerals += CONST.RESONANCE_FIRST; log(`${CLANS[c].name} 공명! +${CONST.RESONANCE_FIRST}`, CLANS[c].color); }
+    if (rb > 0 && !S.resoGot[c]) { S.resoGot[c] = true; S.minerals += CONST.RESONANCE_FIRST; log(`${CLANS[c].ico} ${CLANS[c].name} 공명 +${rb}Lv · 💎+${CONST.RESONANCE_FIRST}`, CLANS[c].color); }
   }
   S.heroLv = Math.floor(mx * (hx.heroLvK || 0.5)); // 히어로 유닛 Lv = 최고 무리 Lv x 50% (부엉이 군사 100%)
 }
