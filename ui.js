@@ -724,7 +724,7 @@ async function ensureRegistered() {
 const LINK_NO = "malang-link-no"; // "1": 연결 제안을 거절함(프로필에서 직접 연결 가능)
 const kakaoOn = () => !!(window.AUTH && AUTH.enabled());
 const kakaoNick = () => (window.AUTH && AUTH.user() ? AUTH.user().nick : "");
-const okModal = (h, p) => { modal(`<h2>${h}</h2><p style="font-size:13px;line-height:1.45">${p}</p><button class="wide" id="lkOk">확인</button>`); $("lkOk").onclick = closeModal; };
+const okModal = (h, p) => { modal(`<h2>${h}</h2><p style="font-size:var(--fs-body);line-height:1.45">${p}</p><button class="wide" id="lkOk">확인</button>`); $("lkOk").onclick = closeModal; };
 function adoptPlayer(p) { // 계정에 연결된 player 를 이 기기에서 쓴다 (기기 로컬 player 는 병합하지 않는다)
   lsSet(DEV_KEY, p.device_id); lsSet(NAME_KEY, p.name); lsSet(NAME_OK, "1"); qSet([]);
 }
@@ -740,7 +740,7 @@ async function doLink(back) { // 현재 기기 player 를 계정에 연결
 }
 async function offerLink(back) { // "이 기기의 기록 N건을 계정에 연결할까요?"
   const pr = await api("profile"), n = pr.st === 200 && pr.d.profile && pr.d.profile.exists ? pr.d.profile.plays || 0 : 0;
-  modal(`<h2>💛 기록을 계정에 연결할까요?</h2><p style="font-size:13px;line-height:1.45">이 기기의 기록 <b>${n}건</b>(<b>${esc(myName())}</b>)을 카카오 계정${kakaoNick() ? " <b>" + esc(kakaoNick()) + "</b>" : ""}에 연결해요. 기기를 바꿔도 로그인하면 기록을 이어 쓸 수 있어요.</p><button class="wide" id="lkYes">연결하기</button><button class="wide mini" id="lkNo" ${BTNR}>나중에</button>`);
+  modal(`<h2>💛 기록을 계정에 연결할까요?</h2><p style="font-size:var(--fs-body);line-height:1.45">이 기기의 기록 <b>${n}건</b>(<b>${esc(myName())}</b>)을 카카오 계정${kakaoNick() ? " <b>" + esc(kakaoNick()) + "</b>" : ""}에 연결해요. 기기를 바꿔도 로그인하면 기록을 이어 쓸 수 있어요.</p><button class="wide" id="lkYes">연결하기</button><button class="wide mini" id="lkNo" ${BTNR}>나중에</button>`);
   $("lkYes").onclick = () => { $("lkYes").disabled = true; doLink(back); };
   $("lkNo").onclick = () => { lsSet(LINK_NO, "1"); if (back) back(); else closeModal(); };
 }
@@ -891,7 +891,7 @@ async function finishRank(P) {
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
 function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
-  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
+  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkImp").onclick = () => showImport(() => showNick(msg, then));
   if ($("nkKk")) $("nkKk").onclick = () => AUTH.login();
@@ -907,7 +907,7 @@ function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 
   };
 }
 function showRename(back) {
-  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
+  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkNo").onclick = () => showProfile(back);
   $("nkOk").onclick = async () => {
@@ -933,7 +933,7 @@ function showRename(back) {
   };
 }
 function showImport(back) {
-  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:13px;width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
+  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:var(--fs-body);width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("icNo").onclick = () => back();
   $("icOk").onclick = async () => {
@@ -1340,8 +1340,8 @@ function setupA2hs() { // 홈 화면 추가 안내 (설치/전체화면 상태�
   $("a2hsX").onclick = (e) => { e.stopPropagation(); lsSet("malrang_a2hs", "1"); box.classList.remove("on"); };
   $("a2hsTxt").onclick = () => { if (_installEv) { _installEv.prompt(); _installEv = null; } };
 }
-function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
-  try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
+function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard·Jua 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
+  try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard", "400 38px Jua"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
 }
 function bindUi() {
   loadFonts();

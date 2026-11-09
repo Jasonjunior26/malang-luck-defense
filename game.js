@@ -669,9 +669,9 @@ function render() {
   if (S.banner) {
     const b = S.banner, k = 1 - b.t / b.max, sc = k < 0.15 ? (k / 0.15) * 1.15 : k < 0.25 ? 1.15 - ((k - 0.15) / 0.1) * 0.15 : 1;
     ctx.save(); ctx.translate(W / 2, H * 0.2); ctx.scale(sc, sc); ctx.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
-    ctx.font = "800 38px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
+    ctx.font = "400 38px Jua,Pretendard,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
     ctx.strokeText(b.txt, 0, 0); ctx.fillText(b.txt, 0, 0);
-    if (b.sub) { ctx.font = "800 16px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
+    if (b.sub) { ctx.font = "400 16px Jua,Pretendard,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
     ctx.restore();
   }
   updateHud();

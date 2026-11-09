@@ -64,7 +64,6 @@ const HEROES = [
  {"id":"fennec","name":"사막여우 망원","prob":10,"rule":"모든 유닛 사거리 +15%","fx":{"rangeMul":0.15},"look":{"shape":[1,0.95],"c1":"#f2c98a","c2":"#fff4e0","c3":"#e8442e","base":[["ear","big","#f2c98a"],["tail","fluffy","#f2c98a"]],"face":["sharp","smile"],"parts":[["hat","monocle","#ffd54f"],["acc","scarf","#e8442e"]]}},
  {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"영웅 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
 ];
-
 // RULES-BEGIN
 // ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
 // 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
@@ -1567,9 +1566,9 @@ function render() {
   if (S.banner) {
     const b = S.banner, k = 1 - b.t / b.max, sc = k < 0.15 ? (k / 0.15) * 1.15 : k < 0.25 ? 1.15 - ((k - 0.15) / 0.1) * 0.15 : 1;
     ctx.save(); ctx.translate(W / 2, H * 0.2); ctx.scale(sc, sc); ctx.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
-    ctx.font = "800 38px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
+    ctx.font = "400 38px Jua,Pretendard,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
     ctx.strokeText(b.txt, 0, 0); ctx.fillText(b.txt, 0, 0);
-    if (b.sub) { ctx.font = "800 16px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
+    if (b.sub) { ctx.font = "400 16px Jua,Pretendard,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
     ctx.restore();
   }
   updateHud();

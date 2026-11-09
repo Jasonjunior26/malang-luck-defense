@@ -1,5 +1,5 @@
 // 서비스워커: 앱 셸 프리캐시 + stale-while-revalidate. 배포할 때마다 CACHE_VERSION 을 올린다.
-const CACHE_VERSION = 'v35-myhero-4b';
+const CACHE_VERSION = 'v36-fonts-5';
 const SHELL_CACHE = 'malang-shell-' + CACHE_VERSION;
 
 const SHELL = [
@@ -7,7 +7,7 @@ const SHELL = [
   'config.js', 'auth.js', 'data.js', 'graphics.js', 'ui.js', 'seasons.js', 'myhero.js', 'game.js',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/icon-maskable-512.png',
   'assets/icons/apple-touch-icon-180.png', 'assets/icons/favicon-32.png', 'assets/icons/icon.svg',
-  'fonts/Pretendard-Regular.subset.woff2', 'fonts/Pretendard-SemiBold.subset.woff2', 'fonts/Pretendard-ExtraBold.subset.woff2'
+  'fonts/Pretendard-Regular.subset.woff2', 'fonts/Pretendard-SemiBold.subset.woff2', 'fonts/Pretendard-ExtraBold.subset.woff2', 'fonts/Jua-subset.woff2'
 ];
 
 self.addEventListener('install', e => {
