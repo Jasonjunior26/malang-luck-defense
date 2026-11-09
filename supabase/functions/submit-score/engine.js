@@ -1165,8 +1165,7 @@ function startRound() {
   const ch = CHAPTERS[info.ch - 1];
   S.banner = { txt: info.boss ? `⚠ 보스 ${S.round}` : `라운드 ${S.round}`, sub: info.boss ? info.name : ch.name, t: 1.6, max: 1.6, boss: info.boss };
   if (S.round > 1 || !S.paused) sfx(info.boss ? "boss" : "round");
-  if (info.boss) log(`보스 등장! ${info.name}`, "#ff5c8a");
-  else if (info.r === ch.from) log(`챕터 ${ch.id}. ${ch.name}`, "#7a5fd0");
+  if (info.r === ch.from && !info.boss) log(`챕터 ${ch.id}. ${ch.name}`, "#7a5fd0");
   const hx = S.hero.fx || {};
   if (hx.roundMin) { S.minerals += hx.roundMin; }
   if (hx.roundDmg && S.round > 1) updateProgress();
@@ -1235,15 +1234,16 @@ const GAME = {
     afterChange();
     const gr = GRADES[g];
     const pct = +probs[g].toFixed(3);
-    if (g >= 3) log(`${pct}%의 확률로 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "이" : "가"} 나왔어요!`, gr.color);
+    if (g >= 3) log(`[${gr.name}] ${c.name} 나왔어요! (${pct}%)`, gr.color);
     if (si >= 0) {
       const p = slotPos(si); pop(p.x, p.y, `뿅! ${CLANS[c.clan].name.slice(0, -2)} Lv${S.lv[c.clan]}`, 0.8, gr.color, 13);
       burst(p.x, p.y, gr.color, 10 + g * 3, 80 + g * 12, 3, 0.5); ring(p.x, p.y, "#fff", 32, 0.35);
     }
     sfx("draw" + g); if (g >= 5) sfx("jingle" + g);
-    if (g >= 4) { uiBanner(`[${gr.name}] ${c.name}!`, "hi"); vib(60 + g * 20); }
+    if (g >= 4) vib(60 + g * 20);
+    if (g === 5) uiBanner(`에픽! [${c.name}]`, "epic");
     if (g >= 5) S.flash = Math.max(S.flash, 0.18);
-    if (g >= 6) { uiBanner("경축! 아니 이걸 뽑다니!", "big"); S.slowmo = 0.5; S.shake = Math.max(S.shake, 6); }
+    if (g >= 6) { uiBanner("경축! 아니 이걸 뽑다니!\n" + c.name, g >= 7 ? "parents" : "legend"); S.slowmo = 0.5; S.shake = Math.max(S.shake, 6); }
     return true;
   },
   canMerge(i) {
@@ -1276,7 +1276,7 @@ const GAME = {
       afterChange(); if (!S.inAuto) inp("merge", i); done++;
       const gr = GRADES[ci >> 2], c = CHARS[ci];
       if (!HEADLESS) { burst(p.x, p.y, gr.color, 14 + g * 4, 110, 3.4, 0.6); ring(p.x, p.y, gr.color, 44, 0.45); }
-      if (ci >> 2 >= 3) log(`[${GRADES[g].name}] 3기를 조합하여 [${gr.name}] ${c.name}${hasBatchim(c.name) ? "을" : "를"} 얻었어요!`, gr.color);
+      if (ci >> 2 >= 3) log(`[${GRADES[g].name}]→[${gr.name}] ${c.name} 합성!`, gr.color);
       sfx("merge" + (ci >> 2)); if (ci >> 2 >= 5) sfx("jingle" + (ci >> 2)); vib(30);
       if (ci >> 2 >= 5) S.flash = Math.max(S.flash, 0.15);
       if (!all) break;
@@ -1316,7 +1316,7 @@ const GAME = {
     const g = chIdx >> 2, k = S.tickets.indexOf(g);
     if (k < 0 || S.over) return false;
     if (S.rules.clanBan && S.rules.clanBan.includes(chIdx & 3)) return false;
-    if (!addUnit(chIdx)) { log("자리가 없어요! 자리를 만든 뒤 다시 골라주세요", "#e0558a"); sfx("deny"); return false; }
+    if (!addUnit(chIdx)) { log("자리가 없어요! 비우고 다시 골라요", "#e0558a"); sfx("deny"); return false; }
     S.tickets.splice(k, 1); inp("ticket", chIdx);
     log(`[${GRADES[g].name}] ${CHARS[chIdx].name} 선택!`, GRADES[g].color); sfx("ticket"); return true;
   },
@@ -1472,7 +1472,7 @@ function update(dt) {
   const n = S.mobs.length;
   if (n >= CONST.MOB_LOSE) { gameOver(false); return; }
   const wl = n >= CONST.MOB_WARN[1] ? 2 : n >= CONST.MOB_WARN[0] ? 1 : 0;
-  if (wl > S.warnLvl) { log(`적 유닛 수가 ${CONST.MOB_WARN[wl - 1]}기 이상입니다!`, "#e0301e"); sfx(wl >= 2 ? "warn2" : "warn"); uiBanner(`적 유닛 수가 ${CONST.MOB_WARN[wl - 1]}기 이상입니다!`, "warn"); }
+  // 적 유닛 수 경고 알림은 ui.js(uiHud)가 한 번만 낸다(중복 방지)
   S.warnLvl = wl;
   if (S.round === CONST.ROUNDS && !S.mobs.some((m) => m.boss) && S.queue === 0 && n === 0) { S.bossLeft = Math.max(0, S.bossT); gameOver(true); return; }
 

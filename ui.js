@@ -398,36 +398,57 @@ function uiConfirm(msg, onOk) {
 }
 
 // ---------- 로그 / 배너 / 알림 ----------
-function uiLog(txt, col = "#5b3a1e") {
+// 알림 3등급(원칙 §7, docs/디자인_구현_8.md): S=전설·부모·승리(중앙 34, 플래시) / M=라운드·보스·에픽·경고·공명 해제(중앙 26) / L=그 외(좌하단 로그 14)
+// uiLog(txt, col): L. col 은 글자색이 아니라 왼쪽 점 색. 같은 문구 연속은 ×N 합침, 최대 3줄, 4초 후 페이드.
+function uiLog(txt, col) {
   if (typeof txt === "string") { if (txt.includes("처치! 미네랄")) sfx("bossKill"); }
-  const box = $("logBox"), d = document.createElement("div");
-  d.className = "lg"; d.textContent = txt; d.style.color = col;
+  const box = $("logBox"), last = box.lastElementChild;
+  if (last && last.dataset.t === txt) { // 같은 문구 연속 -> ×N
+    const n = (+last.dataset.n || 1) + 1; last.dataset.n = n; last.querySelector("span").textContent = txt + " ×" + n;
+    clearTimeout(last._tm); last.style.animation = "none"; void last.offsetWidth; last.style.animation = "";
+    last._tm = setTimeout(() => { if (last.parentNode) last.parentNode.removeChild(last); }, 4100); return;
+  }
+  const d = document.createElement("div"), dot = document.createElement("i"), sp = document.createElement("span");
+  d.className = "lg"; d.dataset.t = txt; if (col) dot.style.background = col; sp.textContent = txt; d.append(dot, sp);
   box.appendChild(d);
   while (box.children.length > 3) box.removeChild(box.firstChild);
-  setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 4100);
+  d._tm = setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 4100);
 }
-const BANNER_COL = { info: "#e0558a", warn: "#ff9a00", boss: "#d4182e", hi: "#ff8a1f", epic: "#ff3d7f", legend: "#ffc400", parents: "#ff6ad5", win: "#3fa95f" };
+const BANNER_COL = { info: "#e0558a", warn: "#ff9a00", boss: "#d4182e", hero: "#ff8a1f", hi: "#ff8a1f", epic: "#ff3d7f", legend: "#ffc400", parents: "#ff6ad5", win: "#3fa95f", big: "#ffc400", round: "#e0558a", tip: "#3b9dff" };
+// kind -> 등급 표(새 알림은 여기서 등급을 고른다). 표에 없는 kind 는 M.
+const KIND_GRADE = { legend: "S", parents: "S", win: "S", big: "S", epic: "M", boss: "M", warn: "M", round: "M", hero: "M", info: "M", hi: "L", tip: "L" };
+const BAN_MS = { S: 2400, M: 1800 }, BAN_GAP = 300, BAN_MAXQ = 3;
+let _bq = [], _bcur = null, _bt = 0;
+function _bShow(it) {
+  const b = $("banner"); _bcur = it;
+  b.textContent = it.txt; b.style.setProperty("--bc", BANNER_COL[it.kind] || BANNER_COL.info);
+  b.className = ""; void b.offsetWidth; b.className = "g" + it.g + " on";
+  if (it.g === "S") { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
+  clearTimeout(_bt); _bt = setTimeout(() => { _bcur = null; $("banner").className = ""; _bt = setTimeout(() => { _bt = 0; const nx = _bq.shift(); if (nx) _bShow(nx); }, BAN_GAP); }, BAN_MS[it.g]);
+}
+function uiBannerClear() { _bq = []; _bcur = null; clearTimeout(_bt); _bt = 0; const b = $("banner"); if (b) b.className = ""; }
 function uiBanner(txt, kind = "info") {
-  const b = $("banner");
-  b.textContent = txt; b.style.setProperty("--bc", BANNER_COL[kind] || BANNER_COL.info);
-  b.classList.toggle("big", kind === "legend" || kind === "parents" || kind === "win");
-  b.classList.remove("on"); void b.offsetWidth; b.classList.add("on");
-  if (kind === "epic" || kind === "legend" || kind === "parents" || kind === "win") { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
+  const g = KIND_GRADE[kind] || "M";
+  if (g === "L") { uiLog(String(txt).replace(/\n/g, " "), BANNER_COL[kind]); return; }
+  const it = { txt, kind, g, rk: g === "S" ? 2 : 1 };
+  if (_bcur && it.rk > _bcur.rk) { _bShow(it); return; } // 높은 등급은 낮은 등급을 끊고 선점
+  let at = _bq.length; while (at > 0 && _bq[at - 1].rk < it.rk) at--; _bq.splice(at, 0, it); // 같은 등급은 순서, S 는 M 앞
+  if (_bq.length > BAN_MAXQ) { let k = _bq.length - 1; const pri = (x) => x.rk * 2 + (x.kind === "epic" || x.kind === "boss" ? 1 : 0), lo = Math.min(..._bq.map(pri)); k = _bq.findIndex((x) => pri(x) === lo); _bq.splice(k, 1); } // 넘치면 가장 낮은 등급 중 오래된 것부터 버림
+  if (!_bcur && !_bt) { _bt = setTimeout(() => { _bt = 0; const nx = _bq.shift(); if (nx) _bShow(nx); }, 0); }
 }
 // 뽑기 직후 호출(선택): game.js 가 uiDrew(idx) 를 부르면 형식 로그 + 등급 연출
 function uiDrew(idx) {
   const c = CHARS[idx], g = c.grade, p = gradeProbs(S && S.hero, S && S.rules)[g];
   const lv = S ? clanLevel(S, c.clan) : 0;
-  uiLog(`${pct(p)}%의 확률로 [${gname(g)}] ${c.name}이(가) 나왔어요! ${CLANS[c.clan].ico}Lv${lv}`, GCOL(g));
+  uiLog(`[${gname(g)}] ${c.name} 나왔어요! (${pct(p)}%)`, GCOL(g));
   if (g >= 4) { sfx("drawHi"); vib(g >= 6 ? [80, 40, 80, 40, 200] : 80); }
-  if (g === 4) uiBanner(`히든! [${c.name}]`, "hi");
-  else if (g === 5) uiBanner(`에픽! [${c.name}]`, "epic");
+  if (g === 5) uiBanner(`에픽! [${c.name}]`, "epic");
   else if (g >= 6) uiBanner("경축! 아니 이걸 뽑다니!\n" + c.name, g === 7 ? "parents" : "legend");
 }
-// 합성 직후 호출(선택): "[커먼] 등급 유닛을 조합하여 [노멀] 등급 유닛을 랜덤으로 얻었습니다!"
+// 합성 직후 호출(선택)
 function uiMerged(fromGrade, toIdx) {
   const c = CHARS[toIdx];
-  uiLog(`[${gname(fromGrade)}] 등급 유닛을 조합하여 [${gname(c.grade)}] 등급 유닛을 랜덤으로 얻었습니다! (${CLANS[c.clan].ico}${c.name})`, GCOL(c.grade));
+  uiLog(`[${gname(fromGrade)}]→[${gname(c.grade)}] ${c.name} 합성!`, GCOL(c.grade));
   sfx("merge");
 }
 
@@ -455,7 +476,7 @@ function trackReso() {
     } else if (b < pb) uiBanner(`${c.ico} ${c.name} 공명 해제 (${n}종)`, "warn");
   });
 }
-function uiReset() { _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoFlash = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
+function uiReset() { uiBannerClear(); _resoPrev = null; _resoPulse = [0, 0, 0, 0]; _resoFlash = [0, 0, 0, 0]; _resoSeen = [0, 0, 0, 0]; _lastRound = 0; _mobLv = 0; _lastSec = -1; $("logBox").innerHTML = ""; for (const k in _txt) delete _txt[k]; $("vig").classList.remove("on"); }
 const hasRoom = (ch) => S.slots.some((s) => !s) || S.slots.some((s) => s && !s.hero && s.ch === ch && s.n < CONST.STACK_MAX);
 
 function updateHud() {
@@ -514,7 +535,7 @@ function updateHud() {
   setText("hScoreLbl", alarm ? "몬스터!" : "점수");
   setCls("vig", "on", n >= W90 && !S.over);
   const lv = n >= W90 ? 2 : n >= W80 ? 1 : 0;
-  if (lv > _mobLv) { uiBanner(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, "warn"); uiLog(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상입니다!`, lv === 2 ? "#d4182e" : "#c98a00"); sfx(lv === 2 ? "warn2" : "warn"); vib(60); }
+  if (lv > _mobLv) { uiBanner(`적 유닛 수가 ${lv === 2 ? W90 : W80}기 이상이에요!`, "warn"); sfx(lv === 2 ? "warn2" : "warn"); vib(60); }
   _mobLv = lv;
   // 버튼
   const free = S.slots.some((s) => !s), dc = GAME.drawCost(), can = S.minerals >= dc && free && !S.over;
@@ -638,7 +659,7 @@ function uiTicket(grade) {
 function uiUpTicket() {
   queueModal(() => {
     if (S && !S.over && !TITLE_ON && !MODAL_ON && !CONFIRM_ON) S.paused = false;
-    if (S && S.upTickets > 0) { uiLog(`🎫 공업권 +1 (보스) · 공업 단추에서 써요`); sfx("ticket"); }
+    if (S && S.upTickets > 0) { uiLog(`🎫 공업권 +1 · 공업 단추에서 써요`); sfx("ticket"); }
   });
 }
 
@@ -1304,9 +1325,9 @@ function startRun(mode, seed, rules, mine) { // seed/rules: 프라이빗 시즌 
   if (!rules && window.SeasonMod) SeasonMod.clear();
   if (rules || !mine) MyHero.clear();
   GAME.start(mode, seed, rules, rules ? null : mine); uiReset(); sfx("wave"); setTimeout(fitCanvas, 60);
-  if (S && S.hero) setTimeout(() => { if (!TITLE_ON && S && S.hero) uiBanner(`👑 ${MyHero.label(S)}\n${S.hero.rule}`, "hi"); }, 400);
-  if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 유닛 3기가 모이면 [합성]으로 다음 등급이 돼요!", "info"), 3000);
-    setTimeout(() => uiBanner("같은 무리 다른 등급 4종이면 공명 보너스! (무리 줄을 눌러요)", "info"), 6200); }
+  if (S && S.hero) setTimeout(() => { if (!TITLE_ON && S && S.hero) uiBanner(`👑 ${MyHero.label(S)}\n${S.hero.rule}`, "hero"); }, 400);
+  if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 3기는 [합성]하면 한 등급 위!", "tip"), 3000);
+    setTimeout(() => uiBanner("무리 4종이 모이면 공명 보너스!", "tip"), 6200); }
 }
 
 // ---------- 버튼 바인딩 ----------
@@ -1336,17 +1357,7 @@ function tryFullscreen() { // 안드로이드 크롬 일반 탭에서만 동작(
     try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("portrait").catch(() => {}); } catch {}
   } catch {}
 }
-let _installEv = null;
-function setupA2hs() { // 홈 화면 추가 안내 (설치/전체화면 상태면 숨김, 닫으면 다시 안 보임)
-  const box = $("a2hs"); if (!box || isStandalone() || lsGet("malrang_a2hs")) return;
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const show = () => { setText("a2hsTxt", ios ? "공유(⬆) → 홈 화면에 추가하면 전체화면으로 즐겨요" : _installEv ? "탭해서 앱으로 설치하면 전체화면!" : "메뉴(⋮) → 홈 화면에 추가하면 전체화면으로 즐겨요"); box.classList.add("on"); };
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); _installEv = e; show(); });
-  window.addEventListener("appinstalled", () => box.classList.remove("on"));
-  show();
-  $("a2hsX").onclick = (e) => { e.stopPropagation(); lsSet("malrang_a2hs", "1"); box.classList.remove("on"); };
-  $("a2hsTxt").onclick = () => { if (_installEv) { _installEv.prompt(); _installEv = null; } };
-}
+window.addEventListener("beforeinstallprompt", (e) => e.preventDefault()); // 앱 설치 안내는 쓰지 않는다(스토어 앱으로 보급 예정). 브라우저 기본 설치 배너만 막는다
 function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard·Jua 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
   try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard", "400 38px Jua"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
 }
@@ -1355,7 +1366,6 @@ function bindUi() {
   fitVh(); window.addEventListener("resize", fitVh); window.addEventListener("orientationchange", fitVh); if (window.visualViewport) window.visualViewport.addEventListener("resize", fitVh);
   for (const ev of ["click", "touchend"]) document.addEventListener(ev, () => { if (!document.fullscreenElement) tryFullscreen(); }, { passive: true });
   document.addEventListener("fullscreenchange", () => setTimeout(fitVh, 100));
-  setupA2hs();
   if (_bound) return; _bound = true;
   $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < GAME.drawCost()) sfx("deny"); };
   // 합성: 탭 = 선택 칸 합성(확인창 없음), 길게 = 가능한 만큼 일괄
