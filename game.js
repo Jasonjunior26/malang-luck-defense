@@ -642,7 +642,7 @@ function render() {
     ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.beginPath(); ctx.roundRect(bx, by, bw, 5, 2.5); ctx.fill();
     ctx.fillStyle = m.burn > 0 ? "#ff8a3d" : m.slow > 0 ? "#4aa8ff" : "#ff6b8b"; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(0, (bw * m.hp) / m.max), 5, 2.5); ctx.fill();
     ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(bx, by, bw, 5, 2.5); ctx.stroke();
-    if (m.armor >= 20) { ctx.fillStyle = "#3a4a6a"; ctx.font = "9px Jua,system-ui,sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("🛡" + m.armor + "%", bx, by - 6); }
+    if (m.armor >= 20) { ctx.fillStyle = "#3a4a6a"; ctx.font = "800 9px Pretendard,system-ui,sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText("🛡" + m.armor + "%", bx, by - 6); }
   }
   for (const e of S.efx) drawEfx(ctx, e);
   for (const pr of S.projs) drawProj(ctx, pr, S.time);
@@ -652,7 +652,7 @@ function render() {
   for (const f of S.fx) { // font/색은 바뀔 때만 설정(Safari 폰트 문자열 파싱 비용)
     const k = 1 - f.t / f.max, y = f.y - 30 - k * 24;
     ctx.globalAlpha = Math.min(1, (f.t / f.max) * 2);
-    if (f.size !== fSize) { fSize = f.size; ctx.font = `${f.size}px Jua,system-ui,sans-serif`; }
+    if (f.size !== fSize) { fSize = f.size; ctx.font = `800 ${f.size}px Pretendard,system-ui,sans-serif`; }
     if (f.col !== fCol) { fCol = f.col; ctx.fillStyle = f.col; }
     ctx.strokeText(f.txt, f.x, y); ctx.fillText(f.txt, f.x, y);
   }
@@ -669,9 +669,9 @@ function render() {
   if (S.banner) {
     const b = S.banner, k = 1 - b.t / b.max, sc = k < 0.15 ? (k / 0.15) * 1.15 : k < 0.25 ? 1.15 - ((k - 0.15) / 0.1) * 0.15 : 1;
     ctx.save(); ctx.translate(W / 2, H * 0.2); ctx.scale(sc, sc); ctx.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
-    ctx.font = "38px Jua,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
+    ctx.font = "800 38px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 8; ctx.strokeStyle = b.boss ? "#7a1f6b" : "#e0558a"; ctx.fillStyle = "#fff";
     ctx.strokeText(b.txt, 0, 0); ctx.fillText(b.txt, 0, 0);
-    if (b.sub) { ctx.font = "16px Jua,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
+    if (b.sub) { ctx.font = "800 16px Pretendard,system-ui,sans-serif"; ctx.lineWidth = 5; ctx.strokeText(b.sub, 0, 30); ctx.fillText(b.sub, 0, 30); }
     ctx.restore();
   }
   updateHud();

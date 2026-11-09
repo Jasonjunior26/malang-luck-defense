@@ -475,7 +475,7 @@ function drawSlotOverlay(c, x, y, slot, t) {
   const bs = 9, bwid = badgeWidth(hero ? 6 : grade, bs);
   drawBadge(c, x + 24 - bwid / 2, y - 21, grade, bs);
   if (clan >= 0) drawEmblem(c, clan, x - 19, y + 19, 17);
-  if (n >= 2) { const s = n >= 12 ? "MAX" : "x" + n, w = s.length * 6.9 + 9.2; c.save(); c.fillStyle = n >= 12 ? "#e8442e" : "rgba(60,40,20,.85)"; _rrect(c, x + 26 - w, y + 12.2, w, 13.8, 7); c.fill(); c.fillStyle = "#fff"; c.font = "bold 10.4px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(s, x + 26 - w / 2, y + 19.2); c.restore(); }
+  if (n >= 2) { const s = n >= 12 ? "MAX" : "x" + n, w = s.length * 6.9 + 9.2; c.save(); c.fillStyle = n >= 12 ? "#e8442e" : "rgba(60,40,20,.85)"; _rrect(c, x + 26 - w, y + 12.2, w, 13.8, 7); c.fill(); c.fillStyle = "#fff"; c.font = "800 10.4px Pretendard,sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(s, x + 26 - w / 2, y + 19.2); c.restore(); }
   if (!hero && n >= 3 && grade < 6) { // 합성 가능 화살표 맥동
     const p = 0.5 + 0.5 * Math.sin(t * 6); c.save(); c.translate(x - 20, y - 17 - p * 2); c.fillStyle = "#35c759"; c.strokeStyle = "#fff"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(0, -6); c.lineTo(6, 1); c.lineTo(2.2, 1); c.lineTo(2.2, 6); c.lineTo(-2.2, 6); c.lineTo(-2.2, 1); c.lineTo(-6, 1); c.closePath(); c.stroke(); c.fill(); c.restore();
   }
@@ -807,8 +807,8 @@ function drawMobBar(c, x, y, r, m) {
   c.fillStyle = "rgba(255,255,255,.9)"; c.beginPath(); c.roundRect(bx, by, bw, 5, 2.5); c.fill();
   c.fillStyle = m.boss ? "#ff4d6d" : "#ff6b8b"; c.beginPath(); c.roundRect(bx, by, bw * hp, 5, 2.5); c.fill();
   c.strokeStyle = "#5b3a1e"; c.lineWidth = 1; c.beginPath(); c.roundRect(bx, by, bw, 5, 2.5); c.stroke();
-  if (m.armor >= 20) { c.save(); c.translate(bx - 6, by + 2.5); c.fillStyle = "#5aa8e8"; c.strokeStyle = "#fff"; c.lineWidth = 1; c.beginPath(); c.moveTo(-4, -4); c.lineTo(4, -4); c.lineTo(4, 1); c.quadraticCurveTo(0, 6, 0, 6); c.quadraticCurveTo(0, 6, -4, 1); c.closePath(); c.fill(); c.stroke(); c.restore(); c.fillStyle = "#2c4a7a"; c.font = "bold 8px sans-serif"; c.textAlign = "right"; c.textBaseline = "middle"; c.fillText(m.armor + "%", bx - 11, by + 2.5); }
-  if (m.boss && m.name) { c.font = "bold 10px sans-serif"; c.textAlign = "center"; c.textBaseline = "bottom"; c.lineWidth = 3; c.strokeStyle = "#fff"; c.strokeText(m.name, x, by - 2); c.fillStyle = "#7a1f33"; c.fillText(m.name, x, by - 2); }
+  if (m.armor >= 20) { c.save(); c.translate(bx - 6, by + 2.5); c.fillStyle = "#5aa8e8"; c.strokeStyle = "#fff"; c.lineWidth = 1; c.beginPath(); c.moveTo(-4, -4); c.lineTo(4, -4); c.lineTo(4, 1); c.quadraticCurveTo(0, 6, 0, 6); c.quadraticCurveTo(0, 6, -4, 1); c.closePath(); c.fill(); c.stroke(); c.restore(); c.fillStyle = "#2c4a7a"; c.font = "800 8px Pretendard,sans-serif"; c.textAlign = "right"; c.textBaseline = "middle"; c.fillText(m.armor + "%", bx - 11, by + 2.5); }
+  if (m.boss && m.name) { c.font = "800 10px Pretendard,sans-serif"; c.textAlign = "center"; c.textBaseline = "bottom"; c.lineWidth = 3; c.strokeStyle = "#fff"; c.strokeText(m.name, x, by - 2); c.fillStyle = "#7a1f33"; c.fillText(m.name, x, by - 2); }
 }
 
 // ---------- 발사체 ----------

@@ -1319,7 +1319,11 @@ function setupA2hs() { // 홈 화면 추가 안내 (설치/전체화면 상태�
   $("a2hsX").onclick = (e) => { e.stopPropagation(); lsSet("malrang_a2hs", "1"); box.classList.remove("on"); };
   $("a2hsTxt").onclick = () => { if (_installEv) { _installEv.prompt(); _installEv = null; } };
 }
+function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
+  try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
+}
 function bindUi() {
+  loadFonts();
   fitVh(); window.addEventListener("resize", fitVh); window.addEventListener("orientationchange", fitVh); if (window.visualViewport) window.visualViewport.addEventListener("resize", fitVh);
   for (const ev of ["click", "touchend"]) document.addEventListener(ev, () => { if (!document.fullscreenElement) tryFullscreen(); }, { passive: true });
   document.addEventListener("fullscreenchange", () => setTimeout(fitVh, 100));
