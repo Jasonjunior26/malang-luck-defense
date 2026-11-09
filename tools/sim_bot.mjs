@@ -138,11 +138,11 @@ if (mode === "ab") {
   const E = await import(pathToFileURL(path.join(root, "supabase/functions/submit-score/engine.js")).href);
   const full = {}; for (const it of E.MY_ITEMS) full[it.id] = it.max;
   const noSk = Object.fromEntries(Object.entries(full).filter(([k]) => !k.startsWith("sk_")));
-  const L = [["운빨 리그(시드 영웅)", {}], ["내 영웅 기본(능력 없음)", { mine: { design: "cat", items: {}, equip: [] } }],
-    ["풀빌드 스킬 미장착", { mine: { design: "cat", items: noSk, equip: [] } }]];
+  const L = [["운빨 리그(시드 영웅)", {}], ["내 영웅 기본(능력 없음)", { mine: { design: "cat", items: {}, equip: {} } }],
+    ["풀빌드 스킬 미장착", { mine: { design: "cat", items: noSk, equip: {} } }]];
   for (const eq of (process.env.EQ || "sk_storm+sk_meteor,sk_nova+sk_storm,sk_chain+sk_storm,sk_beam+sk_meteor").split(",")) L.push(["풀빌드 " + eq, { mine: { design: "cat", items: full, equip: eq.split("+") } }]);
   if (process.env.HALF) { const half = {}; for (const it of E.MY_ITEMS) half[it.id] = Math.ceil(it.max / 2); L.push(["절반빌드 sk_storm+sk_meteor", { mine: { design: "cat", items: half, equip: ["sk_storm", "sk_meteor"] } }]); }
-  if (process.env.ONE) { L.length = 2; for (const it of E.MY_ITEMS) if (!it.sk && it.id !== "coin") L.push(["단독 " + it.id + " " + it.max, { mine: { design: "cat", items: { [it.id]: it.max }, equip: [] } }]); }
+  if (process.env.ONE) { L.length = 2; for (const it of E.MY_ITEMS) if (!it.sk && it.id !== "coin") L.push(["단독 " + it.id + " " + it.max, { mine: { design: "cat", items: { [it.id]: it.max }, equip: {} } }]); }
   if (process.env.BUILDS) { L.length = 2; for (const [nm, b] of Object.entries(JSON.parse(process.env.BUILDS))) L.push([nm, { mine: { design: "cat", equip: [], ...b } }]); } // {"이름":{items,equip}}
   console.log(HDR);
   for (const [nm, o] of L) { const v = o.mine ? E.validateMine(o.mine) : { ok: true }; if (!v.ok) { console.log("invalid", nm, v.err); continue; } console.log(row(nm, batch(N, o))); }

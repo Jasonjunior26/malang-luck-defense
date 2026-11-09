@@ -115,8 +115,8 @@ Deno.serve(async (req: Request) => {
     if (typeof win !== "boolean") return fail(400, "bad_win");
     const bad = validateInputs(inputs);
     if (bad) return fail(400, "bad_inputs", { detail: bad });
-    // 내 영웅 v2(선택, GAME_VER 7): {design, items:{품목:단계}, equip:[스킬]} + hero_name. 서버가 같은 능력을 적용해 재생하므로
-    // 한도(품목 id·단계 범위·선행 조건·장착 수)만 검증한다(구매 여부는 알 수 없음). 없으면 기존 동작.
+    // 내 영웅 v2(선택, GAME_VER 9): {design, items:{품목:단계}, equip:{basic,ult}} + hero_name. 서버가 같은 능력을 적용해 재생하므로
+    // 한도(품목 id·단계 범위·선행 조건·능력 2종 이하·칸별 장착)만 검증한다(구매 여부는 알 수 없음). 옛 배열 equip 은 400 bad_mine(GAME_VER 8 클라는 ver 검사에서 먼저 409). 없으면 기존 동작.
     // 레거시 {hero, up} 는 GAME_VER 6 클라이언트만 보내는데 위 ver 검사(409 ver_mismatch)에서 먼저 걸러진다. ver 를 맞춘 변조 요청은 409 mine_legacy.
     if (b.mine != null) {
       const mv = validateMine(b.mine);

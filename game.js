@@ -164,7 +164,7 @@ function segDist(px, py, ax, ay, bx, by) {
 function defOf(u, sup) {
   const rm = rangeMul(u), hx = S.hero.fx, sp = hx.atkSpd || 1; // 사거리 강화·히어로 보정, 공격 속도(번개 족제비)
   if (u.hero) { // 내 영웅: heroAtk(영웅 근력), hsk/hsk2(장착 스킬 = 기본/필살 공격 방식). 운빨 리그 영웅은 셋 다 없음
-    const ha = HERO_UNIT.atk * (hx.heroAtk || 1), k = (sup && hx.hsk2) || hx.hsk;
+    const ha = HERO_UNIT.atk * (hx.heroAtk || 1), k = sup ? hx.hsk2 : hx.hsk; // 칸별: 필살 칸이 비면 필살도 일반 공격(기본공격 스킬이 대신하지 않는다, GAME_VER 9)
     if (!k) return { fx: "shot", atk: ha, cd: HERO_UNIT.cd / sp, range: HERO_UNIT.range * rm, aoe: null, pierce: 0, st: null, shot: [null, null], grade: 3 };
     return { fx: k.fx, atk: ha * k.k, cd: (HERO_UNIT.cd * k.cd) / sp, range: HERO_UNIT.range * rm, aoe: k.aoe, pierce: k.pierce || 0, st: k.st, shot: k.shot, grade: 3 };
   }
