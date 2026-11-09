@@ -645,7 +645,7 @@ function uiTicket(grade) {
       const c = CHARS[grade * 4 + k], ok = hasRoom(c.idx);
       return `<div class="opt${ok ? "" : " dim"}" data-i="${c.idx}" style="--gc:${GCOL(grade)}"><canvas data-i="${c.idx}" width="112" height="112"></canvas><b>${esc(c.name)}</b><br>${CLANS[k].ico}${CLANS[k].name} · DPS ${dpsOf(c)}</div>`;
     }).join("");
-    modal(`<h2>🎫 ${gbadge(grade)} 선택권</h2><p>원하는 유닛을 하나 골라요!</p><div class="pk">${opts}</div><small id="tkmsg"></small><button class="wide mini" id="later" style="flex-direction:row;padding:9px">나중에 쓸게요 (보관)</button>`);
+    modal(`<h2>🎫 ${gbadge(grade)} 선택권</h2><p>원하는 유닛을 하나 골라요!</p><div class="pk">${opts}</div><small id="tkmsg"></small><button class="wide mini" id="later" style="flex-direction:row;padding:calc(var(--u)*9)">나중에 쓸게요 (보관)</button>`);
     paintPortraits($("box"), 112);
     $("later").onclick = closeModal;
     $("box").querySelectorAll(".opt").forEach((el) => (el.onclick = () => {
@@ -709,7 +709,7 @@ function scoreParts(res) {
 // ---- 닉네임 / 서버 통신: 닉네임은 처음에 한 번 정하면 기기(device_id)에 붙어 계속 쓰인다. 서버가 중복·변경 횟수를 강제한다 ----
 const DEV_KEY = "malang-device", QUEUE_KEY = "malang-queue", QUEUE_MAX = 20;
 const NAME_KEY = "malang-name", NAME_OK = "malang-name-ok", CHG_KEY = "malang-name-chg"; // NAME_OK="1": 서버 등록 확인됨, CHG_KEY: 오프라인 모드에서 마지막으로 바꾼 KST 날짜
-const BTNR = 'style="flex-direction:row;padding:9px"';
+const BTNR = 'style="flex-direction:row;padding:calc(var(--u)*9)"';
 const nf = (n) => Number(n).toLocaleString("en-US");
 const myName = () => lsGet(NAME_KEY, "");
 const NAME_ERR_MSG = { len: "2~10자로 정해 주세요", chars: "한글·영문·숫자·공백(_ . - 포함)만 쓸 수 있어요", bad: "쓸 수 없는 단어가 들어 있어요" };
@@ -918,7 +918,7 @@ async function finishRank(P) {
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
 function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
-  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
+  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkImp").onclick = () => showImport(() => showNick(msg, then));
   if ($("nkKk")) $("nkKk").onclick = () => AUTH.login();
@@ -934,7 +934,7 @@ function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 
   };
 }
 function showRename(back) {
-  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
+  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkNo").onclick = () => showProfile(back);
   $("nkOk").onclick = async () => {
@@ -960,7 +960,7 @@ function showRename(back) {
   };
 }
 function showImport(back) {
-  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:var(--fs-body);margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:var(--fs-body);width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
+  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:var(--fs-body);width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("icNo").onclick = () => back();
   $("icOk").onclick = async () => {
@@ -997,7 +997,7 @@ async function showProfile(back) {
   }
   const row = (k, v) => `${k}<b>${v}</b><br>`;
   const stats = `<div class="sc2">${row("시즌 최고점", st.best != null ? nf(st.best) + "점" : "-")}${row("시즌 순위", st.rank != null ? `${st.rank}위 / ${st.total}명` : "-")}${row("이번 시즌 기록", (st.days || 0) + "일")}${row("누적 판수", (st.plays || 0) + "판")}${row("전체 최고점", st.all ? nf(st.all) + "점" : "-")}</div>`;
-  modal(`<h2>👤 내 프로필</h2><div class="score" style="font-size:30px">${nm ? esc(nm) : "(닉네임 없음)"}</div>${remote() && !pf && nm ? "<small>서버에 연결하지 못해 이 기기 기록만 보여요</small>" : ""}
+  modal(`<h2>👤 내 프로필</h2><div class="score" style="font-size:calc(var(--u)*30)">${nm ? esc(nm) : "(닉네임 없음)"}</div>${remote() && !pf && nm ? "<small>서버에 연결하지 못해 이 기기 기록만 보여요</small>" : ""}
     <button class="wide mini" id="pfRen" ${can ? "" : "disabled"} ${BTNR}>✏️ 닉네임 바꾸기</button>${can ? "" : `<small>${SRV_ERR_MSG.rename_cooldown}</small>`}
     ${kakaoBox()}${stats}<button class="wide mini" id="pfShow" ${BTNR}>🔑 이전 코드 보기</button>
     <div id="pfCode" style="display:none"><div class="codebox">${deviceId()}</div><small style="color:#d4182e">⚠ 이 코드를 아는 사람은 내 기록과 닉네임을 그대로 쓸 수 있어요. 다른 사람에게 보여주거나 올리지 마세요!</small><button class="wide mini" id="pfCopy" ${BTNR}>📋 복사</button></div>
@@ -1336,14 +1336,11 @@ function fitCanvas() { // 캔버스 외 영역의 실제 높이를 재서 남는
   try {
     const app = $("app"), wrap = $("cvWrap"); if (!app || !wrap) return;
     const cs = getComputedStyle(app), gap = parseFloat(cs.rowGap || cs.gap) || 0;
-    if (cs.display === "grid") { // 가로 모드: 높이 기준으로 캔버스, 남는 폭은 오른쪽 조작부
-      const h = app.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 8;
-      wrap.style.width = Math.max(150, Math.min(h * 0.9, app.clientWidth * 0.58)) + "px"; return;
-    }
     let used = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom), n = 0;
     for (const c of app.children) { if (c === wrap || getComputedStyle(c).position === "fixed" || getComputedStyle(c).display === "none") continue; used += c.getBoundingClientRect().height; n++; }
     used += gap * n;
-    const avail = app.clientHeight - used - 8; // 캔버스 테두리(4px*2) 여유
+    const cvb = parseFloat(getComputedStyle($("cv")).borderTopWidth) * 2 || 8; // 캔버스 테두리(4px*u*2) 여유
+    const avail = app.clientHeight - used - cvb;
     wrap.style.width = Math.max(150, Math.min(app.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), avail * 0.9)) + "px";
   } catch {}
 }
@@ -1361,12 +1358,24 @@ window.addEventListener("beforeinstallprompt", (e) => e.preventDefault()); // �
 function loadFonts() { // 캔버스 글자용: 그리기 전에 Pretendard·Jua 를 미리 로드. 실패·지연(3초)해도 게임은 그대로 진행(프레임마다 다시 그리므로 로드되는 즉시 적용)
   try { if (!document.fonts || !document.fonts.load) return Promise.resolve(); return Promise.race([Promise.all(["400 14px Pretendard", "600 14px Pretendard", "800 16px Pretendard", "400 38px Jua"].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 3000))]).catch(() => {}); } catch { return Promise.resolve(); }
 }
+function initRotGuard() { // 가로(터치 기기)면 index.html #rot 오버레이가 덮는다. 진행 중인 게임은 일시정지했다가 세로로 돌아오면 이어간다
+  try {
+    const mq = window.matchMedia("(orientation:landscape) and (pointer:coarse)"); let held = false;
+    const chk = () => {
+      if (mq.matches) { if (typeof S !== "undefined" && S && !S.paused && !S.over && !TITLE_ON) { S.paused = true; held = true; } }
+      else if (held) { held = false; if (S && !S.over && !TITLE_ON && !MODAL_ON && !CONFIRM_ON) S.paused = false; }
+    };
+    if (mq.addEventListener) mq.addEventListener("change", chk); else if (mq.addListener) mq.addListener(chk);
+    chk();
+  } catch {}
+}
 function bindUi() {
   loadFonts();
   fitVh(); window.addEventListener("resize", fitVh); window.addEventListener("orientationchange", fitVh); if (window.visualViewport) window.visualViewport.addEventListener("resize", fitVh);
   for (const ev of ["click", "touchend"]) document.addEventListener(ev, () => { if (!document.fullscreenElement) tryFullscreen(); }, { passive: true });
   document.addEventListener("fullscreenchange", () => setTimeout(fitVh, 100));
   if (_bound) return; _bound = true;
+  initRotGuard();
   $("draw").onclick = () => { initAudio(); if (GAME.draw() === false && S && !S.over && S.minerals < GAME.drawCost()) sfx("deny"); };
   // 합성: 탭 = 선택 칸 합성(확인창 없음), 길게 = 가능한 만큼 일괄
   const doMerge = (all) => {
