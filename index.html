@@ -189,11 +189,12 @@
   .cg { text-align:center; background:var(--surface); border-radius:var(--r-s); padding:8px 10px; margin:6px 0; } .cgn { font-size:30px; font-weight:900; color:var(--amber); line-height:1.15; } .cgs { font-size:var(--fs-cap); opacity:.65; } .cgl { display:inline-block; margin:4px 3px 0; padding:2px 10px; border-radius:var(--r-pill); background:#7c4dff; color:#fff; font-size:var(--fs-body); font-weight:700; } .cgl.d { background:#d9487a; }
   .cgd { margin-top:4px; font-size:var(--fs-cap); text-align:left; } .cgd summary { cursor:pointer; text-align:center; opacity:.65; } .cgd ul { list-style:none; margin:4px 0 0; padding:0; } .cgd li { padding:1px 4px; } .cgd li b { float:right; }
   /* ---- 시즌 배너 / 닉네임 / 랭킹 보조 ---- */
-  #seasonBox { box-sizing:border-box; width:min(92vw,340px); flex:none; background:linear-gradient(var(--card2),var(--hl)); border:3px solid var(--rim); border-radius:var(--r-m); padding:6px 10px 7px; text-align:left; line-height:1.3; cursor:pointer; box-shadow:0 3px 0 #e0b45a66; }
+  #seasonBox { box-sizing:border-box; width:min(92vw,340px); flex:none; background:linear-gradient(var(--card2),var(--hl)); border:3px solid var(--rim); border-radius:var(--r-l); padding:6px 12px 7px; text-align:left; line-height:1.3; cursor:pointer; box-shadow:0 4px 0 var(--ln-strong),0 7px 10px var(--sh1); }
   #seasonBox.sprint { background:linear-gradient(var(--peach),var(--peach2)); animation:pulse .9s 10 alternate; }
-  #seasonBox .sb1 { display:flex; align-items:center; gap:6px; font-size:var(--fs-body); } #seasonBox .sb1 b { flex:1; min-width:0; font-weight:normal; color:var(--pink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #seasonBox .sb2 { font-size:var(--fs-cap); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #seasonBox .pchip { flex:none; max-width:112px; font-size:var(--fs-cap); background:var(--surface); border:2px solid var(--pink); border-radius:var(--r-s); padding:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #seasonBox .sb1 { display:flex; align-items:center; gap:6px; font-size:var(--fs-body); } #seasonBox .sbt { flex:1; min-width:0; font-family:var(--font-cute); color:var(--pink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #seasonBox .sbadge { font-style:normal; font-family:var(--font-ui); font-weight:800; font-size:var(--fs-cap); background:var(--surface); color:var(--pink2); border-radius:var(--r-pill); padding:0 7px; margin-left:4px; }
+  #seasonBox .sb2 { display:flex; align-items:baseline; flex-wrap:wrap; height:1.5em; overflow:hidden; gap:0 8px; font-size:var(--fs-strong); font-family:var(--font-ui); } #seasonBox .sb2 b { font-weight:800; font-variant-numeric:tabular-nums; } #seasonBox .sbme { white-space:nowrap; } #seasonBox .sbnone { font-weight:600; } #seasonBox .sbgap { flex:1; min-width:0; font-size:var(--fs-cap); opacity:.75; white-space:nowrap; } #seasonBox .sbgo { margin-left:auto; font-size:var(--fs-title); font-weight:800; color:var(--pink2); line-height:1; align-self:center; }
+  #seasonBox .pchip { flex:none; max-width:104px; font-size:var(--fs-cap); background:var(--surface); border:2px solid var(--pink); border-radius:var(--r-s); padding:0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #title .tbtn.off { filter:grayscale(.7); opacity:.75; }
   @media (max-height:700px) { #seasonBox { padding:4px 9px 5px; } }
   .rk { background:var(--surface); border-radius:var(--r-s); padding:8px 10px; margin:8px 0; font-size:var(--fs-body); line-height:1.5; } .rk b { color:var(--pink2); font-size:var(--fs-title); } .rk small { display:block; opacity:.8; }
@@ -464,7 +465,7 @@
   <button id="start" class="tbtn primary">🎲 운빨 리그 시작</button>
   <button id="startMine" class="tbtn primary">🦸 나만의 영웅 리그 시작</button>
   <button id="myhero" class="tbtn gold"><i class="coin">C</i> 코인 마켓<span id="myCoins">0</span></button>
-  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button></div>
+  <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 친구 시즌</button></div>
   <div id="a2hs"><span id="a2hsTxt"></span><button id="a2hsX" aria-label="닫기">✕</button></div>
   <p class="tiny">운빨 리그는 영웅도 뽑기 운도 판마다 새로 정해져요</p>
 </div>

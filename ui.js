@@ -1247,18 +1247,19 @@ function renderSeasonBox() {
   let top = SEA.top, pf = SEA.pf;
   if (!remote() && live) { const b = localBoard(s); top = b[0] || null; const me = b.find((x) => x.name === nm); pf = me ? { season_best: me.score, season_rank: me.rank } : null; }
   const chip = `<span class="pchip" id="profBtn">👤 ${nm ? esc(nm) : "닉네임"}${window.AUTH && AUTH.signedIn() ? " 💛" : ""}</span>`;
-  let l1, l2 = "", l3 = "", sprint = false;
+  let l1, l2 = "", gap = "", sprint = false; // 홈 카드 2줄: 1줄 시즌·D-n(+스퍼트 배지), 2줄 내 순위·점수(1위 정보는 카드 탭 → 랭킹 화면)
   if (live) {
     const left = seasonLeft(s); sprint = left <= 1; // 일~토 7일 시즌: 금·토가 스퍼트
-    l1 = sprint ? `🔥 마지막 스퍼트! ${left === 0 ? "오늘(토) 24시 종료" : "종료까지 " + left + "일"}` : `🏆 ${esc(s.name)} · 종료까지 ${left}일`;
-    l2 = top ? `👑 1위 ${esc(top.name)} ${nf(top.score)}점` : "👑 아직 1위가 없어요. 지금 도전하면 1등!";
-    if (pf && pf.season_best != null) l3 = `내 ${nf(pf.season_best)}점 · ${pf.season_rank}위` + (top && pf.season_rank > 1 ? ` · 1위까지 ${nf(top.score - pf.season_best + 1)}점!` : pf.season_rank === 1 ? " · 지금 1위!" : "");
-    else l3 = "내 기록이 아직 없어요. 첫 도전으로 순위에 올라요!";
-  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 랭킹 도전이 시작돼요"; l3 = "시즌이 열리면 시작해요!"; }
-  else if (ph.phase === "after") { l1 = `🏁 ${esc(s.name)} 종료`; l2 = "다음 시즌을 기다려 주세요"; l3 = "새 시즌에 다시 만나요!"; }
+    l1 = `🏆 ${esc(s.name)} · ${left === 0 ? "오늘 마감" : "D-" + left}${sprint ? ' <i class="sbadge">🔥 스퍼트</i>' : ""}`;
+    if (pf && pf.season_best != null) {
+      l2 = `<b>${pf.season_rank}위</b> · <b>${nf(pf.season_best)}점</b>`;
+      gap = top && pf.season_rank > 1 ? `1위까지 ${nf(top.score - pf.season_best + 1)}점` : pf.season_rank === 1 ? "지금 1위!" : "";
+    } else l2 = '<span class="sbnone">첫 도전으로 순위에 올라요</span>';
+  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} · ${md(s.start)} 시작`; l2 = '<span class="sbnone">곧 열려요</span>'; }
+  else if (ph.phase === "after") { l1 = `🏁 ${esc(s.name)} 종료`; l2 = '<span class="sbnone">새 시즌에 만나요</span>'; }
   else { l1 = "🎲 시즌 정보가 없어요"; }
   el.className = sprint ? "sprint" : "";
-  el.innerHTML = `<div class="sb1"><b>${l1}</b>${chip}</div>${l2 ? `<div class="sb2">${l2}</div>` : ""}${l3 ? `<div class="sb2">${l3}</div>` : ""}`;
+  el.innerHTML = `<div class="sb1"><span class="sbt">${l1}</span>${chip}</div>${l2 ? `<div class="sb2"><span class="sbme">${l2}</span>${gap ? `<small class="sbgap">${gap}</small>` : ""}<span class="sbgo" aria-hidden="true">›</span></div>` : ""}`;
   const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "🎲 운빨 리그 시작" : "🔒 운빨 리그 (시즌 밖)"; const mb = $("startMine"); if (mb) { mb.classList.toggle("off", !live); mb.textContent = live ? "🦸 나만의 영웅 리그 시작" : "🔒 나만의 영웅 리그 (시즌 밖)"; } }
 }
 async function refreshTitle() { // 홈의 1위/내 순위: 랭킹 모달과 같은 캐시(10분)를 쓰므로 캐시가 신선하면 서버 호출 0, 아니면 목록 1회(+상위 100 밖일 때만 내 순위 1회)
