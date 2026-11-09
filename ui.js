@@ -529,6 +529,10 @@ function updateHud() {
   setHtml("merge", `🔀<small>${mg.ok ? "합성" : u && !u.hero && uc && uc.grade >= 6 ? "불가" : "합성"}</small>`);
   setHtml("spd", `⏩<small>x${S.speed}</small>`);
   setHtml("info", infoText(u));
+  const hsel = !!(u && u.hero && !S.over); // 영웅 유닛을 새로 누르면 그 영웅의 능력 설명 말풍선(5초). 같은 선택이 이어지는 동안은 다시 띄우지 않는다
+  if (hsel && !_heroSel) { try { const r = $("infoPt").getBoundingClientRect(); showPop(heroTipHtml(), $("infoCard"), r.left + r.width / 2, 5000); $("pop").dataset.tip = String(Date.now()); } catch { /* 스텁 */ } }
+  if (!hsel && _heroSel) { try { if ($("pop").dataset.tip) hidePop(); } catch { /* 스텁 */ } }
+  _heroSel = hsel;
   const pk = uc ? uc.idx : S.hero ? S.hero.id : "";
   if (_txt.infoPt !== pk) { _txt.infoPt = pk; try { if (pk !== "" && typeof drawPortrait === "function") drawPortrait($("infoPt"), pk, 84); else $("infoPt").getContext("2d").clearRect(0, 0, 84, 84); } catch {} }
   // 무리 4줄 (공업 Lv · 공명 슬롯 · 강화 칩)
@@ -551,10 +555,27 @@ function clanRowsHtml() {
   }).join("");
 }
 // 정보 패널: 기본/히어로 선택 = 히어로 규칙 + 진행도(+보관 선택권), 유닛 선택 = 상세
+let _heroSel = false;
+// 내 영웅 칸이 비었을 때의 기본값(myhero.js DEFSL 과 같은 문구)
+const HERO_DEFSL = { basic: { n: "기본 공격", t: "기본으로 제공돼요" }, ult: { n: "기본 필살", t: "4번째 공격이 3배 피해로 나가요" } };
+// 영웅 설명(인게임): 내 영웅 판 = 능력 2종 + 기본 공격·필살 칸(MY_ITEMS 의 기존 설명 txt 재사용), 일반 판 = 영웅 고유 능력(rule). 최대 4줄 + 제목, 줄당 18자 안팎(text-wrap:balance)
+function heroTipHtml() {
+  if (!S || !S.hero) return "";
+  if (!S.mine) return `<div><b>👑 ${esc(S.hero.name)}</b></div><div class="ht">${esc(S.hero.rule)}</div>`;
+  const it = S.mine.items || {}, eq = S.mine.equip || {};
+  const ab = myAbilities(it).map((k) => { const x = myItem(k), l = it[k]; return `<div class="ht"><b>${x.ico} ${esc(x.name)}</b> ${l}단계 · ${esc(x.txt(l))}</div>`; });
+  const sl = MY_SLOTS.map((k) => { const x = eq[k] && myItem(eq[k]), d = HERO_DEFSL[k]; return x ? `<div class="ht"><b>${x.ico} ${esc(x.name)}</b> · ${k === "ult" ? "필살" : "기본 공격"} · ${esc(x.txt(1))}</div>` : `<div class="ht"><b>${k === "ult" ? "💥" : "🗡️"} ${d.n}</b> · ${d.t}</div>`; });
+  return `<div><b>👑 ${esc(MyHero.heroName() || S.hero.name)}</b> <small>능력 ${ab.length}/${MY_ABILITY_MAX}</small></div>${ab.join("")}${sl.join("")}`;
+}
 function infoText(u) {
   if (!u || u.hero) {
     if (!S.hero) return "";
     const hs = S.heroState && S.heroState.progress;
+    if (S.mine) { // 내 영웅: 능력 2종 + 기본 공격·필살 칸을 한 줄씩(자세한 설명은 말풍선)
+      const it = S.mine.items || {}, eq = S.mine.equip || {}, ab = myAbilities(it).map((k) => myItem(k).name + " " + it[k]).join(" · ");
+      const sk = MY_SLOTS.map((k) => (k === "ult" ? "💥" : "🗡️") + (eq[k] ? myItem(eq[k]).name : HERO_DEFSL[k].n)).join(" · ");
+      return `<div class="ln">👑 <b>${esc(MyHero.heroName() || S.hero.name)}</b> (영웅)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">✨ ${ab ? esc(ab) : "능력 없음"}</div><div class="ln sm">${esc(sk)}${u ? ` · Lv${S.heroLv}` : ""}</div>`;
+    }
     return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (영웅)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? `Lv${S.heroLv} · 사거리 ${Math.round(defOf(u).range)} · 이동·판매·합성 불가` : ""}</div>`;
   }
   // 배율·사거리·쿨다운은 game.js(unitMul/defOf)와 같은 값: 공업 2차식, 고래 누적 피해, 사거리 강화, 족제비 공속
@@ -617,7 +638,7 @@ function uiUpTicket() {
 }
 
 // ---------- 무리 줄 말풍선 (공업 구매 선택 / 공명 설명) ----------
-function hidePop() { const p = $("pop"); if (p) p.classList.remove("on"); clearTimeout(hidePop._t); }
+function hidePop() { const p = $("pop"); if (p) { p.classList.remove("on"); p.dataset.tip = ""; } clearTimeout(hidePop._t); }
 function showPop(html, row, x, ms) {
   const p = $("pop"); p.innerHTML = html; p.classList.add("on");
   const r = row.getBoundingClientRect(), W = window.innerWidth, pw = p.offsetWidth;
@@ -1358,7 +1379,7 @@ function bindUi() {
   saveLabel();
   document.addEventListener("click", (e) => {
     if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
-    if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows")) hidePop();
+    if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows") && !(Date.now() - (+$("pop").dataset.tip || 0) < 700)) hidePop(); // 영웅을 누른 직후의 설명 말풍선은 그 클릭에 닫히지 않게
   }, true);
   // 타이틀 버튼: 모달이 열려 있거나 방금 열리고 닫힌 직후(유령 클릭/이중 탭)에는 시작 계열 버튼을 무시한다.
   const guard = (fn) => (e) => { if (e) e.stopPropagation(); if (MODAL_ON || CONFIRM_ON || Date.now() - _modalAt < 600) return; fn(); };

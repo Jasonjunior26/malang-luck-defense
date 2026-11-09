@@ -82,14 +82,17 @@ window.MyHero = (function () {
   // ---- 공통 조각 ----
   const pts = () => { if (typeof drawDesignPortrait !== "function") return; document.querySelectorAll("#box canvas[data-pt]").forEach((c) => drawDesignPortrait(c, c.dataset.pt, +c.dataset.px || 64)); };
   const pt = (id, px, cls) => `<canvas class="${cls || "mhpt"}" data-pt="${esc(id)}" data-px="${px}" width="${px}" height="${px}"></canvas>`;
+  const DEFSL = { basic: { n: "기본 공격", t: "기본으로 제공돼요" }, ult: { n: "기본 필살", t: "4번째 공격이 3배 피해로 나가요" } }; // 칸이 비었을 때의 기본값(화면 공통 문구)
   const SLOT = { basic: "기본 공격", ult: "필살" }; // equip.basic = 기본 공격 대체 스킬(sk_*), equip.ult = 필살 대체 스킬(ul_*). 칸이 비면 그 공격은 일반 공격(data.js applyMine)
   // 삭제 확인: 공용 uiConfirm 의 버튼 글자(게임 계속/홈으로)를 이 확인에만 바꿔 쓰고 되돌린다
-  function ask(msg, okTxt, noTxt, onOk) {
+  // danger = 확인 단추를 Danger 색으로, 취소(cno)가 기본 포커스(되돌릴 수 없는 일 앞에서 실수로 확인하지 않게)
+  function ask(msg, okTxt, noTxt, onOk, danger) {
     uiConfirm(msg, onOk);
     try {
       const ok = $("cok"), no = $("cno"), o0 = ok.textContent, n0 = no.textContent, ho = ok.onclick, hn = no.onclick;
       ok.textContent = okTxt; no.textContent = noTxt;
-      const undo = () => { ok.textContent = o0; no.textContent = n0; };
+      if (danger) { ok.classList.add("btn-danger"); no.classList.add("btn-primary"); try { no.focus(); } catch { /* 스텁 */ } }
+      const undo = () => { ok.textContent = o0; no.textContent = n0; ok.classList.remove("btn-danger"); no.classList.remove("btn-primary"); };
       ok.onclick = () => { undo(); ho(); }; no.onclick = () => { undo(); hn(); };
     } catch { /* 스텁 */ }
   }
@@ -104,33 +107,69 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
       const d = load(); d.heroes = d.heroes.filter((x) => x.design !== id); save(d);
       if (view === id) view = "";
       sfx("deny"); after();
-    });
+    }, true);
   }
   // 레거시 이전 안내(한 번만). 보여 줬으면 true -> 호출자는 확인 뒤 next 로 이어진다
   function noteFirst(next) {
     const d = load(); if (d.note == null && d.mnote == null) return false;
     const n = d.note, m = d.mnote; d.note = null; d.mnote = null; save(d);
     const t1 = n == null ? "" : n > 0 ? `내 영웅이 새로 바뀌어 옛 강화 코인 <i class="coin">C</i> ${nf(n)}을 돌려드렸어요` : "내 영웅이 새로 바뀌었어요";
-    const t2 = m ? `능력은 영웅마다 ${MY_ABILITY_MAX}가지만 고를 수 있게 바뀌었어요. 능력이 ${MY_ABILITY_MAX + 1}개 이상이던 영웅 ${m.n}명의 능력을 모두 환불해 <i class="coin">C</i> ${nf(m.refund)}을 돌려드렸어요. 다시 골라 주세요(한 번 고르면 바꿀 수 없어요)` : "";
-    modal(`<p class="mhnote">${[t1, t2].filter(Boolean).join("<br>")}</p><button class="wide green" id="mhOk">확인</button>`);
+    const t2 = m ? `능력은 영웅마다 ${MY_ABILITY_MAX}가지만 골라요!<br>능력이 ${MY_ABILITY_MAX + 1}개 이상이던 영웅 ${m.n}명은 능력을 모두 돌려받고 <i class="coin">C</i> ${nf(m.refund)}을 드렸어요.<br><small>다시 골라 주세요 · 한번 고르면 바꿀 수 없어요</small>` : "";
+    modal(`<div class="mhnb"><span class="mhem" aria-hidden="true">${m ? "🎀" : "✨"}</span><h2>${m ? "능력이 바뀌었어요" : "내 영웅이 새로워졌어요"}</h2><p class="mhnote">${[t1, t2].filter(Boolean).join("<br>")}</p></div><button class="wide btn-primary" id="mhOk">확인</button>`);
     $("mhOk").onclick = next; return true;
   }
 
-  // ---- 나만의 영웅 리그 시작: 등록 영웅 고르기 -> 저장된 장착 세팅으로 시작. 영웅이 없으면 마켓(20종 고르기)으로. ----
-  function pickMine(go) { // go(mine)
-    if (noteFirst(() => pickMine(go))) return;
-    const d = load();
-    if (!d.heroes.length) { choose(); return; }
-    const rows = d.heroes.map((h) => `<li class="mhpk">${pt(h.design, 56)}<span class="nm"><b>${esc(h.name)}</b><small>${esc(DES(h.design).name)}${eqLine(h) ? " · " + esc(eqLine(h)) : ""}</small></span><button class="mini" data-eq="${esc(h.design)}">장착</button><button class="mini del" data-d="${esc(h.design)}" aria-label="${esc(h.name)} 삭제">🗑</button><button class="green" data-h="${esc(h.design)}">시작</button></li>`).join("");
-    modal(`<h2>영웅 선택</h2><ul class="rows mhpks">${rows}</ul><button class="wide mini" id="mhNo" ${BTNR}>닫기</button>`);
+  // ---- 하단 시트(2뎁스): 화면의 #mhSheet 컨테이너에 그린다. modal() 이 다시 그려지면 같이 사라진다. 뒷배경 탭 = 닫기 ----
+  function sheet(html, onClose) {
+    const el = $("mhSheet"); if (!el) return;
+    el.innerHTML = html ? `<div class="mhbk" data-sx="1"></div><div class="mhsh" role="dialog" aria-modal="true">${html}</div>` : "";
+    if (!html) return;
+    document.querySelectorAll("#mhSheet [data-sx]").forEach((b) => (b.onclick = () => { sfx("tap"); sheet(""); if (onClose) onClose(); }));
+    try { const x = el.querySelector("[data-fo]"); if (x) x.focus(); } catch { /* 스텁 */ }
+  }
+  // 영웅 요약 줄: 능력(최대 2칸) + 기본공격 칸 + 필살 칸. 이름 줄 + 설명 한 줄(데이터의 기존 문구 txt 재사용)
+  const sumRow = (ico, name, tag, txt, off) => `<li class="mhr${off ? " off" : ""}"><span class="mki">${ico}</span><span class="nm"><b>${name}<em>${esc(tag)}</em></b><small>${esc(txt)}</small></span></li>`;
+  function summary(h) {
+    const ab = myAbilities(h.own).map((k) => { const x = myItem(k), l = h.own[k]; return sumRow(x.ico, esc(x.name), `능력 ${l}/${x.max}단계`, x.txt(l)); });
+    while (ab.length < MY_ABILITY_MAX) ab.push(sumRow("✨", "비어 있어요", "능력", "코인 마켓에서 골라요", true));
+    const sl = MY_SLOTS.map((k) => { const x = h.equip[k] && myItem(h.equip[k]); return x ? sumRow(x.ico, esc(x.name), SLOT[k] + " 칸", x.txt(1)) : sumRow(k === "ult" ? "💥" : "🗡️", DEFSL[k].n, SLOT[k] + " 칸", DEFSL[k].t, true); });
+    return `<ul class="mhsum">${ab.join("")}${sl.join("")}</ul>`;
+  }
+  const swappable = (h) => SKL.some((x) => h.own[x.id] && h.equip[x.slot] !== x.id); // 칸에 넣을 수 있는 보유 스킬이 더 있나
+  // 영웅 시트(2뎁스): 요약 + [장착|장착 중] [게임 시작] 한 줄, 삭제는 ⋯ 더보기 안(확인은 Danger·취소 기본 포커스).
+  // o = { go(mine)|null, back(id) 장착 화면에서 돌아올 곳, after() 삭제 뒤, mk(id)|null 마켓으로, close() 시트를 닫은 뒤 }
+  function heroSheet(id, o) {
+    const h = heroOf(load(), id); if (!h) return;
+    const eid = esc(id), nA = myAbilities(h.own).length;
+    const act = swappable(h) ? `<button class="btn-secondary mhab" data-eq="${eid}">장착</button>` : `<span class="mhst" role="status">${MY_SLOTS.some((k) => h.equip[k]) ? "장착 중" : "스킬 없음"}</span>`;
+    const main = o.go ? `<button class="btn-primary mhab" data-go="${eid}" data-fo="1">게임 시작</button>` : `<button class="btn-secondary mhab" data-sx="1" data-fo="1">닫기</button>`;
+    sheet(`<div class="mhsh-hd">${pt(id, 56)}<span class="nm"><b>${esc(h.name)}</b><small>${esc(DES(id).name)} · 능력 ${nA}/${MY_ABILITY_MAX}</small></span><button class="mhmo" data-more="1" aria-expanded="false" aria-label="더보기">⋯</button></div>${summary(h)}<div class="mhmore" id="mhMore" hidden>${o.mk ? `<button class="btn-secondary mhmb" data-mk="${eid}">코인 마켓에서 고르기</button>` : ""}<button class="btn-danger mhmb" data-del="${eid}">영웅 삭제</button></div><div class="mhact">${act}${main}</div>`, o.close);
     pts();
+    const q = (k, fn) => document.querySelectorAll("#mhSheet [data-" + k + "]").forEach((b) => (b.onclick = () => fn(b)));
+    q("more", (b) => { const m = $("mhMore"); m.hidden = !m.hidden; sfx("tap"); try { b.setAttribute("aria-expanded", String(!m.hidden)); } catch { /* 스텁 */ } });
+    q("eq", () => loadout(id, () => o.back(id)));
+    q("mk", () => o.mk(id));
+    q("del", () => remove(id, o.after));
+    q("go", () => { const x = heroOf(load(), id); if (!x) return; cur = { id: x.design, name: x.name }; closeModal(); o.go(mineOf(x)); });
+  }
+
+  // ---- 나만의 영웅 리그 시작: 1뎁스 = 내 영웅 목록(카드 탭 = 선택, 관리는 '+ 추가'만) -> 2뎁스 = 하단 시트(heroSheet). 영웅이 없으면 마켓(20종 고르기)으로. ----
+  function pickMine(go, selId) { // go(mine)
+    if (noteFirst(() => pickMine(go, selId))) return;
+    const d0 = load();
+    if (!d0.heroes.length) { choose(); return; }
+    modal(`<div class="mhhd"><h2>영웅 선택</h2><button class="btn-secondary mhadd" id="mhAdd" ${d0.heroes.length >= MY_HERO.MAX ? "disabled" : ""}>+ 추가</button></div><small class="mhsub">카드를 눌러 골라요 · ${d0.heroes.length}/${MY_HERO.MAX}명</small><ul class="mhcl" id="mhList"></ul><div id="mhSheet"></div><button class="wide btn-secondary" id="mhNo">닫기</button>`);
     $("mhNo").onclick = closeModal;
-    document.querySelectorAll("#box [data-eq]").forEach((b) => (b.onclick = () => loadout(b.dataset.eq, () => pickMine(go))));
-    document.querySelectorAll("#box [data-d]").forEach((b) => (b.onclick = () => remove(b.dataset.d, () => pickMine(go))));
-    document.querySelectorAll("#box [data-h]").forEach((b) => (b.onclick = () => {
-      const h = heroOf(load(), b.dataset.h); if (!h) return;
-      cur = { id: h.design, name: h.name }; closeModal(); go(mineOf(h));
-    }));
+    const draw = (sel) => {
+      const d = load();
+      $("mhList").innerHTML = d.heroes.map((h) => `<li><button class="mhcd${h.design === sel ? " on" : ""}" data-h="${esc(h.design)}" aria-pressed="${h.design === sel}">${pt(h.design, 56)}<span class="nm"><b>${esc(h.name)}</b><small>${esc(DES(h.design).name)} · 능력 ${myAbilities(h.own).length}/${MY_ABILITY_MAX} · 스킬 ${MY_SLOTS.filter((k) => h.equip[k]).length}/${MY_SLOTS.length}</small></span><span class="mhgo" aria-hidden="true">›</span></button></li>`).join("");
+      pts();
+      document.querySelectorAll("#mhList [data-h]").forEach((b) => (b.onclick = () => { sfx("tap"); draw(b.dataset.h); }));
+      if (sel && heroOf(d, sel)) heroSheet(sel, { go, back: (id) => pickMine(go, id), after: () => pickMine(go), mk: (id) => market(id, () => pickMine(go, id)), close: () => draw(null) });
+      else sheet("");
+    };
+    $("mhAdd").onclick = () => choose(null, null, (id) => pickMine(go, id));
+    draw(selId && heroOf(d0, selId) ? selId : null);
   }
   // 다시 하기: 같은 리그 유지(내 영웅이면 같은 영웅, 장착은 저장된 최신값). 영웅이 지워졌으면 운빨 리그.
   function again() {
@@ -187,35 +226,35 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
   }
 
   // ---- 등록 1단계: 디자인 20종 그리드 ----
-  function choose(back, msg) {
+  function choose(back, msg, ret) { // ret(id) = 영웅 선택 화면에서 '+ 추가'로 왔을 때 돌아갈 곳(없으면 마켓으로)
     const d = load(), have = new Set(d.heroes.map((h) => h.design)), full = d.heroes.length >= MY_HERO.MAX;
     const cells = MY_DESIGNS.map((x) => `<button class="mhdc${have.has(x.id) ? " got" : ""}" data-p="${x.id}">${pt(x.id, 72)}<span>${esc(x.name)}</span>${have.has(x.id) ? "<em>등록</em>" : ""}</button>`).join("");
-    modal(`<h2>영웅 고르기</h2><small class="mhsub">${d.heroes.length}/${MY_HERO.MAX}명 등록 · 능력은 모두 같아요</small><div class="mhmsg" id="mhMsg">${msg ? esc(msg) : ""}</div><div class="mhdg">${cells}</div><button class="wide mini" id="mhX" ${BTNR}>${d.heroes.length ? "뒤로" : "닫기"}</button>`);
+    modal(`<h2>영웅 고르기</h2><small class="mhsub">${d.heroes.length}/${MY_HERO.MAX}명 등록 · 능력은 모두 같아요</small><div class="mhmsg" id="mhMsg">${msg ? esc(msg) : ""}</div><div class="mhdg">${cells}</div><button class="wide btn-secondary" id="mhX">${d.heroes.length ? "뒤로" : "닫기"}</button>`);
     pts();
-    $("mhX").onclick = () => (d.heroes.length ? market(heroOf(d, view) ? view : d.heroes[0].design, back) : back ? back() : closeModal());
+    $("mhX").onclick = () => (ret && d.heroes.length ? ret() : d.heroes.length ? market(heroOf(d, view) ? view : d.heroes[0].design, back) : back ? back() : closeModal());
     document.querySelectorAll("#box [data-p]").forEach((b) => (b.onclick = () => {
       const id = b.dataset.p;
-      if (have.has(id)) { view = id; market(id, back); return; }
+      if (have.has(id)) { view = id; if (ret) ret(id); else market(id, back); return; }
       if (full) { sfx("deny"); $("mhMsg").textContent = `영웅은 ${MY_HERO.MAX}명까지 등록해요`; return; }
-      nameIt(id, back);
+      nameIt(id, back, ret);
     }));
   }
   // ---- 등록 2단계: 이름 정하기 (닉네임 검증 규칙 재사용: 2~10자, 한글·영문·숫자·공백·_.-) ----
-  function nameIt(id, back) {
+  function nameIt(id, back, ret) {
     const x = DES(id); if (!x) return;
-    modal(`${pt(id, 96, "mhbig")}<h2>${esc(x.name)}</h2><input id="mhNm" maxlength="10" placeholder="이름 2~10자" autocomplete="off"><div class="mhmsg" id="mhMsg"></div><small class="mhsub">랭킹에 보이는 이름 · 등록 후 못 바꿔요</small><button class="wide green" id="mhOk">등록</button><button class="wide mini" id="mhX" ${BTNR}>뒤로</button>`);
+    modal(`${pt(id, 96, "mhbig")}<h2>${esc(x.name)}</h2><input id="mhNm" maxlength="10" placeholder="이름 2~10자" autocomplete="off"><div class="mhmsg" id="mhMsg"></div><small class="mhsub">랭킹에 보이는 이름 · 등록 후 못 바꿔요</small><button class="wide btn-primary" id="mhOk">등록</button><button class="wide btn-secondary" id="mhX">뒤로</button>`);
     pts();
-    $("mhX").onclick = () => choose(back);
+    $("mhX").onclick = () => choose(back, null, ret);
     $("mhOk").onclick = () => {
       const c = checkName($("mhNm").value);
       if (!c.ok) { $("mhMsg").textContent = NAME_ERR_MSG[c.err]; sfx("deny"); return; }
       const d = load();
-      if (d.heroes.length >= MY_HERO.MAX || heroOf(d, id)) { choose(back); return; }
-      d.heroes.push({ design: id, name: c.name, own: {}, equip: { basic: null, ult: null } }); save(d); sfx("ticket"); view = id; market(id, back);
+      if (d.heroes.length >= MY_HERO.MAX || heroOf(d, id)) { choose(back, null, ret); return; }
+      d.heroes.push({ design: id, name: c.name, own: {}, equip: { basic: null, ult: null } }); save(d); sfx("ticket"); view = id; if (ret) ret(id); else market(id, back);
     };
   }
 
-  // ---- 시장: 영웅별 보유 단계. 분류 탭(능력/기본공격/필살) + 카드 진열, 확인 없이 즉시 구매 ----
+  // ---- 시장: 영웅별 보유 단계. 3개 세그먼트 탭(능력/기본공격/필살) + 카드 진열. 새 능력은 확인 시트 뒤 구매(되돌릴 수 없음), 레벨업·스킬은 즉시 구매 ----
   // 카드 상태(규칙 canBuy 의 code 와 같다): can(살 수 있음) / poor(코인 부족, 부족액 표시) / lock(스킬 선행 조건) / full(능력 2종 가득) / max(최대)
   // 구매 가능 판정은 data.js canBuy(own, item, coins) 하나만 쓴다(4b UI 도 같은 함수)
   function card(it, h, coins, fresh) {
@@ -224,43 +263,59 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
     const dots = it.max > 1 ? `<span class="mkdot" aria-label="${lv}/${it.max}단계">${"<i class=on></i>".repeat(lv)}${"<i></i>".repeat(it.max - lv)}<em>${lv}/${it.max}</em></span>` : "";
     const tag = it.sk ? `<span class="mktag">${it.tier}단계 ${it.slot === "ult" ? "필살" : "기본공격"}</span>` : "";
     const act = st === "max" ? `<span class="mkst">${it.sk ? "보유" : "최대"}</span>`
-      : st === "lock" || st === "full" ? `<span class="mkst">🔒 ${esc(cb.reason)}</span>`
-      : `<button class="mkbuy${st === "poor" ? " off" : ""}" data-b="${it.id}"${st === "poor" ? ` aria-disabled="true"` : ""}><i class="coin">C</i> ${nf(cost)}</button>${st === "poor" ? `<span class="mkneed">${nf(cost - coins)} 부족</span>` : ""}`;
+      : st === "lock" ? `<span class="mkst">🔒 ${esc(cb.reason)}</span>`
+      : st === "full" ? `<span class="mkst">${esc(cb.reason)}</span>` // 능력 2종을 이미 골랐다: 카드는 흐리게 + 이유 한 줄
+      : `<button class="mkbuy${st === "poor" ? " off" : ""}" data-b="${it.id}" aria-label="${esc(it.name)} ${nf(cost)} 코인"${st === "poor" ? ` aria-disabled="true"` : ""}><i class="coin">C</i> ${nf(cost)}</button>${st === "poor" ? `<span class="mkneed">${nf(cost - coins)} 부족</span>` : ""}`;
     return `<div class="mkc ${st}${fresh === it.id ? " got" : ""}"><div class="mkh"><span class="mki">${it.ico}</span><b>${esc(it.name)}</b></div>${dots}<p>${esc(it.txt(maxed ? it.max : lv + 1))}</p>${tag}${it.sk && st !== "lock" ? slotLine(it, h) : ""}${act}</div>`;
   }
   // 스킬 카드의 칸 안내: 장착 중 / 보유(안 끼움) / 사면 들어갈 칸
   function slotLine(it, h) {
     const cur = h.equip[it.slot], nm = (k) => esc(myItem(k).name);
     if (cur === it.id) return `<span class="mksl on">${SLOT[it.slot]} 칸에 장착 중</span>`;
-    if (h.own[it.id]) return `<span class="mksl">보유 · 칸에 안 넣음 (장착 화면에서 교체)</span>`;
+    if (h.own[it.id]) return `<span class="mksl">보유 · 칸에 안 넣음 (영웅 시트에서 장착)</span>`;
     if (!cur) return `<span class="mksl">사면 ${SLOT[it.slot]} 칸에 자동 장착</span>`;
-    return `<span class="mksl full">${SLOT[it.slot]} 칸: ${nm(cur)} 장착 중 — 사도 자동 장착은 안 돼요. 쓰려면 장착 화면에서 바꿔요</span>`;
+    return `<span class="mksl full">${SLOT[it.slot]} 칸: ${nm(cur)} 장착 중 · 사도 자동 장착은 안 돼요</span>`;
   }
-  const slotPanel = (h) => `<div class="mkslots">${MY_SLOTS.map((k) => { const s = h.equip[k] && myItem(h.equip[k]); return `<span class="${s ? "on" : ""}"><small>${SLOT[k]} 칸</small>${s ? s.ico + " " + esc(s.name) : "비어 있음"}</span>`; }).join("")}</div><p class="mkrule">기본공격 스킬은 기본공격 칸에, 필살 스킬은 필살 칸에만 들어가요. 칸이 비면 그 공격은 일반 공격이에요. 기본 공격 칸 = 평소 공격 방식, 필살 칸 = 4번째마다 나가는 3배 피해 공격 방식.</p>`;
-  const abilityPanel = (h) => { const a = myAbilities(h.own); return `<p class="mkrule">내 능력 ${a.length}/${MY_ABILITY_MAX}: ${a.length ? a.map((k) => `${myItem(k).name} ${h.own[k]}단계`).map(esc).join(" · ") : "아직 없어요"} · 한 번 고르면 바꾸거나 환불할 수 없어요</p>`; };
+  // 칸 현황 패널: 능력 = 2칸(1/2, 2/2), 기본공격·필살 = 각 1칸. 빈 칸은 '비어 있음'이 아니라 기본값(기본 공격 / 기본 필살)
+  const chip = (lb, x, txt) => `<span class="${x ? "on" : ""}"><small>${esc(lb)}</small>${x ? `<i class="mki">${x.ico}</i> ${esc(x.name)}` : "비어 있어요"}${x && txt ? ` <small>${esc(txt)}</small>` : ""}</span>`;
+  function slotPanel(h, tab) {
+    if (tab === "ability") {
+      const a = myAbilities(h.own), n = a.length;
+      return `<div class="mkpn"><div class="mkph"><b>내 능력 ${n}/${MY_ABILITY_MAX}</b><small>${n >= MY_ABILITY_MAX ? "능력은 2가지만 고를 수 있어요" : "한번 고르면 바꿀 수 없어요"}</small></div><div class="mkslots">${[0, 1].map((i) => chip("능력 " + (i + 1), a[i] && myItem(a[i]), a[i] ? h.own[a[i]] + "/" + myItem(a[i]).max + "단계" : "")).join("")}</div><p class="mkrule">같은 능력은 단계를 계속 올릴 수 있어요</p></div>`;
+    }
+    const k = tab === "ultimate" ? "ult" : "basic", x = h.equip[k] && myItem(h.equip[k]);
+    const body = x ? `<span class="on"><small>${SLOT[k]} 칸</small><i class="mki">${x.ico}</i> ${esc(x.name)}</span>` : `<span><small>${SLOT[k]} 칸</small><b>${DEFSL[k].n}</b> <small>${DEFSL[k].t}</small></span>`;
+    return `<div class="mkpn"><div class="mkph"><b>${SLOT[k]} 칸 ${x ? 1 : 0}/1</b><small>${k === "ult" ? "4번째 공격마다 나가는 3배 피해 공격" : "평소 공격 방식"}</small></div><div class="mkslots one">${body}</div><p class="mkrule">${x ? "빼면 \"" + DEFSL[k].n + "\"으로 돌아가요" : "스킬을 사면 이 칸에 들어가요"}</p></div>`;
+  }
   // 잠긴 스킬은 카드 대신 접힌 한 줄 목록으로(탭이 길어지지 않게)
   const lockedBox = (arr) => !arr.length ? "" : `<details class="mklk"><summary>🔒 잠긴 스킬 ${arr.length}개 <small>${esc(myReqTxt(arr[0]))} 시 열려요</small></summary><ul>${arr.map((x) => `<li><span class="mki">${x.ico}</span><b>${esc(x.name)}</b><small>${x.tier}단계 · ${esc(canBuy({}, x).reason)}</small></li>`).join("")}</ul></details>`;
   function market(id, back) {
     const d0 = load(); if (!heroOf(d0, id)) { open(back); return; }
     view = id;
-    modal(`<div class="mktop"><div class="mkbar"><div class="mkhs" id="mkHs"></div><b class="mkcoin"><i class="coin">C</i> <span id="mkCoin"></span></b></div><div class="mkme" id="mkMe"></div><div class="mktabs" id="mkTabs" role="tablist"></div></div><div class="mkgrid" id="mkGrid"></div><div class="mktoast" id="mkToast" role="status" aria-live="polite"></div><button class="wide mini" id="mhX" ${BTNR}>${back ? "뒤로" : "닫기"}</button>`);
+    modal(`<div class="mktop"><div class="mkbar"><div class="mkhs" id="mkHs"></div><b class="mkcoin"><i class="coin">C</i> <span id="mkCoin"></span></b></div><div class="mkme" id="mkMe"></div><div class="mktabs" id="mkTabs" role="tablist"></div></div><div class="mkgrid" id="mkGrid"></div><div id="mhSheet"></div><div class="mktoast" id="mkToast" role="status" aria-live="polite"></div><button class="wide btn-secondary" id="mhX">${back ? "뒤로" : "닫기"}</button>`);
     $("mhX").onclick = () => (back ? back() : closeModal());
+    // 능력은 한번 정하면 바꿀 수 없다 -> 처음 고를 때만 확인 시트(취소가 기본). 같은 능력 레벨업·스킬 구매는 확인 없이 바로
+    const confirmAbility = (k, done) => {
+      const d = load(), h = heroOf(d, view), it = myItem(k); if (!h || !it) return;
+      const n = myAbilities(h.own).length, c = canBuy(h.own, it, d.coins);
+      sheet(`<div class="mhcf"><span class="mki big" aria-hidden="true">${it.ico}</span><h3>이 능력으로 정할까요?</h3><p class="mhcn"><b>${esc(it.name)}</b><br>${esc(it.txt(1))}</p><p class="mhwarn">한번 고르면 바꿀 수 없어요<small>내 능력 ${n}/${MY_ABILITY_MAX} → ${n + 1}/${MY_ABILITY_MAX}</small></p></div><div class="mhact"><button class="btn-secondary mhab" data-sx="1" data-fo="1">취소</button><button class="btn-primary mhab" data-yes="${esc(k)}">정하기 · <i class="coin">C</i> ${nf(c.cost)}</button></div>`);
+      document.querySelectorAll("#mhSheet [data-yes]").forEach((b) => (b.onclick = () => { sheet(""); done(b.dataset.yes); }));
+    };
     const draw = (fresh) => {
       const d = load(), h = heroOf(d, view); if (!h) { open(back); return; }
       $("mkCoin").textContent = nf(d.coins);
       $("mkHs").innerHTML = d.heroes.map((x) => `<button class="mkhc${x.design === view ? " on" : ""}" data-v="${x.design}" aria-label="${esc(x.name)}">${pt(x.design, 40)}</button>`).join("") + (d.heroes.length < MY_HERO.MAX ? `<button class="mkhc add" id="mkAdd" aria-label="영웅 추가">＋</button>` : "");
-      $("mkMe").innerHTML = `<span class="nm"><b>${esc(h.name)}</b>${eqLine(h) ? " · " + esc(eqLine(h)) : ""}</span><button class="mini" id="mkEq">장착</button><button class="mini del" id="mkDel" aria-label="영웅 삭제">🗑</button>`;
+      $("mkMe").innerHTML = `<span class="nm"><b>${esc(h.name)}</b> · 능력 ${myAbilities(h.own).length}/${MY_ABILITY_MAX} · 스킬 ${MY_SLOTS.filter((k) => h.equip[k]).length}/${MY_SLOTS.length}</span><button class="btn-secondary" id="mkEq">내 영웅</button>`;
       $("mkTabs").innerHTML = MY_CATS.map((c) => `<button role="tab" aria-selected="${c.k === tab}" class="${c.k === tab ? "on" : ""}" data-t="${c.k}">${c.ico} ${esc(c.name)}</button>`).join("");
       const its = MY_ITEMS.filter((x) => x.cat === tab), locked = its.filter((x) => !(h.own[x.id] | 0) && x.sk && !myReqOk(x.id, h.own));
       const shown = its.filter((x) => !locked.includes(x)), cd = (x) => card(x, h, d.coins, fresh);
-      $("mkGrid").innerHTML = tab === "ability" // 능력 탭: 칸 안내 + 효과 종류별 구역
-        ? abilityPanel(h) + MY_GRPS.map((g) => `<h3 class="mkh">${g.ico} ${esc(g.name)}</h3>${shown.filter((x) => x.grp === g.k).map(cd).join("")}`).join("")
-        : slotPanel(h) + shown.map(cd).join("") + lockedBox(locked);
+      $("mkGrid").innerHTML = tab === "ability" // 능력 탭: 칸 현황 + 효과 종류별 구역(전체 능력을 보여 주되 2종이 차면 나머지는 흐리게)
+        ? slotPanel(h, tab) + MY_GRPS.map((g) => `<h3 class="mkh">${g.ico} ${esc(g.name)}</h3>${shown.filter((x) => x.grp === g.k).map(cd).join("")}`).join("")
+        : slotPanel(h, tab) + shown.map(cd).join("") + lockedBox(locked);
       pts();
-      document.querySelectorAll("#box [data-v]").forEach((b) => (b.onclick = () => { if (b.dataset.v !== view) { view = b.dataset.v; sfx("tap"); draw(); } }));
+      document.querySelectorAll("#box [data-v]").forEach((b) => (b.onclick = () => { if (b.dataset.v !== view) { view = b.dataset.v; sfx("tap"); sheet(""); draw(); } }));
       if ($("mkAdd")) $("mkAdd").onclick = () => choose(back);
-      $("mkEq").onclick = () => loadout(view, () => market(view, back));
-      $("mkDel").onclick = () => remove(view, () => { const r = load(); if (r.heroes.length) market(r.heroes[0].design, back); else choose(back); });
+      $("mkEq").onclick = () => heroSheet(view, { go: null, back: (x) => market(x, back), after: () => { const r = load(); if (r.heroes.length) market(r.heroes[0].design, back); else choose(back); }, mk: null, close: () => draw() });
       document.querySelectorAll("#box [data-t]").forEach((b) => (b.onclick = () => { if (b.dataset.t !== tab) { tab = b.dataset.t; sfx("tap"); draw(); } }));
       document.querySelectorAll("#box [data-b]").forEach((b) => (b.onclick = () => {
         const k = b.dataset.b, now = Date.now();
@@ -268,7 +323,9 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
         lastBuy = { k, t: now };
         const r = buyCheck(view, k);
         if (!r.ok) { sfx("deny"); toast(r.reason); try { b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope"); } catch { /* 스텁 */ } return; }
-        if (buy(view, k)) draw(k);
+        const it = myItem(k), buyIt = (x) => { if (buy(view, x)) draw(x); };
+        if (it && !it.sk && !(h.own[k] | 0)) { sfx("tap"); confirmAbility(k, buyIt); return; }
+        buyIt(k);
       }));
     };
     draw();
@@ -298,18 +355,18 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
   // ---- 스킬 장착(기본공격 1칸·필살 1칸). 수치 능력은 산 만큼 항상 적용(보기만). 변경은 무료·즉시 저장 ----
   function loadout(id, back) {
     if (!heroOf(load(), id)) { open(); return; }
-    modal(`<h2>이번 판 장착</h2><div id="eqBody"></div><button class="wide green" id="mhX">확인</button>`);
+    modal(`<h2>스킬 장착</h2><div id="eqBody"></div><button class="wide btn-primary" id="mhX">확인</button>`);
     $("mhX").onclick = () => (back ? back() : closeModal());
     const draw = (msg) => {
       const d = load(), h = heroOf(d, id); if (!h) { open(); return; }
       const nums = NUM.filter((x) => h.own[x.id]);
-      const slot = (k) => { const s = h.equip[k] && myItem(h.equip[k]); return `<button class="eqs${s ? " on" : ""}" ${s ? `data-u="${k}"` : "disabled"}><small>${SLOT[k]}</small>${s ? `${s.ico} ${esc(s.name)}` : "비어 있음"}</button>`; };
+      const slot = (k) => { const s = h.equip[k] && myItem(h.equip[k]); return `<button class="eqs${s ? " on" : ""}" ${s ? `data-u="${k}"` : "disabled"}><small>${SLOT[k]}</small>${s ? `${s.ico} ${esc(s.name)}` : `${DEFSL[k].n} <small>${DEFSL[k].t}</small>`}</button>`; };
       const spare = SKL.filter((x) => h.own[x.id] && h.equip[x.slot] !== x.id); // 칸에 든 스킬은 칸에만 보인다(칸을 누르면 빠짐), 아래는 남은 보유 스킬
       const skl = !SKL.some((x) => h.own[x.id]) ? `<small class="mhsub">시장의 기본공격·필살에서 스킬을 사요</small>`
         : spare.length ? `<small class="mhsub">눌러서 해당 칸에 장착 · 칸을 누르면 빠져요</small><div class="eqsk">${spare.map((x) => `<button data-s="${x.id}">${x.ico} ${esc(x.name)} <small>${x.slot === "ult" ? "필살" : "기본"}</small></button>`).join("")}</div>`
         : `<small class="mhsub">칸을 누르면 빠져요</small>`;
       const rows = nums.length ? `<ul class="rows eqn">${nums.map((x) => `<li><span class="mki">${x.ico}</span><span class="nm">${esc(x.name)}<small>${esc(x.txt(h.own[x.id]))}</small></span><b class="eqv">${h.own[x.id]}/${x.max}</b></li>`).join("")}</ul>` : `<small class="mhsub">시장에서 산 능력이 여기에 보여요</small>`;
-      $("eqBody").innerHTML = `<div class="eqhd">${pt(h.design, 44)}<b>${esc(h.name)}</b></div><div class="mhmsg" id="mhMsg">${msg ? esc(msg) : ""}</div><h3>스킬 <small class="mhsub">기본공격 1칸 · 필살 1칸</small></h3><div class="eqslots">${slot("basic")}${slot("ult")}</div><small class="mhsub">기본 공격 칸 = 평소 공격, 필살 칸 = 4번째마다 3배 피해. 칸이 비면 그 공격은 일반 공격이에요</small>${skl}<h3>능력 <small class="mhsub">${MY_ABILITY_MAX}가지까지 · 산 만큼 항상 적용돼요</small></h3>${rows}`;
+      $("eqBody").innerHTML = `<div class="eqhd">${pt(h.design, 44)}<b>${esc(h.name)}</b></div><div class="mhmsg" id="mhMsg">${msg ? esc(msg) : ""}</div><h3>스킬 <small class="mhsub">기본공격 1칸 · 필살 1칸</small></h3><div class="eqslots">${slot("basic")}${slot("ult")}</div><small class="mhsub">칸을 비우면 "기본 공격"·"기본 필살"로 돌아가요</small>${skl}<h3>능력 <small class="mhsub">${MY_ABILITY_MAX}가지까지 · 산 만큼 항상 적용돼요</small></h3>${rows}`;
       pts();
       const edit = (slotK, sid) => { const r = equipSlot(id, slotK, sid); if (!r.ok) { sfx("deny"); draw(r.reason); return; } sfx("tap"); draw(); };
       document.querySelectorAll("#eqBody [data-s]").forEach((b) => (b.onclick = () => edit(myItem(b.dataset.s).slot, b.dataset.s)));

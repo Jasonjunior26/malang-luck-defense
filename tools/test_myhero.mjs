@@ -194,10 +194,12 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
     // 구매(즉시, 켜기 자동·스킬 자동 장착), 잠김
     { const d = JSON.parse(st[KEY]); d.coins = 20000; st[KEY] = JSON.stringify(d); }
     P.MH.open(); P.tap("b=atk");
+    ok(/이 능력으로 정할까요/.test(P.all()) && /한번 고르면 바꿀 수 없어요/.test(P.all()) && P.MH.coins() === 20000 && !P.MH.list().find((x) => x.design === "cat").own.atk, "새 능력은 확인 시트 먼저(취소 기본, 구매 전 코인 그대로)");
+    P.tap("yes=atk");
     let h = () => P.MH.list().find((x) => x.design === "cat");
     ok(h().own.atk === 1 && !("on" in h()) && P.MH.coins() === 20000 - itemCost("atk", 1), "구매 즉시 적용(켜기 개념 없음)");
     P.tap("b=atk"); ok(h().own.atk === 1, "같은 버튼 250ms 내 재클릭(더블탭) 무시");
-    { const k2 = MY_ITEMS.filter((x) => x.grp === "atk" && x.id !== "atk")[0].id; P.tap("b=" + k2); ok(h().own[k2] === 1, "다른 버튼은 바로 구매"); P.MH.buy("cat", "atk"); P.MH.buy("cat", k2); }
+    { const k2 = MY_ITEMS.filter((x) => x.grp === "atk" && x.id !== "atk")[0].id; P.tap("b=" + k2); P.tap("yes=" + k2); ok(h().own[k2] === 1, "다른 버튼은 바로 구매"); P.MH.buy("cat", "atk"); P.MH.buy("cat", k2); }
     ok(P.MH.buy("cat", "sk_chain") === false && P.MH.buyCheck("cat", "sk_chain").code === "req", "선행 조건 잠김(기본공격 2단계는 기본공격 1단계 필요)");
     P.MH.buy("cat", "sk_lob"); P.MH.buy("cat", "sk_chain"); ok(P.MH.buy("cat", "ul_storm") === false, "필살 3단계는 필살 2단계 필요(기본공격 2단계로는 안 열림)"); P.MH.buy("cat", "ul_chain"); P.MH.buy("cat", "ul_storm");
     ok(JSON.stringify(h().equip) === '{"basic":"sk_lob","ult":"ul_chain"}' && h().own.sk_chain === 1 && h().own.ul_chain === 1 && h().own.ul_storm === 1, "스킬은 칸별로 따로 구매·빈 칸에만 자동 장착: " + JSON.stringify(h().equip));
@@ -209,8 +211,8 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
     ok(P.MH.equipSlot("cat", "basic", "ul_chain").ok === false && P.MH.equipSlot("cat", "ult", "sk_lob").ok === false && P.MH.equipSlot("cat", "basic", "sk_slash").ok === false && JSON.stringify(h().equip) === '{"basic":"sk_lob","ult":"ul_chain"}', "칸에 안 맞는 스킬·안 가진 스킬 장착 거부");
     P.tap("s=sk_chain"); P.tap("s=ul_storm"); ok(JSON.stringify(h().equip) === '{"basic":"sk_chain","ult":"ul_storm"}', "장착 교체(칸별)"); P.tap("u=basic"); ok(h().equip.basic === null && h().equip.ult === "ul_storm", "칸을 누르면 비움"); P.tap("s=sk_chain");
     // 판 시작: 등록 영웅 선택 -> 저장된 세팅 그대로 mine
-    let got = null; P.MH.pickMine((m) => (got = m)); ok((P.box.html.match(/data-h="/g) || []).length === 2, "영웅 선택 목록 2");
-    P.tap("h=cat"); const vv = vmine(got);
+    let got = null; P.MH.pickMine((m) => (got = m)); ok((P.all().match(/data-h="/g) || []).length === 2, "영웅 선택 목록 2");
+    P.tap("h=cat"); ok(got === null && /data-go="cat"/.test(P.all()) && /장착 중|data-eq="cat"/.test(P.all()) && /기본 공격 칸/.test(P.all()), "영웅 카드 탭 = 선택(시트), 시작은 시트의 [게임 시작]"); P.tap("go=cat"); const vv = vmine(got);
     ok(vv.ok && got.design === "cat" && got.items.sk_lob === 1 && got.items.ul_storm === 1 && JSON.stringify(got.equip) === '{"basic":"sk_chain","ult":"ul_storm"}' && got.items.atk === 10 && got.items.btime === h().own.btime && Object.keys(got.items).filter((k) => !k.startsWith("sk_") && !k.startsWith("ul_")).every((k) => got.items[k] === h().own[k]), "시작 mine = 보유 단계 전부 + 보유 스킬 + 장착 " + JSON.stringify(vv.err || ""));
     ok(applyMine(got).rule === "기본: 연쇄 번개 · 필살: 별빛 폭풍" && P.MH.heroName() === "냥이" && JSON.stringify(P.MH.again()) === JSON.stringify(got), "applyMine·이름·다시 하기");
     // 영웅 없음 -> 나만의 영웅 리그 시작은 20종 고르기로
@@ -229,29 +231,30 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
       ok(!/전투력|mhg|data-pw/.test(Z.all()), "시장: 전투력 게이지·문구 없음");
       ok(!("on" in Z.MH.list()[0]) && Z.MH.mineOf(Z.MH.list()[0]).items.atk === 3, "옛 on 필드는 무시하고 own 단계 전부를 mine 으로");
       Z.tap("t=basic"); const a1 = Z.all();
-      ok(/기본 공격 칸/.test(a1) && /필살 칸/.test(a1) && /비어 있음/.test(a1) && /data-b="sk_lob"/.test(a1) && !/data-b="ul_chain"/.test(a1), "기본공격 탭: 칸 표시, 기본공격 스킬만 진열");
+      ok(/기본 공격 칸 0[/]1/.test(a1) && !/필살 칸/.test(a1) && /기본으로 제공돼요/.test(a1) && !/비어 있음/.test(a1) && /data-b="sk_lob"/.test(a1) && !/data-b="ul_chain"/.test(a1), "기본공격 탭: 칸 1개(빈 칸 = 기본 공격), 기본공격 스킬만 진열");
       ok(/사면 기본 공격 칸에 자동 장착/.test(a1), "빈 칸이면 들어갈 칸 안내");
       Z.tap("b=sk_lob"); ok(/기본 공격 칸에 장착 중/.test(Z.all()), "기본공격 구매 -> 기본 공격 칸 장착");
       Z.tap("b=sk_slash");
       const a2 = Z.all(); ok(/기본 공격 칸: 대나무 투척 장착 중/.test(a2) && /사도 자동 장착은 안 돼요/.test(a2), "기본공격 칸이 차면 구매 전 안내(자동 장착 안 함)");
       Z.tap("t=ultimate"); ok(/사면 필살 칸에 자동 장착/.test(Z.all()), "필살 탭은 필살 칸이 따로 비어 있음"); Z.tap("b=ul_chain");
       ok(JSON.stringify(Z.MH.list().find((x) => x.design === "fox").equip) === '{"basic":"sk_lob","ult":"ul_chain"}' && Z.MH.list().find((x) => x.design === "fox").own.ul_chain === 1 && !Z.MH.list().find((x) => x.design === "fox").own.sk_chain, "칸별 장착: 필살 구매는 기본공격 소유와 별개");
-      const coin0 = Z.MH.coins(); Z.els.mkDel.onclick();
+      const delVia = (id) => { Z.els.mkEq.onclick(); Z.tap("del=" + id); }; const coin0 = Z.MH.coins(); delVia("fox");
       ok(Z.c.__cf && /여우왕/.test(Z.c.__cf.m) && /돌려받지 못/.test(Z.c.__cf.m) && Z.MH.list().length === 2, "삭제 확인창(환불 없음 문구), 확인 전엔 그대로");
       Z.c.__cf.ok(); const L = Z.MH.list();
       ok(L.length === 1 && L[0].design === "cat" && Z.MH.coins() === coin0 && JSON.parse(S2[KEY]).heroes.length === 1, "삭제: 저장 제거·코인 유지·환불 없음");
       ok(/data-v="cat"/.test(Z.all()) && !/data-v="fox"/.test(Z.all()), "삭제 후 다른 영웅 시장으로");
       Z.els.mkAdd.onclick(); ok(/data-p="fox"/.test(Z.box.html) && !/data-p="fox"[^>]*>(?:(?!<\/button>)[^])*<em>/.test(Z.box.html), "삭제한 디자인은 '등록' 표시 없음(재등록 가능)");
       Z.tap("p=fox"); Z.$("mhNm").value = "여우2"; Z.els.mhOk.onclick(); ok(Z.MH.list().length === 2 && Z.MH.list().some((x) => x.design === "fox" && !Object.keys(x.own).length), "같은 디자인 재등록(능력은 처음부터)");
-      Z.els.mkDel.onclick(); Z.c.__cf.ok(); Z.els.mkDel.onclick(); Z.c.__cf.ok();
+      delVia("fox"); Z.c.__cf.ok(); delVia("cat"); Z.c.__cf.ok();
       ok(Z.MH.list().length === 0 && (Z.box.html.match(/data-p="/g) || []).length === 20, "마지막 영웅도 삭제 -> 20종 고르기");
       const S3 = { [KEY]: JSON.stringify({ v: 2, mig: 1, rs: 1, coins: 77, heroes: [{ design: "bee", name: "벌벌", own: { atk: 2 }, equip: [] }, { design: "bear", name: "곰곰", own: {}, equip: [] }] }) };
       const Y = boot(S3); let go = null; Y.MH.pickMine((m) => (go = m));
-      ok((Y.box.html.match(/data-d="/g) || []).length === 2, "영웅 선택: 삭제 버튼");
-      Y.tap("d=bee"); ok(/벌벌/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("{coin} " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
-      Y.c.__cf.ok(); ok(Y.MH.list().length === 1 && Y.MH.coins() === 77 && (Y.box.html.match(/data-h="/g) || []).length === 1, "삭제 후 영웅 선택 목록 갱신");
-      Y.tap("h=bear"); ok(go && go.design === "bear", "남은 영웅으로 시작");
-      Y.MH.pickMine(() => {}); Y.tap("d=bear"); Y.c.__cf.ok(); ok(Y.MH.list().length === 0 && (Y.box.html.match(/data-p="/g) || []).length === 20, "선택 화면에서 마지막 영웅 삭제 -> 20종");
+      ok(!/data-del=/.test(Y.all()) && (Y.all().match(/data-h="/g) || []).length === 2, "영웅 선택 1뎁스: 삭제 단추 없음(카드 + 추가만)");
+      Y.tap("h=bee"); ok(/data-del="bee"/.test(Y.all()) && /data-more=/.test(Y.all()), "2뎁스 시트: 삭제는 ⋯ 더보기 안");
+      Y.tap("del=bee"); ok(/벌벌/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("{coin} " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
+      Y.c.__cf.ok(); ok(Y.MH.list().length === 1 && Y.MH.coins() === 77 && (Y.all().match(/data-h="/g) || []).length === 1, "삭제 후 영웅 선택 목록 갱신");
+      Y.tap("h=bear"); Y.tap("go=bear"); ok(go && go.design === "bear", "남은 영웅으로 시작");
+      Y.MH.pickMine(() => {}); Y.tap("h=bear"); Y.tap("del=bear"); Y.c.__cf.ok(); ok(Y.MH.list().length === 0 && (Y.box.html.match(/data-p="/g) || []).length === 20, "선택 화면에서 마지막 영웅 삭제 -> 20종");
     // ---- 7d. 마켓 개편 마이그레이션(mig 1 -> 2): 능력 3종 이상 영웅만 환불·초기화, 안내 1회, 중복 환불 없음 ----
     { const A = { atk: 2, spd: 1, hpow: 3, sk_lob: 1, sk_chain: 1, sk_nova: 1 }, B = { atk: 4, hpow: 2, sk_slash: 1 };
       const o = { [KEY]: JSON.stringify({ v: 2, mig: 1, rs: 1, coins: 100, heroes: [{ design: "fox", name: "여우왕", own: A, equip: ["sk_chain", "sk_nova"] }, { design: "cat", name: "냥이", own: B, equip: ["sk_slash"] }] }) };
@@ -266,7 +269,7 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
       const o2 = { [KEY]: JSON.stringify({ v: 2, mig: 1, rs: 1, coins: 3, heroes: [{ design: "fox", name: "여우왕", own: { atk: 1 }, equip: [] }] }) }; const Y = boot(o2); Y.MH.open(); ok(Y.MH.coins() === 3 && JSON.parse(o2[KEY]).mig === 2 && JSON.parse(o2[KEY]).mnote === null && /mkGrid/.test(Y.box.html), "환불 대상이 없으면 안내 없이 mig 만 올림");
     }
       const X = boot({ [KEY]: JSON.stringify({ v: 2, mig: 1, rs: 1, coins: 0, heroes: [{ design: "bee", name: "벌벌", own: { atk: 4 }, equip: [] }] }) }); X.MH.loadout("bee");
-      ok(/칸이 비면 그 공격은 일반 공격/.test(X.all()) && /4\/10/.test(X.all()) && !/전투력/.test(X.all()), "장착 화면: 필살 칸 설명·보유 능력 보기만");
+      ok(/기본 필살/.test(X.all()) && /4\/10/.test(X.all()) && !/전투력/.test(X.all()), "장착 화면: 필살 칸 설명·보유 능력 보기만");
     }
   }
 }
