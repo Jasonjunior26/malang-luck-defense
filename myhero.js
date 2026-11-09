@@ -77,7 +77,7 @@ window.MyHero = (function () {
   const pt = (id, px, cls) => `<canvas class="${cls || "mhpt"}" data-pt="${esc(id)}" data-px="${px}" width="${px}" height="${px}"></canvas>`;
   const SLOT = ["기본 공격", "필살"]; // equip[0] = 기본 공격 대체 스킬, equip[1] = 필살 대체 스킬(하나뿐이면 필살도 [0] 방식). 스킬 자체는 칸 구분이 없다(data.js applyMine)
   const slotOf = (h, id) => h.equip.indexOf(id);
-  // 삭제 확인: 공용 uiConfirm 의 버튼 글자(게임 계속/홈 이동)를 이 확인에만 바꿔 쓰고 되돌린다
+  // 삭제 확인: 공용 uiConfirm 의 버튼 글자(게임 계속/홈으로)를 이 확인에만 바꿔 쓰고 되돌린다
   function ask(msg, okTxt, noTxt, onOk) {
     uiConfirm(msg, onOk);
     try {
@@ -93,7 +93,7 @@ window.MyHero = (function () {
     const h = heroOf(load(), id); if (!h) { after(); return; }
     const t = spentOn(h);
     ask(`'${h.name}'을(를) 삭제할까요?
-${t > 0 ? `이 영웅에 쓴 코인 🪙 ${nf(t)}은 돌려받지 못하고, 산 능력과 장착도 모두 사라져요.` : "산 능력과 장착이 모두 사라져요."}
+${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, 산 능력과 장착도 모두 사라져요.` : "산 능력과 장착이 모두 사라져요."}
 보유 코인은 그대로예요. 같은 디자인으로 다시 등록할 수 있어요(능력은 처음부터).`, "삭제", "취소", () => {
       const d = load(); d.heroes = d.heroes.filter((x) => x.design !== id); save(d);
       if (view === id) view = "";
@@ -104,7 +104,7 @@ ${t > 0 ? `이 영웅에 쓴 코인 🪙 ${nf(t)}은 돌려받지 못하고, 산
   function noteFirst(next) {
     const d = load(); if (d.note == null) return false;
     const n = d.note; d.note = null; save(d);
-    modal(`<p class="mhnote">${n > 0 ? `내 영웅이 새로 바뀌어 옛 강화 코인 🪙 ${nf(n)}을 돌려드렸어요` : "내 영웅이 새로 바뀌었어요"}</p><button class="wide green" id="mhOk">확인</button>`);
+    modal(`<p class="mhnote">${n > 0 ? `내 영웅이 새로 바뀌어 옛 강화 코인 <i class="coin">C</i> ${nf(n)}을 돌려드렸어요` : "내 영웅이 새로 바뀌었어요"}</p><button class="wide green" id="mhOk">확인</button>`);
     $("mhOk").onclick = next; return true;
   }
 
@@ -216,7 +216,7 @@ ${t > 0 ? `이 영웅에 쓴 코인 🪙 ${nf(t)}은 돌려받지 못하고, 산
     const tag = it.sk ? `<span class="mktag">${it.tier}단계 스킬</span>` : "";
     const act = st === "max" ? `<span class="mkst">${it.sk ? "보유" : "최대"}</span>`
       : st === "lock" ? `<span class="mkst">🔒 ${lockTxt(it)}</span>`
-      : `<button class="mkbuy${st === "poor" ? " off" : ""}" data-b="${it.id}"${st === "poor" ? ` aria-disabled="true"` : ""}>🪙 ${nf(cost)}</button>${st === "poor" ? `<span class="mkneed">${nf(cost - coins)} 부족</span>` : ""}`;
+      : `<button class="mkbuy${st === "poor" ? " off" : ""}" data-b="${it.id}"${st === "poor" ? ` aria-disabled="true"` : ""}><i class="coin">C</i> ${nf(cost)}</button>${st === "poor" ? `<span class="mkneed">${nf(cost - coins)} 부족</span>` : ""}`;
     return `<div class="mkc ${st}${fresh === it.id ? " got" : ""}"><div class="mkh"><span class="mki">${it.ico}</span><b>${esc(it.name)}</b></div>${dots}<p>${esc(it.txt(maxed ? it.max : lv + 1))}</p>${tag}${it.sk && st !== "lock" ? slotLine(it, h) : ""}${act}</div>`;
   }
   // 스킬 카드의 칸 안내: 장착 중인 칸 / 사면 들어갈 칸 / 두 칸 다 찼을 때 누가 쓰는 중인지
@@ -227,14 +227,14 @@ ${t > 0 ? `이 영웅에 쓴 코인 🪙 ${nf(t)}은 돌려받지 못하고, 산
     if (h.equip.length < MY_EQUIP_MAX) return `<span class="mksl">사면 ${SLOT[h.equip.length]} 칸에 자동 장착${h.equip.length ? ` (기본 공격 칸: ${nm(h.equip[0])})` : ""}</span>`;
     return `<span class="mksl full">${SLOT.map((n, k) => `${n} 칸: ${nm(h.equip[k])}`).join(" · ")} 장착 중 — 사도 자동 장착은 안 돼요. 쓰려면 장착 화면에서 한 칸과 바꿔요(그 스킬은 빠져요)</span>`;
   }
-  const slotPanel = (h) => `<div class="mkslots">${[0, 1].map((i) => { const s = h.equip[i] && myItem(h.equip[i]); return `<span class="${s ? "on" : ""}"><small>${SLOT[i]} 칸</small>${s ? esc(s.ico + " " + s.name) : "비어 있음"}</span>`; }).join("")}</div><p class="mkrule">스킬은 칸만 다를 뿐 어느 칸에나 넣을 수 있어요. 한 칸에는 스킬 하나만 들어가서, 같은 칸을 노린 스킬끼리는 서로 대체돼요. 기본 공격 칸 = 평소 공격 방식, 필살 칸 = 4번째마다 나가는 3배 피해 공격 방식. 필살 칸이 비면 기본 공격 스킬이 필살도 맡아요.</p>`;
+  const slotPanel = (h) => `<div class="mkslots">${[0, 1].map((i) => { const s = h.equip[i] && myItem(h.equip[i]); return `<span class="${s ? "on" : ""}"><small>${SLOT[i]} 칸</small>${s ? s.ico + " " + esc(s.name) : "비어 있음"}</span>`; }).join("")}</div><p class="mkrule">스킬은 칸만 다를 뿐 어느 칸에나 넣을 수 있어요. 한 칸에는 스킬 하나만 들어가서, 같은 칸을 노린 스킬끼리는 서로 대체돼요. 기본 공격 칸 = 평소 공격 방식, 필살 칸 = 4번째마다 나가는 3배 피해 공격 방식. 필살 칸이 비면 기본 공격 스킬이 필살도 맡아요.</p>`;
   const lockTxt = (it) => `${it.tier - 1}단계 스킬 필요`; // 짧은 잠금 문구(전체 조건은 MY_REQ_TXT)
   // 잠긴 스킬은 카드 대신 접힌 한 줄 목록으로(영웅·스킬 탭이 길어지지 않게)
   const lockedBox = (arr) => !arr.length ? "" : `<details class="mklk"><summary>🔒 잠긴 스킬 ${arr.length}개 <small>${esc(MY_REQ_TXT[arr[0].tier])} 시 열려요</small></summary><ul>${arr.map((x) => `<li><span class="mki">${x.ico}</span><b>${esc(x.name)}</b><small>${x.tier}단계 · ${lockTxt(x)}</small></li>`).join("")}</ul></details>`;
   function market(id, back) {
     const d0 = load(); if (!heroOf(d0, id)) { open(back); return; }
     view = id;
-    modal(`<div class="mktop"><div class="mkbar"><div class="mkhs" id="mkHs"></div><b class="mkcoin">🪙 <span id="mkCoin"></span></b></div><div class="mkme" id="mkMe"></div><div class="mktabs" id="mkTabs" role="tablist"></div></div><div class="mkgrid" id="mkGrid"></div><div class="mktoast" id="mkToast" role="status" aria-live="polite"></div><button class="wide mini" id="mhX" ${BTNR}>${back ? "뒤로" : "닫기"}</button>`);
+    modal(`<div class="mktop"><div class="mkbar"><div class="mkhs" id="mkHs"></div><b class="mkcoin"><i class="coin">C</i> <span id="mkCoin"></span></b></div><div class="mkme" id="mkMe"></div><div class="mktabs" id="mkTabs" role="tablist"></div></div><div class="mkgrid" id="mkGrid"></div><div class="mktoast" id="mkToast" role="status" aria-live="polite"></div><button class="wide mini" id="mhX" ${BTNR}>${back ? "뒤로" : "닫기"}</button>`);
     $("mhX").onclick = () => (back ? back() : closeModal());
     const draw = (fresh) => {
       const d = load(), h = heroOf(d, view); if (!h) { open(back); return; }
@@ -278,7 +278,7 @@ ${t > 0 ? `이 영웅에 쓴 코인 🪙 ${nf(t)}은 돌려받지 못하고, 산
   // ---- 스킬 장착(2칸). 수치 능력은 산 만큼 항상 적용(보기만). 변경은 무료·즉시 저장 ----
   function loadout(id, back) {
     if (!heroOf(load(), id)) { open(); return; }
-    modal(`<h2>이번 판 장착</h2><div id="eqBody"></div><button class="wide green" id="mhX">완료</button>`);
+    modal(`<h2>이번 판 장착</h2><div id="eqBody"></div><button class="wide green" id="mhX">확인</button>`);
     $("mhX").onclick = () => (back ? back() : closeModal());
     const draw = (msg) => {
       const d = load(), h = heroOf(d, id); if (!h) { open(); return; }

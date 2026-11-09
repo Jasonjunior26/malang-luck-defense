@@ -67,16 +67,16 @@ ok(r5.st === "drop" && q().length === 0, "거부 응답은 대기열에서 지�
 
 // 6) 랭킹 등록 중 이동 확인(rankGuard): 끝났으면 바로 이동, 진행 중이면 확인(기다리기/그래도 나가기), 라벨 복원
 {
-  const el = { cno: { textContent: "게임 계속", onclick: null }, cok: { textContent: "홈 이동", onclick: null } };
+  const el = { cno: { textContent: "게임 계속", onclick: null }, cok: { textContent: "홈으로", onclick: null } };
   let msg = null, went = 0;
   const g = vm.createContext({ $: (id) => el[id], uiConfirm: (m, ok) => { msg = m; el.cno.onclick = () => {}; el.cok.onclick = () => ok(); } });
   vm.runInContext(cut(ui, "let RANK_N = 0;", "async function finishRank(P)"), g);
   vm.runInContext("rankGuard(() => { globalThis.went = 1; })", g); ok(g.went === 1 && msg === null, "등록이 끝났으면 확인 없이 바로 이동");
   g.went = 0; vm.runInContext("RANK_N = 1; rankGuard(() => { globalThis.went = 1; })", g);
   ok(msg && /랭킹 등록 중/.test(msg) && g.went === 0 && el.cno.textContent === "기다리기" && el.cok.textContent === "그래도 나가기", "등록 중이면 이동 전에 확인(기다리기 / 그래도 나가기)");
-  el.cno.onclick(); ok(g.went === 0 && el.cno.textContent === "게임 계속" && el.cok.textContent === "홈 이동", "기다리기: 이동 안 함, 확인창 글자 원래대로");
+  el.cno.onclick(); ok(g.went === 0 && el.cno.textContent === "게임 계속" && el.cok.textContent === "홈으로", "기다리기: 이동 안 함, 확인창 글자 원래대로");
   msg = null; vm.runInContext("rankGuard(() => { globalThis.went = 1; })", g); el.cok.onclick();
-  ok(g.went === 1 && el.cok.textContent === "홈 이동", "그래도 나가기: 이동, 글자 원래대로");
+  ok(g.went === 1 && el.cok.textContent === "홈으로", "그래도 나가기: 이동, 글자 원래대로");
 }
 
 console.log(`PASS ${pass} FAIL ${fail}`);

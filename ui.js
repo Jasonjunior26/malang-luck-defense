@@ -370,7 +370,7 @@ function bgmApply() {
 function sndLabel() {
   const b = typeof $ === "function" ? $("snd") : null; if (!b) return;
   if (b.firstChild) b.firstChild.textContent = ["🔊", "🔉", "🔇"][SND_MODE];
-  const sm = b.querySelector && b.querySelector("small"); if (sm) sm.textContent = ["소리", "효과음", "끔"][SND_MODE];
+  const sm = b.querySelector && b.querySelector("small"); if (sm) sm.textContent = ["소리 · 전체", "소리 · 효과음만", "소리 · 꺼짐"][SND_MODE]; b.dataset.st = String(SND_MODE);
 }
 function sndCycle() {
   SND_MODE = (SND_MODE + 1) % 3; MUTED = SND_MODE === 2;
@@ -392,7 +392,7 @@ function closeModal() {
 function uiConfirm(msg, onOk) {
   const prev = S ? S.paused : false;
   CONFIRM_ON = true; if (S) S.paused = true;
-  $("cmsg").innerHTML = esc(msg).replace(/\n/g, "<br>"); $("confirm").classList.add("on");
+  $("cmsg").innerHTML = esc(msg).replace(/\n/g, "<br>").replace(/\{coin\}/g, '<i class="coin">C</i>'); $("confirm").classList.add("on");
   const done = (ok) => { $("confirm").classList.remove("on"); CONFIRM_ON = false; if (S && !S.over) S.paused = MODAL_ON ? true : prev; if (ok && onOk) onOk(); };
   $("cok").onclick = () => done(true); $("cno").onclick = () => done(false);
 }
@@ -555,7 +555,7 @@ function infoText(u) {
   if (!u || u.hero) {
     if (!S.hero) return "";
     const hs = S.heroState && S.heroState.progress;
-    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (히어로)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? `Lv${S.heroLv} · 사거리 ${Math.round(defOf(u).range)} · 이동·판매·합성 불가` : ""}</div>`;
+    return `<div class="ln">👑 <b>${esc(S.hero.name)}</b> (영웅)${hs ? ` · <small>${esc(hs)}</small>` : ""}</div><div class="ln sm">${esc(S.hero.rule)}</div><div class="ln sm">${u ? `Lv${S.heroLv} · 사거리 ${Math.round(defOf(u).range)} · 이동·판매·합성 불가` : ""}</div>`;
   }
   // 배율·사거리·쿨다운은 game.js(unitMul/defOf)와 같은 값: 공업 2차식, 고래 누적 피해, 사거리 강화, 족제비 공속
   const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = unitMul(u), d = defOf(u);
@@ -630,7 +630,7 @@ function showPop(html, row, x, ms) {
 }
 function resoHint(c, row, x) {
   const R = CONST.RESONANCE, n = resonanceCount(S.slots, c), cl = CLANS[c], nd = resonanceNeed(S.hero && S.hero.fx.resoEase);
-  showPop(`<div>다른 등급 ${nd[0]}종 → 공업 <b>+${R[4]}Lv</b>, ${nd[1]}종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 히어로 제외 · 🎯 = 사거리 +${Math.round(CONST.RANGE_UP.STEP * 100)}%</small>`, row, x, 3200);
+  showPop(`<div>다른 등급 ${nd[0]}종 → 공업 <b>+${R[4]}Lv</b>, ${nd[1]}종 → <b>+${R[6]}Lv</b></div><small>${cl.ico} ${cl.name} 지금 ${n}종 · 영웅 제외 · 🎯 = 사거리 +${Math.round(CONST.RANGE_UP.STEP * 100)}%</small>`, row, x, 3200);
 }
 function upChoice(c, row, x) {
   const cl = CLANS[c], up = S.up[c], maxed = up.bought >= CONST.UP_MAX, cost = upgradeCost(up.bought), lv = S.lv[c];
@@ -711,7 +711,7 @@ async function doLink(back) { // 현재 기기 player 를 계정에 연결
   const r = await api("link");
   if (r.st === 200 && r.d.ok) {
     const ap = r.d.account_player;
-    if (ap && ap.device_id !== deviceId()) { adoptPlayer(ap); refreshTitle(); okModal("💛 계정 연결됨", `이미 계정에 있던 <b>${esc(ap.name)}</b> 기록을 불러왔어요.<br>이 기기의 예전 기록은 합치지 않고 그대로 두었어요.`); return; }
+    if (ap && ap.device_id !== deviceId()) { adoptPlayer(ap); refreshTitle(); okModal("💛 계정 연결됨", `이미 계정에 있던 <b>${esc(ap.name)}</b> 기록을 불러왔어요. 이 기기의 예전 기록은 합치지 않고 그대로 두었어요.`); return; }
     lsSet(LINK_NO, ""); refreshTitle(); if (back) back(); else closeModal(); return;
   }
   sfx("deny");
@@ -719,14 +719,14 @@ async function doLink(back) { // 현재 기기 player 를 계정에 연결
 }
 async function offerLink(back) { // "이 기기의 기록 N건을 계정에 연결할까요?"
   const pr = await api("profile"), n = pr.st === 200 && pr.d.profile && pr.d.profile.exists ? pr.d.profile.plays || 0 : 0;
-  modal(`<h2>💛 기록을 계정에 연결할까요?</h2><p style="font-size:13px;line-height:1.45">이 기기의 기록 <b>${n}건</b>(<b>${esc(myName())}</b>)을 카카오 계정${kakaoNick() ? " <b>" + esc(kakaoNick()) + "</b>" : ""}에 연결해요.<br>기기를 바꿔도 로그인하면 기록을 이어 쓸 수 있어요.</p><button class="wide" id="lkYes">연결하기</button><button class="wide mini" id="lkNo" ${BTNR}>나중에</button>`);
+  modal(`<h2>💛 기록을 계정에 연결할까요?</h2><p style="font-size:13px;line-height:1.45">이 기기의 기록 <b>${n}건</b>(<b>${esc(myName())}</b>)을 카카오 계정${kakaoNick() ? " <b>" + esc(kakaoNick()) + "</b>" : ""}에 연결해요. 기기를 바꿔도 로그인하면 기록을 이어 쓸 수 있어요.</p><button class="wide" id="lkYes">연결하기</button><button class="wide mini" id="lkNo" ${BTNR}>나중에</button>`);
   $("lkYes").onclick = () => { $("lkYes").disabled = true; doLink(back); };
   $("lkNo").onclick = () => { lsSet(LINK_NO, "1"); if (back) back(); else closeModal(); };
 }
 // 로그인 상태에서 계정과 이 기기를 맞춘다. 앱 시작 시 한 번(로그인 복귀 직후 포함).
 async function syncAccount() {
   if (!remote() || !window.AUTH) return;
-  if (AUTH.error) { const e = AUTH.error; AUTH.error = ""; okModal("로그인하지 못했어요", `카카오 로그인이 취소되었거나 실패했어요.<br>계정 없이도 그대로 플레이할 수 있어요.<br><small>${esc(e).slice(0, 80)}</small>`); return; }
+  if (AUTH.error) { const e = AUTH.error; AUTH.error = ""; okModal("로그인하지 못했어요", `카카오 로그인이 취소되었거나 실패했어요. 계정 없이도 그대로 시작할 수 있어요. <small>${esc(e).slice(0, 80)}</small>`); return; }
   if (!AUTH.signedIn()) return;
   const r = await api("me");
   if (r.st === 401) { AUTH.clear(); refreshTitle(); return; }
@@ -736,7 +736,7 @@ async function syncAccount() {
     if (ap.device_id === deviceId()) return;
     const had = !!myName();
     adoptPlayer(ap); refreshTitle();
-    okModal("💛 계정 불러옴", `카카오 계정의 <b>${esc(ap.name)}</b> 기록을 이 기기에서 쓰도록 바꿨어요.${had ? "<br>이 기기에 있던 예전 닉네임·기록은 합치지 않고 그대로 남겨 두었어요." : ""}`);
+    okModal("💛 계정 불러옴", `카카오 계정의 <b>${esc(ap.name)}</b> 기록을 이 기기에서 쓰도록 바꿨어요.${had ? " 이 기기에 있던 예전 닉네임·기록은 합치지 않고 그대로 남겨 두었어요." : ""}`);
     return;
   }
   if (lsGet(NAME_OK, "") === "1" && (AUTH.fresh || lsGet(LINK_NO, "") !== "1")) offerLink();
@@ -870,7 +870,7 @@ async function finishRank(P) {
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
 function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
-  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요.<br>한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
+  modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkImp").onclick = () => showImport(() => showNick(msg, then));
   if ($("nkKk")) $("nkKk").onclick = () => AUTH.login();
@@ -886,7 +886,7 @@ function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 
   };
 }
 function showRename(back) {
-  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요.<br>바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
+  modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkNo").onclick = () => showProfile(back);
   $("nkOk").onclick = async () => {
@@ -912,7 +912,7 @@ function showRename(back) {
   };
 }
 function showImport(back) {
-  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요.<br>이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:13px;width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
+  modal(`<h2>📥 계정 불러오기</h2><p style="font-size:13px;margin:4px 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:13px;width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("icNo").onclick = () => back();
   $("icOk").onclick = async () => {
@@ -952,7 +952,7 @@ async function showProfile(back) {
   modal(`<h2>👤 내 프로필</h2><div class="score" style="font-size:30px">${nm ? esc(nm) : "(닉네임 없음)"}</div>${remote() && !pf && nm ? "<small>서버에 연결하지 못해 이 기기 기록만 보여요</small>" : ""}
     <button class="wide mini" id="pfRen" ${can ? "" : "disabled"} ${BTNR}>✏️ 닉네임 바꾸기</button>${can ? "" : `<small>${SRV_ERR_MSG.rename_cooldown}</small>`}
     ${kakaoBox()}${stats}<button class="wide mini" id="pfShow" ${BTNR}>🔑 이전 코드 보기</button>
-    <div id="pfCode" style="display:none"><div class="codebox">${deviceId()}</div><small style="color:#d4182e">⚠ 이 코드를 아는 사람은 내 기록과 닉네임을 그대로 쓸 수 있어요.<br>다른 사람에게 보여주거나 올리지 마세요!</small><button class="wide mini" id="pfCopy" ${BTNR}>📋 복사</button></div>
+    <div id="pfCode" style="display:none"><div class="codebox">${deviceId()}</div><small style="color:#d4182e">⚠ 이 코드를 아는 사람은 내 기록과 닉네임을 그대로 쓸 수 있어요. 다른 사람에게 보여주거나 올리지 마세요!</small><button class="wide mini" id="pfCopy" ${BTNR}>📋 복사</button></div>
     <button class="wide mini" id="pfImp" ${BTNR}>📥 다른 기기에서 불러오기</button><button class="wide" id="pfClose">닫기</button>`);
   $("pfClose").onclick = close;
   if ($("pfKk")) $("pfKk").onclick = () => AUTH.login();
@@ -1119,7 +1119,7 @@ async function showRanks(tab = "season", again = false, board = "rand", sid = nu
   const nav = tab === "season" ? `<div class="rknav"><button data-s="${sid - 1}" aria-label="이전 시즌" ${sid <= 1 ? "disabled" : ""}>◀</button><span>${esc(s.name)}${past ? " (종료)" : ""}</span><button data-s="${sid + 1}" aria-label="다음 시즌" ${past ? "" : "disabled"}>▶</button></div>` : `<div class="rknav"><span>누적 승점</span></div>`;
   const head = `${boards}${isRec ? "" : `<div class="rkbar">${nav}${sub2}</div>`}`;
   // 새로고침: 지난 시즌 순위(고정)만 없음. 불러오기 실패면 '다시 시도', 기준 시각이 없으면(내 기록) '새로고침'
-  const foot = (me, at, fail, n) => `<div class="stk">${me || ""}<div class="rkmeta"><span>${fail ? "" : metaTxt(n)}</span>${past && tab === "season" && !fail ? "" : `<button class="rkref" id="rkRef" ${BTNR}>${fail ? "다시 시도" : at ? `${hhmm(at)} 기준 ↻` : "새로고침 ↻"}</button>`}</div>${again ? `<div class="rkbtn"><button class="wide green" id="again">다시 하기</button><button class="wide mini" id="rkHome" ${BTNR}>홈으로</button></div>` : `<button class="wide" id="close">닫기</button>`}</div>`;
+  const foot = (me, at, fail, n) => `<div class="stk">${me || ""}<div class="rkmeta"><span>${fail ? "" : metaTxt(n)}</span>${past && tab === "season" && !fail ? "" : `<button class="rkref" id="rkRef" ${BTNR}>${fail ? "새로고침 ↻" : at ? `${hhmm(at)} 기준 ↻` : "새로고침 ↻"}</button>`}</div>${again ? `<div class="rkbtn"><button class="wide green" id="again">다시 하기</button><button class="wide mini" id="rkHome" ${BTNR}>홈으로</button></div>` : `<button class="wide" id="close">닫기</button>`}</div>`;
   const shell = (body, f) => `<div class="rkw">${head}<div class="rkl">${body}</div>${f || ""}</div>`;
   const wire = () => {
     document.querySelectorAll("button[data-t]").forEach((b) => (b.onclick = () => showRanks(b.dataset.t, again, board, sid)));
@@ -1200,7 +1200,7 @@ function uiGameOver(result) {
   const coin = priv || !S.mine ? null : MyHero.settle(S, P); // 코인 줄은 내 영웅 판에만
   const cp = coin && coin.parts, luckSum = cp ? cp.boss + cp.gold + cp.grade : 0;
   const cl = cp ? [["기본", cp.base], ["보스 주머니", cp.boss], ["황금 몹", cp.gold], ["첫 등급", cp.grade], ["내 영웅", cp.hero], ["신기록", cp.rec], ["오늘 첫 판", cp.daily]].filter((e) => e[1] > 0).map((e) => `<li>${e[0]}<b>+${e[1]}</b></li>`).join("") : "";
-  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> 코인 <small>보유 ${nf(coin.total)}</small></div>${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
+  const coinLine = coin ? `<div class="cg"><div class="cgn">+<span id="cgNum">${coin.gain}</span> <i class="coin">C</i> 코인 <small>보유 ${nf(coin.total)}</small></div>${cl ? `<details class="cgd"><summary>내역</summary><ul>${cl}</ul></details>` : ""}</div>` : "";
   const why = res.why ? `<small>${esc(res.why)}</small><br>` : "";
   const rkBox = `<div class="rk pend" id="rk">${priv ? "등록 중…" : "랭킹 등록 중…"}</div>`, btns = `<button class="wide green" id="skip">🔁 다시 하기</button><div class="gor"><button class="mini" id="seeRank" ${BTNR}>${priv ? "시즌 순위" : "🏆 랭킹 보기"}</button>${HOMEBTN}</div>`;
   modal(`<h2>${win ? "🎉 클리어!" : "😵 게임 오버!"}</h2>${why}<small>${esc(MyHero.label(S))} · ${priv ? esc(SeasonMod.run().name) : LEAGUE[S.mine ? "mine" : "rand"]}</small><div class="score">${P.score}</div>${isBest ? '<span class="tag">✨ 내 최고 기록!</span>' : `<small>내 최고 ${best}점</small>`}${rkBox}${coinLine}${parts}${btns}`)
@@ -1227,12 +1227,12 @@ function renderSeasonBox() {
     l2 = top ? `👑 1위 ${esc(top.name)} ${nf(top.score)}점` : "👑 아직 1위가 없어요. 지금 도전하면 1등!";
     if (pf && pf.season_best != null) l3 = `내 ${nf(pf.season_best)}점 · ${pf.season_rank}위` + (top && pf.season_rank > 1 ? ` · 1위까지 ${nf(top.score - pf.season_best + 1)}점!` : pf.season_rank === 1 ? " · 지금 1위!" : "");
     else l3 = "내 기록이 아직 없어요. 첫 도전으로 순위에 올라요!";
-  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 랭킹 도전이 시작돼요"; l3 = "시즌이 열리면 도전해요!"; }
+  } else if (ph.phase === "before") { l1 = `🌱 ${esc(s.name)} 준비 중 · ${md(s.start)} 시작`; l2 = "시즌이 열리면 랭킹 도전이 시작돼요"; l3 = "시즌이 열리면 시작해요!"; }
   else if (ph.phase === "after") { l1 = `🏁 ${esc(s.name)} 종료`; l2 = "다음 시즌을 기다려 주세요"; l3 = "새 시즌에 다시 만나요!"; }
   else { l1 = "🎲 시즌 정보가 없어요"; }
   el.className = sprint ? "sprint" : "";
   el.innerHTML = `<div class="sb1"><b>${l1}</b>${chip}</div>${l2 ? `<div class="sb2">${l2}</div>` : ""}${l3 ? `<div class="sb2">${l3}</div>` : ""}`;
-  const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "🎲 운빨 리그 도전" : "🔒 운빨 리그 (시즌 밖)"; const mb = $("startMine"); if (mb) { mb.classList.toggle("off", !live); mb.textContent = live ? "🦸 나만의 영웅 리그 도전" : "🔒 나만의 영웅 리그 (시즌 밖)"; } }
+  const sb = $("start"); if (sb) { sb.classList.toggle("off", !live); sb.textContent = live ? "🎲 운빨 리그 시작" : "🔒 운빨 리그 (시즌 밖)"; const mb = $("startMine"); if (mb) { mb.classList.toggle("off", !live); mb.textContent = live ? "🦸 나만의 영웅 리그 시작" : "🔒 나만의 영웅 리그 (시즌 밖)"; } }
 }
 async function refreshTitle() { // 홈의 1위/내 순위: 랭킹 모달과 같은 캐시(10분)를 쓰므로 캐시가 신선하면 서버 호출 0, 아니면 목록 1회(+상위 100 밖일 때만 내 순위 1회)
   renderSeasonBox();
@@ -1249,7 +1249,7 @@ async function refreshTitle() { // 홈의 1위/내 순위: 랭킹 모달과 같�
 }
 function showSeasonClosed() {
   const ph = phaseNow(), s = ph.season;
-  const msg = ph.phase === "before" ? `${esc(s.name)}은 ${md(s.start)}에 시작해요!` : ph.phase === "after" ? `${esc(s.name)}이 끝났어요 🏁<br>다음 시즌을 기다려 주세요.` : "지금은 열린 시즌이 없어요";
+  const msg = ph.phase === "before" ? `${esc(s.name)}은 ${md(s.start)}에 시작해요!` : ph.phase === "after" ? `${esc(s.name)}이 끝났어요 🏁 다음 시즌을 기다려 주세요.` : "지금은 열린 시즌이 없어요";
   modal(`<h2>🔒 시즌 준비 중</h2><p>${msg}</p><button class="wide mini" id="clo" ${BTNR}>닫기</button>`);
   $("clo").onclick = closeModal;
 }
@@ -1346,14 +1346,14 @@ function bindUi() {
   // ☰ 메뉴: 랭킹·소리·확률표·홈 (바깥을 누르면 닫힘)
   const menu = $("menu"), menuOff = () => { menu.classList.remove("on"); $("menuBtn").classList.remove("on"); };
   $("menuBtn").onclick = (e) => { e.stopPropagation(); hidePop(); renderMenuTk(); const on = !menu.classList.contains("on"); menu.classList.toggle("on", on); $("menuBtn").classList.toggle("on", on); };
-  menu.addEventListener("click", (e) => { if (e.target.closest("button") && !e.target.closest("#snd")) menuOff(); }); // 소리 외 항목은 누르면 메뉴 닫힘
+  menu.addEventListener("click", (e) => { if (e.target.closest("button") && !e.target.closest("#snd") && !e.target.closest("#save")) menuOff(); }); // 토글(소리·절전) 외 항목은 누르면 메뉴 닫힘
   $("rank").onclick = () => { initAudio(); showRanks("season"); }; // 모달이 열리면 modal() 이 S.paused 를 켜고 닫으면 풀림(시뮬 틱 불변)
   $("home").onclick = () => uiConfirm("홈으로 나갈까요?\n진행 중인 게임은 종료돼요.", goHome);
   $("prob").onclick = () => showProb();
   $("snd").onclick = () => sndCycle();
   sndLabel();
   // 절전 토글: 켬 = 30fps + 저사양(iOS 기본 켬), 끔 = 기존 60fps. game.js gfxSetSave 가 malrang_gfx 에 저장
-  const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.classList.toggle("off", !on); const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 켬" : "절전 끔"; };
+  const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.dataset.st = on ? "0" : "2"; const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 · 켜짐" : "절전 · 꺼짐"; };
   $("save").onclick = () => { if (typeof gfxSetSave === "function") gfxSetSave(!(typeof GFX_SAVE !== "undefined" && GFX_SAVE)); saveLabel(); };
   saveLabel();
   document.addEventListener("click", (e) => {

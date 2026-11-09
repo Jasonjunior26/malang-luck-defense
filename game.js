@@ -318,7 +318,7 @@ function updateProgress() {
   else if (hx.roundDmg) t = `피해 +${(hx.roundDmg * (S.round - 1) * 100).toFixed(1)}%`;
   else if (hx.bossUp) t = `보스 보너스 공업 +${fl.bu || 0}`;
   else if (hx.mergeUp) t = `연금 성공 ${fl.mu || 0}회`;
-  else if (hx.heroLvK) t = `히어로 Lv${S.heroLv}`;
+  else if (hx.heroLvK) t = `영웅 Lv${S.heroLv}`;
   else if (hx.roundMin) t = `라운드 수입 +${hx.roundMin}`;
   S.heroState.progress = t;
 }
@@ -404,7 +404,7 @@ const GAME = {
     const u = S.up[c], cost = upgradeCost(u.bought);
     if (u.bought >= CONST.UP_MAX || S.minerals < cost) return false;
     S.minerals -= cost; u.bought++; inp("up", c); refreshLevels(); updateProgress();
-    log(`${CLANS[c].name} 강화 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
+    log(`${CLANS[c].name} 공업 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
   },
   rangeUp(c) { // 무리별 사거리 강화 (입력 로그 "rng")
     if (S.over || !(c >= 0 && c < 4)) return false;

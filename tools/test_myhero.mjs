@@ -210,7 +210,7 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
       const S3 = { [KEY]: JSON.stringify({ v: 2, mig: 1, rs: 1, coins: 77, heroes: [{ design: "bee", name: "벌벌", own: { atk: 2 }, equip: [] }, { design: "bear", name: "곰곰", own: {}, equip: [] }] }) };
       const Y = boot(S3); let go = null; Y.MH.pickMine((m) => (go = m));
       ok((Y.box.html.match(/data-d="/g) || []).length === 2, "영웅 선택: 삭제 버튼");
-      Y.tap("d=bee"); ok(/벌벌/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("🪙 " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
+      Y.tap("d=bee"); ok(/벌벌/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("{coin} " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
       Y.c.__cf.ok(); ok(Y.MH.list().length === 1 && Y.MH.coins() === 77 && (Y.box.html.match(/data-h="/g) || []).length === 1, "삭제 후 영웅 선택 목록 갱신");
       Y.tap("h=bear"); ok(go && go.design === "bear", "남은 영웅으로 시작");
       Y.MH.pickMine(() => {}); Y.tap("d=bear"); Y.c.__cf.ok(); ok(Y.MH.list().length === 0 && (Y.box.html.match(/data-p="/g) || []).length === 20, "선택 화면에서 마지막 영웅 삭제 -> 20종");

@@ -1,5 +1,5 @@
 // 게임 중 홈 확인 모달 흐름 회귀 테스트 (DOM 스텁 + ui.js 의 해당 함수만 발췌 실행).
-// 점검: [게임 계속] -> 확인창 닫힘 + 일시정지 복원 + 타이틀로 안 감 / [홈 이동] -> 타이틀 ON, 모달·확인창 닫힘, 판 폐기(resultSent) / index.html 라벨 / 히어로 설명 길이.
+// 점검: [게임 계속] -> 확인창 닫힘 + 일시정지 복원 + 타이틀로 안 감 / [홈으로] -> 타이틀 ON, 모달·확인창 닫힘, 판 폐기(resultSent) / index.html 라벨 / 히어로 설명 길이.
 // 실행: node tools/test_home_flow.mjs
 import fs from "node:fs";
 import vm from "node:vm";
@@ -36,24 +36,24 @@ ok(run("TITLE_ON") === false && run("S.resultSent") === false && cleared === 0, 
 reset(); run("S.paused = true"); run("_homeClick()"); els.cno.onclick();
 ok(run("S.paused") === true, "계속: 원래 일시정지면 유지");
 
-// 3. 홈 이동
+// 3. 홈으로
 reset(); run("_homeClick()"); els.cok.onclick();
 ok(run("TITLE_ON") === true && els.title.classList.has("on"), "홈: 타이틀 ON");
 ok(!els.confirm.classList.has("on") && run("CONFIRM_ON") === false, "홈: 확인창 닫힘");
 ok(run("S.resultSent") === true && run("S.paused") === true && run("S.modalQ.length") === 0, "홈: 판 폐기(기록 안 함)·정지");
 ok(cleared === 1, "홈: SeasonMod.clear 호출");
 
-// 4. SeasonMod 가 없어도(로드 실패) 홈 이동은 예외 없이 동작
+// 4. SeasonMod 가 없어도(로드 실패) 홈으로은 예외 없이 동작
 reset(); delete ctx.SeasonMod; run("_homeClick()"); els.cok.onclick(); ok(run("TITLE_ON") === true, "홈: SeasonMod 없이도 이동");
 
 // 5. 라벨/문구, 히어로 설명
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-ok(/id="cno"[^>]*>게임 계속</.test(html) && /id="cok"[^>]*>홈 이동</.test(html), "버튼 라벨");
+ok(/id="cno"[^>]*>게임 계속</.test(html) && /id="cok"[^>]*>홈으로</.test(html), "버튼 라벨");
 ok(ui.includes('uiConfirm("홈으로 나갈까요?\\n진행 중인 게임은 종료돼요."'), "모달 문구");
 const dctx = vm.createContext({}); vm.runInContext(fs.readFileSync(path.join(root, "data.js"), "utf8") + "\n;this.H=HEROES;", dctx);
 for (const h of dctx.H) { ok(h.rule.length <= 30, "설명 길이 " + h.id + " " + h.rule.length); ok(!/표 참조|합계|차감|Lv/.test(h.rule), "금지어 " + h.id); }
 // 6. 홈 두 버튼(운빨 리그 / 나만의 영웅 리그) + 오늘의 영웅 카드 제거
-ok(/id="start"[^>]*>🎲 운빨 리그 도전</.test(html) && /id="startMine"[^>]*>🦸 나만의 영웅 리그 도전</.test(html) && /id="myhero"[^>]*>🪙 코인 마켓</.test(html), "홈 버튼 라벨");
+ok(/id="start"[^>]*>🎲 운빨 리그 시작</.test(html) && /id="startMine"[^>]*>🦸 나만의 영웅 리그 시작</.test(html) && /id="myhero"[^>]*><i class="coin">C<\/i> 코인 마켓</.test(html), "홈 버튼 라벨");
 ok(!/todayBox|todayTxt|heroMini/.test(html + ui), "오늘의 영웅 카드 잔재 없음");
 { const cl = (g) => { const i = ui.indexOf("const enter = (league)"), j = ui.indexOf('$("myhero").onclick', i); return ui.slice(i, j); };
   const calls = []; const c2 = vm.createContext({ console }); const e = (r) => r;

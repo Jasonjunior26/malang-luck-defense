@@ -283,7 +283,18 @@
   @media (max-width:360px) { .cr { gap:3px; padding:0 3px 0 4px; } .cr .ci { width:16px; font-size:var(--fs-body); } .cr .lv { min-width:44px; font-size:var(--fs-cap); } .cr .uc { min-width:48px; padding:0 4px; font-size:12px; } .cr .uc.rg { min-width:36px; padding:0 3px; } }
   /* 절전(html.save): 무한 CSS 애니메이션 끄기 */
   html.save .logo { animation:none; } html.save #vig.on { animation:none; }
-  #save.off { opacity:.6; }
+  /* 3b: 토글 스위치(.tgl 성격: 라벨 고정 · 상태는 스위치 모양+글자). data-st 0=켜짐 1=중간 2=꺼짐 */
+  #menu button[data-st] { width:176px; } #menu button[data-st]::after { content:""; margin-left:auto; flex:none; width:30px; height:18px; border-radius:var(--r-pill); background:var(--ln-gray); box-shadow:inset 0 0 0 2px var(--ln-strong); background-image:radial-gradient(circle at 8px 9px,var(--surface) 7px,transparent 7.5px); transition:background-color .15s,background-position .15s; }
+  #menu button[data-st="0"]::after { background-color:var(--ok); box-shadow:inset 0 0 0 2px var(--green2); background-image:radial-gradient(circle at 22px 9px,var(--surface) 7px,transparent 7.5px); }
+  #menu button[data-st="1"]::after { background-color:var(--gold-hi); box-shadow:inset 0 0 0 2px var(--amber); background-image:radial-gradient(circle at 15px 9px,var(--surface) 7px,transparent 7.5px); }
+  #menu button[data-st="2"] small { color:var(--mute); }
+  /* 메뉴 그룹: 이동(랭킹·확률표) / 설정(소리·절전) / 나가기(홈) 사이에 구분선 */
+  #menu #snd, #menu #home { margin-top:var(--s2); } #menu #snd::before, #menu #home::before { content:""; position:absolute; left:2px; right:2px; top:calc(-1 * var(--s2) / 2 - 1px); height:2px; border-radius:1px; background:var(--ln-mid); }
+  #menu button { width:176px; }
+  /* 코인 아이콘: 금색 원 + C (이모지 대체) */
+  .coin { display:inline-flex; align-items:center; justify-content:center; width:1.1em; height:1.1em; flex:none; box-sizing:border-box; border-radius:50%; font:800 .72em/1 Pretendard,system-ui,sans-serif; font-style:normal; text-shadow:none; color:var(--on-accent); background:linear-gradient(var(--gold-hi),var(--gold)); border:.09em solid var(--gold-ink); box-shadow:inset 0 0 0 .06em #fff8; vertical-align:-.2em; margin-right:.12em; }
+  /* 안내문 줄바꿈: 균형 */
+  #box p, #box h2, #cmsg, .pstxt, .tiny, .mhsub, .mhnote, #info .ln, .cg small { text-wrap:balance; }
   /* ---- 내 영웅 v2: 홈 코인 마켓 버튼 + 코인 마켓/영웅 고르기/장착 화면 (myhero.js) ---- */
   #title .tbtn.gold { background:linear-gradient(#ffe08a,var(--gold)); box-shadow:0 5px 0 #d08a00,0 8px 10px var(--sh2); color:var(--on-accent); font-size:clamp(14px,4.6vw,18px); }
   #title #myCoins { background:var(--surface); color:var(--gold-ink); text-shadow:none; border-radius:var(--r-pill); padding:3px 10px; font-size:var(--fs-body); font-weight:800; min-width:24px; }
@@ -373,10 +384,10 @@
   </div>
   <div id="menu"><div id="menuTk" style="display:contents"></div>
     <button id="rank" class="mini">🏆<small>랭킹</small></button>
-    <button id="snd" class="mini">🔊<small>소리</small></button>
-    <button id="save" class="mini">🔋<small>절전</small></button>
     <button id="prob" class="mini">ℹ<small>확률표</small></button>
-    <button id="home" class="mini">🏠<small>홈</small></button>
+    <button id="snd" class="mini" data-st="0">🔊<small>소리 · 전체</small></button>
+    <button id="save" class="mini" data-st="2">🔋<small>절전 · 꺼짐</small></button>
+    <button id="home" class="mini">🏠<small>홈으로</small></button>
   </div>
   <div id="cvWrap">
     <canvas id="cv" width="360" height="400"></canvas>
@@ -400,15 +411,15 @@
   <div class="logo">말랑<br><span>운빨 디펜스</span></div>
   <canvas id="parade" width="340" height="150"></canvas>
   <div id="seasonBox"></div>
-  <button id="start" class="tbtn primary">🎲 운빨 리그 도전</button>
-  <button id="startMine" class="tbtn primary">🦸 나만의 영웅 리그 도전</button>
-  <button id="myhero" class="tbtn gold">🪙 코인 마켓<span id="myCoins">0</span></button>
+  <button id="start" class="tbtn primary">🎲 운빨 리그 시작</button>
+  <button id="startMine" class="tbtn primary">🦸 나만의 영웅 리그 시작</button>
+  <button id="myhero" class="tbtn gold"><i class="coin">C</i> 코인 마켓<span id="myCoins">0</span></button>
   <div class="trow"><button id="rank2" class="tbtn ghost">🏆 랭킹</button><button id="seasons" class="tbtn ghost">👥 시즌</button></div>
   <div id="a2hs"><span id="a2hsTxt"></span><button id="a2hsX" aria-label="닫기">✕</button></div>
   <p class="tiny">운빨 리그는 영웅도 뽑기 운도 판마다 새로 정해져요</p>
 </div>
 <div id="modal"><div id="box"></div></div>
-<div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno">게임 계속</button><button id="cok" class="mini" style="flex-direction:row">홈 이동</button></div></div></div>
+<div id="confirm"><div id="cbox"><div id="cmsg"></div><div class="row"><button id="cno">게임 계속</button><button id="cok" class="mini" style="flex-direction:row">홈으로</button></div></div></div>
 
 <script src="config.js"></script>
 <script src="auth.js"></script>

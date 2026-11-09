@@ -62,9 +62,8 @@ const HEROES = [
  {"id":"frog","name":"개구리 연금술사 퐁","prob":10,"rule":"합성 6% 확률로 한 등급 더 위","fx":{"mergeUp":0.06},"look":{"shape":[1.1,0.9],"c1":"#58c26a","c2":"#d9f5c8","c3":"#7a5fd0","base":[["ear","bump","#58c26a"],["mark","cheek","#ff9ec0"]],"face":["big","smile"],"parts":[["hat","moonhat","#7a5fd0"],["acc","crystalball","#bfe6ff"]]}},
  {"id":"penguin","name":"펭귄 얼음술사 뽀득","prob":10,"rule":"보스 체력 -15%","fx":{"bossHp":0.85},"look":{"shape":[1,1],"c1":"#3a4a6a","c2":"#ffffff","c3":"#9fd8ff","base":[["ear","none"],["beak","#ffb347"],["mark","belly","#ffffff"],["back","icespikes","#bfe8ff"]],"face":["dot","beak"],"parts":[["hat","star","#9fd8ff"],["acc","wand","#9fd8ff"]]}},
  {"id":"fennec","name":"사막여우 망원","prob":10,"rule":"모든 유닛 사거리 +15%","fx":{"rangeMul":0.15},"look":{"shape":[1,0.95],"c1":"#f2c98a","c2":"#fff4e0","c3":"#e8442e","base":[["ear","big","#f2c98a"],["tail","fluffy","#f2c98a"]],"face":["sharp","smile"],"parts":[["hat","monocle","#ffd54f"],["acc","scarf","#e8442e"]]}},
- {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"히어로 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
+ {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"영웅 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
 ];
-
 // RULES-BEGIN
 // ---------- 프라이빗 시즌 규칙 (rules): 평탄한 JSON. 서버 번들 build_engine 이 RULES-BEGIN~END 를 그대로 추출 ----------
 // 키: rounds(50~200) + 모디파이어 최대 3개: hpMul mobSpeed mobCount bossTime noGrade gradeCap drawLimit noSell clanBan heroPool startMin killReward drawCost luckyWeek
@@ -156,12 +155,12 @@ const MY_ITEMS = [
  // 보상
  { id: "kill", name: "사냥 보상", ico: "🎁", cat: "reward", max: 6, cost: myCost(35, 6, 1.45), txt: (l) => `처치 보상 +${myPct(0.0125 * l)}%`, ap: (f, l) => { f.killMul = 1 + 0.0125 * l; } },
  { id: "bounty", name: "보스 현상금", ico: "💰", cat: "reward", max: 5, cost: myCost(30, 5, 1.5), txt: (l) => `보스 처치 미네랄 +${l * 3}`, ap: (f, l) => { f.bossBonus = 3 * l; } },
- { id: "coin", name: "코인 행운", ico: "🪙", cat: "reward", max: 5, cost: myCost(60, 5, 1.6), txt: (l) => `이 영웅 판의 기본 코인 +${l * 5}%`, ap: () => {} }, // 게임 영향 없음(정산 coinsFor 의 4번째 인자 = mineCoinLv)
+ { id: "coin", name: "코인 행운", ico: '<i class="coin">C</i>', cat: "reward", max: 5, cost: myCost(60, 5, 1.6), txt: (l) => `이 영웅 판의 기본 코인 +${l * 5}%`, ap: () => {} }, // 게임 영향 없음(정산 coinsFor 의 4번째 인자 = mineCoinLv)
  // 경제
  { id: "start", name: "비상금", ico: "💎", cat: "eco", max: 6, cost: myCost(25, 6, 1.45), txt: (l) => `시작 미네랄 +${l * 4}`, ap: (f, l) => { f.startMin = 4 * l; } },
  { id: "income", name: "꼬박꼬박", ico: "📦", cat: "eco", max: 3, cost: myCost(120, 3, 1.7), txt: (l) => `라운드마다 미네랄 +${l}`, ap: (f, l) => { f.roundMin = l; } },
  { id: "drawc", name: "뽑기 할인", ico: "🎟️", cat: "eco", max: 1, cost: [900], txt: (l) => `뽑기 비용 -${l}`, ap: (f, l) => { f.drawCost = l; } },
- { id: "upc", name: "공업 할인", ico: "🏷️", cat: "eco", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `공업 강화 비용 -${l}%`, ap: (f, l) => { f.upCost = 1 - 0.01 * l; } },
+ { id: "upc", name: "공업 할인", ico: "🏷️", cat: "eco", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `공업 비용 -${l}%`, ap: (f, l) => { f.upCost = 1 - 0.01 * l; } },
  { id: "sell", name: "되팔기", ico: "♻️", cat: "eco", max: 4, cost: myCost(25, 4, 1.5), txt: (l) => `유닛 판매가 +${l * 5}%`, ap: (f, l) => { f.sellMul = 1 + 0.05 * l; } },
  // 방어·생존
  { id: "btime", name: "버티기", ico: "⏳", cat: "guard", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `보스 제한시간 +${l}초`, ap: (f, l) => { f.bossTime = l; } },
@@ -344,7 +343,7 @@ const HEROES = [
  {"id":"frog","name":"개구리 연금술사 퐁","prob":10,"rule":"합성 6% 확률로 한 등급 더 위","fx":{"mergeUp":0.06},"look":{"shape":[1.1,0.9],"c1":"#58c26a","c2":"#d9f5c8","c3":"#7a5fd0","base":[["ear","bump","#58c26a"],["mark","cheek","#ff9ec0"]],"face":["big","smile"],"parts":[["hat","moonhat","#7a5fd0"],["acc","crystalball","#bfe6ff"]]}},
  {"id":"penguin","name":"펭귄 얼음술사 뽀득","prob":10,"rule":"보스 체력 -15%","fx":{"bossHp":0.85},"look":{"shape":[1,1],"c1":"#3a4a6a","c2":"#ffffff","c3":"#9fd8ff","base":[["ear","none"],["beak","#ffb347"],["mark","belly","#ffffff"],["back","icespikes","#bfe8ff"]],"face":["dot","beak"],"parts":[["hat","star","#9fd8ff"],["acc","wand","#9fd8ff"]]}},
  {"id":"fennec","name":"사막여우 망원","prob":10,"rule":"모든 유닛 사거리 +15%","fx":{"rangeMul":0.15},"look":{"shape":[1,0.95],"c1":"#f2c98a","c2":"#fff4e0","c3":"#e8442e","base":[["ear","big","#f2c98a"],["tail","fluffy","#f2c98a"]],"face":["sharp","smile"],"parts":[["hat","monocle","#ffd54f"],["acc","scarf","#e8442e"]]}},
- {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"히어로 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
+ {"id":"owlsage","name":"부엉이 군사 지혜","prob":10,"rule":"영웅 유닛이 최고 공업 레벨 그대로","fx":{"heroLvK":1},"look":{"shape":[1.05,0.98],"c1":"#8b6b4a","c2":"#f0e0c8","c3":"#3a3a5a","base":[["ear","tuft","#5a4632"],["beak","#ffd54f"]],"face":["big","beak"],"parts":[["hat","gradcap","#3a3a5a"],["acc","cape","#7a5fd0"]]}},
 ];
 
 // [r, chapter, name, kind, hue, hp, armor%, count, gap, speed, timeLimit, rewMul]  (개체 HP·보상은 구 표 대비 총량 유지: 수 N배 → 개체 1/N)
@@ -693,12 +692,12 @@ const MY_ITEMS = [
  // 보상
  { id: "kill", name: "사냥 보상", ico: "🎁", cat: "reward", max: 6, cost: myCost(35, 6, 1.45), txt: (l) => `처치 보상 +${myPct(0.0125 * l)}%`, ap: (f, l) => { f.killMul = 1 + 0.0125 * l; } },
  { id: "bounty", name: "보스 현상금", ico: "💰", cat: "reward", max: 5, cost: myCost(30, 5, 1.5), txt: (l) => `보스 처치 미네랄 +${l * 3}`, ap: (f, l) => { f.bossBonus = 3 * l; } },
- { id: "coin", name: "코인 행운", ico: "🪙", cat: "reward", max: 5, cost: myCost(60, 5, 1.6), txt: (l) => `이 영웅 판의 기본 코인 +${l * 5}%`, ap: () => {} }, // 게임 영향 없음(정산 coinsFor 의 4번째 인자 = mineCoinLv)
+ { id: "coin", name: "코인 행운", ico: '<i class="coin">C</i>', cat: "reward", max: 5, cost: myCost(60, 5, 1.6), txt: (l) => `이 영웅 판의 기본 코인 +${l * 5}%`, ap: () => {} }, // 게임 영향 없음(정산 coinsFor 의 4번째 인자 = mineCoinLv)
  // 경제
  { id: "start", name: "비상금", ico: "💎", cat: "eco", max: 6, cost: myCost(25, 6, 1.45), txt: (l) => `시작 미네랄 +${l * 4}`, ap: (f, l) => { f.startMin = 4 * l; } },
  { id: "income", name: "꼬박꼬박", ico: "📦", cat: "eco", max: 3, cost: myCost(120, 3, 1.7), txt: (l) => `라운드마다 미네랄 +${l}`, ap: (f, l) => { f.roundMin = l; } },
  { id: "drawc", name: "뽑기 할인", ico: "🎟️", cat: "eco", max: 1, cost: [900], txt: (l) => `뽑기 비용 -${l}`, ap: (f, l) => { f.drawCost = l; } },
- { id: "upc", name: "공업 할인", ico: "🏷️", cat: "eco", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `공업 강화 비용 -${l}%`, ap: (f, l) => { f.upCost = 1 - 0.01 * l; } },
+ { id: "upc", name: "공업 할인", ico: "🏷️", cat: "eco", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `공업 비용 -${l}%`, ap: (f, l) => { f.upCost = 1 - 0.01 * l; } },
  { id: "sell", name: "되팔기", ico: "♻️", cat: "eco", max: 4, cost: myCost(25, 4, 1.5), txt: (l) => `유닛 판매가 +${l * 5}%`, ap: (f, l) => { f.sellMul = 1 + 0.05 * l; } },
  // 방어·생존
  { id: "btime", name: "버티기", ico: "⏳", cat: "guard", max: 5, cost: myCost(40, 5, 1.55), txt: (l) => `보스 제한시간 +${l}초`, ap: (f, l) => { f.bossTime = l; } },
@@ -1108,7 +1107,7 @@ function updateProgress() {
   else if (hx.roundDmg) t = `피해 +${(hx.roundDmg * (S.round - 1) * 100).toFixed(1)}%`;
   else if (hx.bossUp) t = `보스 보너스 공업 +${fl.bu || 0}`;
   else if (hx.mergeUp) t = `연금 성공 ${fl.mu || 0}회`;
-  else if (hx.heroLvK) t = `히어로 Lv${S.heroLv}`;
+  else if (hx.heroLvK) t = `영웅 Lv${S.heroLv}`;
   else if (hx.roundMin) t = `라운드 수입 +${hx.roundMin}`;
   S.heroState.progress = t;
 }
@@ -1194,7 +1193,7 @@ const GAME = {
     const u = S.up[c], cost = upgradeCost(u.bought);
     if (u.bought >= CONST.UP_MAX || S.minerals < cost) return false;
     S.minerals -= cost; u.bought++; inp("up", c); refreshLevels(); updateProgress();
-    log(`${CLANS[c].name} 강화 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
+    log(`${CLANS[c].name} 공업 Lv${S.lv[c]}!`, CLANS[c].color); sfx("upgrade"); return true;
   },
   rangeUp(c) { // 무리별 사거리 강화 (입력 로그 "rng")
     if (S.over || !(c >= 0 && c < 4)) return false;

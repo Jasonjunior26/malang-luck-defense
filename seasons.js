@@ -22,7 +22,7 @@
     { k: "drawLimit", n: "뽑기 횟수", t: "num", min: 60, max: 300, st: 10, def: 150, f: (v) => v + "회" },
     { k: "noSell", n: "판매 금지", t: "bool" },
     { k: "clanBan", n: "무리 제외", t: "clans" },
-    { k: "heroPool", n: "히어로 고정", t: "hero" },
+    { k: "heroPool", n: "영웅 고정", t: "hero" },
     { k: "startMin", n: "시작 미네랄", t: "num", min: 0, max: 200, st: 10, def: 0, f: (v) => v },
     { k: "killReward", n: "처치 보상", t: "num", min: 0.5, max: 2, st: 0.1, def: 1.5, f: (v) => "×" + v },
     { k: "drawCost", n: "뽑기 비용", t: "num", min: 10, max: 25, st: 1, def: 20, f: (v) => v },
@@ -46,7 +46,7 @@
       if (m.t === "num") out.push(m.k === "noGrade" ? m.f(v) + " 제외" : m.k === "startMin" ? "시작 💎" + v : m.k === "drawCost" ? "뽑기 " + v : m.n + " " + m.f(v));
       else if (m.t === "bool") out.push(m.n);
       else if (m.t === "clans") out.push((v || []).map((c) => (cl[c] ? cl[c].name : c)).join("·") + " 제외");
-      else if (m.t === "hero") { const h = hs.find((x) => x.id === v[0]); out.push(v.length === 1 ? (h ? h.name : v[0]) + " 고정" : "히어로 " + v.length + "종"); }
+      else if (m.t === "hero") { const h = hs.find((x) => x.id === v[0]); out.push(v.length === 1 ? (h ? h.name : v[0]) + " 고정" : "영웅 " + v.length + "종"); }
     }
     return out;
   }
@@ -148,7 +148,7 @@
     const { $, modal, close } = ui();
     if (signed()) return false;
     const ready = kakaoReady();
-    modal(`<div class="ps"><h2>👥 시즌</h2><p class="pstxt">${pendingCode ? "초대 받은 시즌이 있어요.<br>" : ""}${ready ? "카카오로 로그인하면<br>친구와 시즌을 열 수 있어요" : "카카오 로그인은 준비 중이에요"}</p>${ready ? '<button class="psb" id="psLogin">💛 카카오로 로그인</button>' : ""}<button class="psb g" id="psX">닫기</button></div>`);
+    modal(`<div class="ps"><h2>👥 시즌</h2><p class="pstxt">${pendingCode ? "초대 받은 시즌이 있어요. " : ""}${ready ? "카카오로 로그인하면 친구와 시즌을 열 수 있어요" : "카카오 로그인은 준비 중이에요"}</p>${ready ? '<button class="psb" id="psLogin">💛 카카오로 로그인</button>' : ""}<button class="psb g" id="psX">닫기</button></div>`);
     $("psX").onclick = () => { if (pendingCode) ui().ls.set(JOIN_KEY, ""); close(); }; // 닫으면 보관한 초대도 버린다 (로그인으로 가면 유지)
     if (pendingCode && !ready) ui().ls.set(JOIN_KEY, "");
     if ($("psLogin")) $("psLogin").onclick = () => AUTH.login();
@@ -207,7 +207,7 @@
       <ul class="rows psbd">${li || "<li>아직 기록이 없어요</li>"}</ul>
       ${me ? `<div class="psme">내 ${me.rank}위 · ${nf(me.score)}점 · R${me.round}</div>` : ""}
       <p class="pstxt" id="psMsg">${esc(note || why)}</p>
-      <button class="psb" id="psPlay" ${canPlay ? "" : "disabled"}>▶ 플레이</button>
+      <button class="psb" id="psPlay" ${canPlay ? "" : "disabled"}>▶ 시작</button>
       ${s.is_owner && s.invite_code && ph !== "after" && ph !== "cancelled" ? '<button class="psb g" id="psInv">🔗 초대</button>' : ""}
       ${host ? `<button class="psb g" id="psCancel">${ph === "before" ? "시즌 취소" : "조기 종료"}</button>` : ""}
       <button class="psb g" id="psX">뒤로</button>`);
@@ -215,7 +215,7 @@
     if (canPlay) $("psPlay").onclick = () => play(s);
     if ($("psInv")) $("psInv").onclick = () => showInvite(s, () => openDetail(id));
     if ($("psCancel")) $("psCancel").onclick = () => {
-      shell(ph === "before" ? "시즌 취소" : "조기 종료", `<p class="pstxt">${esc(s.name)}<br>${ph === "before" ? "취소하면 되돌릴 수 없어요" : "지금 순위로 끝나요"}</p><p class="pstxt" id="psMsg"></p><button class="psb" id="psOk">${ph === "before" ? "취소할래요" : "끝낼래요"}</button><button class="psb g" id="psX">아니요</button>`);
+      shell(ph === "before" ? "시즌 취소" : "조기 종료", `<p class="pstxt">${esc(s.name)}<br>${ph === "before" ? "취소하면 되돌릴 수 없어요" : "지금 순위로 끝나요"}</p><p class="pstxt" id="psMsg"></p><button class="psb" id="psOk">${ph === "before" ? "취소할래요" : "끝낼래요"}</button><button class="psb g" id="psX">뒤로</button>`);
       $("psX").onclick = () => openDetail(id);
       $("psOk").onclick = async () => { $("psOk").disabled = true; const r = await ui().api("psCancel", { id }); if (r.st === 200 && r.d.ok) openList(); else { $("psOk").disabled = false; toast(errText(r)); } };
     };
