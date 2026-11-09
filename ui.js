@@ -606,9 +606,9 @@ function infoText(u) {
   }
   // 배율·사거리·쿨다운은 game.js(unitMul/defOf)와 같은 값: 공업 2차식, 고래 누적 피해, 사거리 강화, 족제비 공속
   const c = CHARS[u.ch], g = c.grade, cl = CLANS[c.clan], lv = S.lv && S.lv[c.clan] != null ? S.lv[c.clan] : clanLevel(S, c.clan), mul = unitMul(u), d = defOf(u);
-  const dps = (c.atk / d.cd) * mul * u.n, rg = Math.round(d.range), rgUp = rg > c.range ? ` <small>(+${Math.round((d.range / c.range - 1) * 100)}%)</small>` : "";
+  const dps = (c.atk / d.cd) * mul * u.n, rg = Math.round(d.range), rgUp = rg > c.range ? ` <small>+${Math.round((d.range / c.range - 1) * 100)}%</small>` : "";
   const fxn = FX_NAME[c.fx] || c.fx;
-  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">${cl.ico} Lv${lv} ×${mul.toFixed(2)} · 🎯 ${rg}${rgUp}${u.lock ? " · 🔒" : ""}</div>`;
+  return `<div class="ln">${gbadge(g)} <b>${esc(c.name)}</b> ${cl.ico} x${u.n}${u.lock ? " 🔒" : ""}</div><div class="ln sm">공격 ${fmt(c.atk * mul)} · DPS ${fmt(dps)} · ${fxn}</div><div class="ln sm">Lv${lv} ×${mul.toFixed(2)} · 🎯 ${rg}${rgUp}</div>`;
 }
 const FX_NAME = { shot: "투척", tongue: "혀 공격", slash: "할퀴기", wave: "음파", roar: "포효(광역)", beam: "광선(관통)", breath: "숨결(광역)", chain: "연쇄", lob: "포물선 폭탄", nova: "전체 파동", meteor: "유성", storm: "폭풍" };
 
