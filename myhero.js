@@ -1,7 +1,7 @@
 "use strict";
 // myhero.js - 내 영웅 v2(GAME_VER 9): 코인 마켓(디자인 20종 등록·이름 / 능력 24종(영웅당 2종만)·기본공격 8종·필살 7종 구매) · 스킬 장착(기본공격 1칸·필살 1칸) · 나만의 영웅 리그 시작 · 판 끝 코인 정산.
 // 규칙·수치(MY_DESIGNS, MY_CATS, MY_ITEMS, validateMine, applyMine, coinsFor, mineCoinLv, migrateLegacyMine)는 data.js MYHERO 구간(서버 리플레이와 공유). 스펙: docs/내영웅_v2_스펙.md
-// 저장: localStorage "malang-myhero2" = {v:2, mig:2, rs:1, coins, note, mnote, heroes:[{design, name, own:{품목:보유 단계}, equip:{basic:"sk_*"|null, ult:"ul_*"|null}}]}
+// 저장: localStorage "malang-myhero2" = {v:2, mig:2, rs:1, coins, rw:[이미 지급한 주간 보상 시즌 id], note, mnote, heroes:[{design, name, own:{품목:보유 단계}, equip:{basic:"sk_*"|null, ult:"ul_*"|null}}]}
 //   mig 2 = 마켓 개편(GAME_VER 9): mig 1 저장값은 load 에서 1회 migrateMarketHero(능력 3종 이상 환불·초기화, 스킬 칸 분리)로 바꾸고 mnote {refund, n}(안내 1회)에 기록
 //   own = 산 기록(서버로 안 감). mineOf 가 own 전부(수치 단계·보유 스킬)·equip 으로 mine 을 만든다(전투력 상한·켜기/끄기 없음, 옛 on 필드는 읽어도 무시). note = 레거시 이전 안내(환불 코인, 1회 표시 후 null)
 //   옛 키 "malang-myhero"(v1 {v:1, heroes:[{id,name,up}]}) 는 새 키에 mig 가 없을 때만 읽어 migrateLegacyMine 으로 바꾸고(환불 코인 합산, 디자인 = 옛 영웅 id, 보유 초기화)
@@ -23,13 +23,16 @@ window.MyHero = (function () {
     for (const sl of MY_SLOTS) { const id = eq[sl], it = typeof id === "string" ? myItem(id) : null; if (it && it.sk && it.slot === sl && own[id]) equip[sl] = id; }
     return { own, equip };
   }
+  const COIN_CAP = 99999999, RW_KEEP = 200, RW_MAX = 100000; // 코인 총량 상한 / rw 보관 개수 / 한 시즌 보상 상한(서버 값이 이상해도 막는다)
+  const cleanRw = (a) => [...new Set((Array.isArray(a) ? a : []).filter((x) => Number.isInteger(x) && x >= 1 && x <= 1e6))].sort((x, y) => x - y).slice(-RW_KEEP); // 주간 보상 지급 기록: 양의 정수 시즌 id, 중복 제거
   const parse = (k) => { try { const o = JSON.parse(lsGet(k, "null")); return o && typeof o === "object" ? o : null; } catch { return null; } };
   function load() {
-    const out = { v: 2, mig: 2, rs: 1, coins: 0, note: null, mnote: null, heroes: [] }; // rs = 코인 리셋 완료 표시, mig 2 = 마켓 개편 이전 완료
+    const out = { v: 2, mig: 2, rs: 1, coins: 0, rw: [], note: null, mnote: null, heroes: [] }; // rs = 코인 리셋 완료 표시, mig 2 = 마켓 개편 이전 완료
     let reset = false;
     let o = parse(KEY), from = false; // 새 키에 변환 완료 표시(mig)가 있으면 옛 키는 보지 않는다
     if (!o || !o.mig) { const p = parse(OLD); if (p) { o = p; from = true; } }
     if (!o) return out;
+    out.rw = cleanRw(o.rw); // 없으면 [] (옛 저장값 호환). 코인 리셋·이전과 무관하게 항상 보존
     out.coins = Number.isInteger(o.coins) && o.coins > 0 ? o.coins : 0;
     const legacy = o.v !== 2, doReset = !(o.rs >= 1); // rs = 일괄 리셋 완료 표시(없으면 이번 로드에서 1회 리셋)
     const needMig = !legacy && !from && !doReset && !(o.mig >= 2); // 마켓 개편 이전(mig 1 -> 2): 이미 비워진 저장값(레거시·리셋)은 옮길 게 없다
@@ -58,6 +61,32 @@ window.MyHero = (function () {
   const list = () => load().heroes;
   const coins = () => load().coins;
   const heroOf = (d, design) => d.heroes.find((x) => x.design === design) || null;
+  // 주간 랭킹 보상 지급(docs/주간보상_스펙.md). items = [{season, total}...] (시즌별 금액) 또는 (seasonIds[], amount) 한 묶음.
+  // rw 확인·코인 가산·rw 기록을 한 번의 save 로 한다. 이미 rw 에 있는 시즌은 0 지급(묶음 형식은 하나라도 이미 있으면 전체 0 -> 부분 지급 추측 금지).
+  function grantReward(items, amount) {
+    const d = load(), have = new Set(d.rw), fresh = [], dup = [];
+    let list = [];
+    if (Array.isArray(items) && items.length && typeof items[0] === "object" && items[0] !== null) list = items.map((x) => ({ season: x && x.season, total: x && x.total }));
+    else if (Array.isArray(items)) list = items.map((s) => ({ season: s, total: null }));
+    const bad = (x) => !Number.isInteger(x.season) || x.season < 1;
+    const seen = new Set();
+    for (const x of list) { if (bad(x) || seen.has(x.season)) continue; seen.add(x.season); (have.has(x.season) ? dup : fresh).push(x); }
+    let sum = 0;
+    if (list.length && list.some((x) => x.total === null)) { // 묶음 형식
+      const a = Number.isInteger(amount) ? Math.max(0, Math.min(RW_MAX, amount)) : 0;
+      if (dup.length) return { granted: 0, total: d.coins, seasons: [], already: dup.map((x) => x.season) };
+      sum = fresh.length ? a : 0;
+    } else for (const x of fresh) sum += Number.isInteger(x.total) ? Math.max(0, Math.min(RW_MAX, x.total)) : 0;
+    if (!fresh.length) return { granted: 0, total: d.coins, seasons: [], already: dup.map((x) => x.season) };
+    const granted = Math.max(0, Math.min(sum, COIN_CAP - d.coins));
+    d.coins += granted; d.rw = cleanRw([...d.rw, ...fresh.map((x) => x.season)]);
+    save(d);
+    const back = load(); // 저장 실패(localStorage 불가·용량)를 lsSet 이 삼키므로 읽어서 확인: 실패면 지급 안 한 것으로 돌려준다(호출 쪽이 ack 하지 않음)
+    if (!fresh.every((x) => back.rw.includes(x.season))) return { granted: 0, total: back.coins, seasons: [], already: [], saved: false };
+    paint(d.coins);
+    return { granted, total: d.coins, seasons: fresh.map((x) => x.season), already: dup.map((x) => x.season) };
+  }
+  const rewarded = () => load().rw.slice(); // 이미 지급한 시즌 id
   function paint(n) { // 홈 '코인 마켓' 버튼의 보유 코인
     try { const el = document.getElementById && document.getElementById("myCoins"); if (el) el.textContent = nf(n == null ? coins() : n); } catch { /* 테스트 스텁 */ }
   }
@@ -96,13 +125,14 @@ window.MyHero = (function () {
       ok.onclick = () => { undo(); ho(); }; no.onclick = () => { undo(); hn(); };
     } catch { /* 스텁 */ }
   }
+  // 표시용 추정: 보유가 {품목:단계}만 저장돼 과거 가격을 모르므로 현재 가격으로 합산한다(지급·환불과 무관)
   const spentOn = (h) => { let t = 0; for (const it of MY_ITEMS) for (let l = 1; l <= (h.own[it.id] | 0); l++) t += Math.max(0, itemCost(it.id, l)); return t; };
   // 영웅 삭제: 환불 없음, 보유 코인은 그대로. 삭제 후 after() 로 이어진다. 삭제 불가 사유는 없다(진행 중인 판은 mine 사본으로 계속된다)
   function remove(id, after) {
     const h = heroOf(load(), id); if (!h) { after(); return; }
     const t = spentOn(h);
     ask(`'${h.name}'을(를) 삭제할까요?
-${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, 산 능력과 장착도 모두 사라져요.` : "산 능력과 장착이 모두 사라져요."}
+${t > 0 ? `현재 가격 기준으로 약 {coin} ${nf(t)}어치 능력은 돌려받지 못하고, 산 능력과 장착도 모두 사라져요.` : "산 능력과 장착이 모두 사라져요."}
 보유 코인은 그대로예요. 같은 디자인으로 다시 등록할 수 있어요(능력은 처음부터).`, "삭제", "취소", () => {
       const d = load(); d.heroes = d.heroes.filter((x) => x.design !== id); save(d);
       if (view === id) view = "";
@@ -150,7 +180,7 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
     q("eq", () => loadout(id, () => o.back(id)));
     q("mk", () => o.mk(id));
     q("del", () => remove(id, o.after));
-    q("go", () => { const x = heroOf(load(), id); if (!x) return; cur = { id: x.design, name: x.name }; closeModal(); o.go(mineOf(x)); });
+    q("go", () => { const x = heroOf(load(), id); if (!x) return; cur = { id: x.design, name: x.name }; if (typeof dropRwModals === "function") dropRwModals(); closeModal(); o.go(mineOf(x)); });
   }
 
   // ---- 나만의 영웅 리그 시작: 1뎁스 = 내 영웅 목록(카드 탭 = 선택, 관리는 '+ 추가'만) -> 2뎁스 = 하단 시트(heroSheet). 영웅이 없으면 마켓(20종 고르기)으로. ----
@@ -376,5 +406,5 @@ ${t > 0 ? `이 영웅에 쓴 코인 {coin} ${nf(t)}은 돌려받지 못하고, �
   }
 
   paint();
-  return { list, coins, pickMine, again, clear, label, heroName, settle, luck, open, mineOf, loadout, buy, buyCheck, equipSlot, paint };
+  return { list, coins, pickMine, again, clear, label, heroName, settle, luck, open, mineOf, loadout, buy, buyCheck, equipSlot, paint, grantReward, rewarded };
 })();

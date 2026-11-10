@@ -381,6 +381,7 @@ function sndCycle() {
 // ---------- 모달 (큐 + 일시정지) ----------
 let TITLE_ON = true, MODAL_Q = [], MODAL_ON = false, CONFIRM_ON = false, _modalAt = 0;
 function modal(html) { _modalAt = Date.now(); $("box").innerHTML = html; $("modal").classList.add("on"); MODAL_ON = true; sfx("modal"); if (typeof S !== "undefined" && S && !S.over && !TITLE_ON) S.paused = true; }
+function dropRwModals() { MODAL_Q = MODAL_Q.filter((f) => !f.rw); } // 큐에 대기 중인 주간 보상 팝업(rewards.js 가 f.rw 표식)만 제거. 판을 시작하는 쪽이 closeModal 직전/startRun 에서 호출
 function queueModal(fn) { if (MODAL_ON) MODAL_Q.push(fn); else fn(); }
 function closeModal() {
   _modalAt = Date.now();
@@ -695,7 +696,7 @@ function upChoice(c, row, x) {
 const LS_KEY = "malang-ranks2";
 const remote = () => CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
 const hdr = () => { const k = CONFIG.SUPABASE_ANON_KEY, h = { apikey: k, "Content-Type": "application/json" }; if (String(k).startsWith("eyJ")) h.Authorization = "Bearer " + k; return h; }; // sb_publishable_ 키는 JWT 가 아니므로 Bearer 로 보내지 않는다
-const GAME_VER = "9";
+const GAME_VER = "10";
 let LAST = null; // 방금 등록한 내 기록 (강조용)
 const ymd = (d) => { const p = (n) => (n < 10 ? "0" : "") + n; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
 function scoreParts(res) {
@@ -1167,7 +1168,7 @@ async function showRanks(tab = "season", again = false, board = "rand", sid = nu
   const boards = `<div class="tabs rkt" role="tablist">${Object.entries(RK_LEAGUE).map(([k, l]) => `<button role="tab" data-b="${k}" aria-selected="${on1(k)}" class="${on1(k) ? "on" : ""}">${l}</button>`).join("")}<button role="tab" data-t="mine" aria-selected="${isRec}" class="${isRec ? "on" : ""}">내 기록</button></div>`;
   const sub2 = `<div class="tabs rkt sub" role="tablist">${[["season", "순위"], ["points", "승점"]].map(([k, l]) => `<button role="tab" data-t="${k}" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
   const nav = tab === "season" ? `<div class="rknav"><button data-s="${sid - 1}" aria-label="이전 시즌" ${sid <= 1 ? "disabled" : ""}>◀</button><span>${esc(s.name)}${past ? " (종료)" : ""}</span><button data-s="${sid + 1}" aria-label="다음 시즌" ${past ? "" : "disabled"}>▶</button></div>` : `<div class="rknav"><span>누적 승점</span></div>`;
-  const head = `${boards}${isRec ? "" : `<div class="rkbar">${nav}${sub2}</div>`}`;
+  const head = `${boards}${isRec ? "" : `<div class="rkbar">${nav}${sub2}</div>`}${tab === "season" && !past && window.Rewards ? Rewards.chip() : ""}`; // 주간 보상 안내 칩(이번 시즌 순위 탭만)
   // 새로고침: 지난 시즌 순위(고정)만 없음. 불러오기 실패면 '다시 시도', 기준 시각이 없으면(내 기록) '새로고침'
   const foot = (me, at, fail, n) => `<div class="stk">${me || ""}<div class="rkmeta"><span>${fail ? "" : metaTxt(n)}</span>${past && tab === "season" && !fail ? "" : `<button class="rkref" id="rkRef" ${BTNR}>${fail ? "새로고침 ↻" : at ? `${hhmm(at)} 기준 ↻` : "새로고침 ↻"}</button>`}</div>${again ? `<div class="rkbtn"><button class="wide green" id="again">다시 하기</button><button class="wide mini" id="rkHome" ${BTNR}>홈으로</button></div>` : `<button class="wide" id="close">닫기</button>`}</div>`;
   const shell = (body, f) => `<div class="rkw">${head}<div class="rkl">${body}</div>${f || ""}</div>`;
@@ -1236,6 +1237,7 @@ function restartGame() {
   if (window.SeasonMod && SeasonMod.run()) { SeasonMod.restart(); return; } // 프라이빗 시즌 판
   const mode = S ? S.mode : "daily";
   $("modal").classList.remove("on"); MODAL_ON = false; MODAL_Q = [];
+  try { if (window.Rewards) Rewards.reset(); } catch {}
   GAME.start(mode, undefined, undefined, MyHero.again()); uiReset();
 }
 
@@ -1319,11 +1321,14 @@ function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 �
   if (window.SeasonMod) SeasonMod.clear();
   if (S) { S.paused = true; S.modalQ = []; S.over = false; S.resultSent = true; }
   MODAL_Q = []; MODAL_ON = false; $("modal").classList.remove("on"); $("confirm").classList.remove("on"); CONFIRM_ON = false;
+  try { if (window.Rewards) Rewards.reset(); } catch {} // 모달을 강제로 껐으니 보상 팝업 상태(showing·ESC 리스너)도 복구
   TITLE_ON = true; $("title").classList.add("on");
   try { refreshTitle(); renderSeasonBox(); } catch {}
+  try { if (window.Rewards) Rewards.boot(); } catch {} // 홈으로 돌아오면 보상 팝업을 다시 확인(시즌당 1회 호출·이미 처리했으면 서버를 부르지 않음)
 }
 function startRun(mode, seed, rules, mine) { // seed/rules: 프라이빗 시즌 판(seasons.js)만 넘긴다. mine: 내 영웅 선택(myhero.js), 규칙 판에서는 무시
   initAudio(); TITLE_ON = false; $("title").classList.remove("on");
+  dropRwModals(); // 대기 중인 보상 팝업은 판과 겹치지 않게 제거(받지 않은 보상은 다음 홈 진입에 다시 뜬다)
   if (!rules && window.SeasonMod) SeasonMod.clear();
   if (rules || !mine) MyHero.clear();
   GAME.start(mode, seed, rules, rules ? null : mine); uiReset(); sfx("wave"); setTimeout(fitCanvas, 60);
@@ -1441,6 +1446,6 @@ function bindUi() {
   };
   $("menuTk").onclick = (e) => { const t = e.target.closest(".tk"); if (t && S && !S.over) { menuOff(); uiTicket(+t.dataset.g); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
-  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot());
+  setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot()).then(() => window.Rewards && Rewards.boot()).catch(() => {}); // 지난 주 랭킹 보상 팝업(실패는 조용히 무시)
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);

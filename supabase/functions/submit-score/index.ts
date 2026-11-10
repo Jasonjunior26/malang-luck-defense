@@ -1,6 +1,6 @@
 // 말랑 운빨 디펜스 - 점수 제출 Edge Function (Deno).
 // 배포: supabase functions deploy submit-score --no-verify-jwt
-// action: submit(기본) | register | rename | profile | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
+// action: submit(기본) | register | rename | profile | rewards | rewardAck | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
 import { replay, validateInputs, cleanBuild, validateMine, ENGINE_VER, ROUNDS_DEFAULT } from "./replay.js";
@@ -60,6 +60,7 @@ export async function getUser(req: Request): Promise<{ id: string; nick: string 
 const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REWARD_ACK_MAX = 20; // rewardAck 한 번에 받는 시즌 수 상한
 const NAME_ERR: Record<string, string> = { len: "bad_name_len", chars: "bad_name_chars", bad: "bad_name" };
 const firstRow = (r: any) => (Array.isArray(r) ? r[0] : r);
 
@@ -79,7 +80,7 @@ Deno.serve(async (req: Request) => {
   const action = b.action ?? "submit";
   if (typeof action === "string" && action.startsWith("ps")) return handlePrivate(req, b); // 프라이빗 시즌: JWT 인증, device_id 불필요
   if (typeof action === "string" && action.startsWith("fr")) return handleFriends(action, b, req); // 친구: JWT 인증, device_id 불필요
-  if (!["submit", "register", "rename", "profile", "import", "me", "link"].includes(action)) return fail(400, "bad_action");
+  if (!["submit", "register", "rename", "profile", "rewards", "rewardAck", "import", "me", "link"].includes(action)) return fail(400, "bad_action");
   const { device_id } = b;
   if (typeof device_id !== "string" || !UUID_RE.test(device_id)) return fail(400, "bad_device");
   const dev = device_id.toLowerCase();
@@ -100,6 +101,11 @@ Deno.serve(async (req: Request) => {
   if (action === "import") {
     if (typeof b.code !== "string" || !UUID_RE.test(b.code.trim())) return fail(400, "bad_code");
     importId = b.code.trim().toLowerCase();
+  }
+  let ackSeasons: number[] = [];
+  if (action === "rewardAck") { // 수령 완료 표시: 시즌 id 정수 배열(1~REWARD_ACK_MAX개, 각 1..99999), 중복은 제거
+    if (!Array.isArray(b.seasons) || b.seasons.length < 1 || b.seasons.length > REWARD_ACK_MAX || !b.seasons.every((x: unknown) => isInt(x) && x >= 1 && x <= 99999)) return fail(400, "bad_seasons");
+    ackSeasons = [...new Set<number>(b.seasons)];
   }
   let inputs: any, seed: any, claimedScore: any, claimedRound: any, win: any, mine: any = null, heroName = "";
   if (action === "submit") {
@@ -131,7 +137,7 @@ Deno.serve(async (req: Request) => {
   // 3) rate limit (재생은 CPU 를 쓰므로 그 전에 검사). 닉네임 등록/변경/이전 코드는 더 촘촘하게.
   const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "?").split(",")[0].trim();
   const lim = action === "submit" ? { p_kind: "submit" }
-    : action === "profile" ? { p_kind: "read", p_ip_max: 40, p_dev_max: 20 }
+    : action === "profile" || action === "rewards" || action === "rewardAck" ? { p_kind: "read", p_ip_max: 40, p_dev_max: 20 }
     : action === "me" || action === "link" ? { p_kind: "name", p_ip_max: 20, p_dev_max: 10 }
     : action === "import" ? { p_kind: "import", p_ip_max: 6, p_dev_max: 6 }
     : { p_kind: "name", p_ip_max: 6, p_dev_max: 4 };
@@ -175,6 +181,14 @@ Deno.serve(async (req: Request) => {
       if (st === "name_taken") return fail(409, "name_taken");
       if (st === "cooldown") return fail(429, "rename_cooldown", { name: row.o_name, next_change_at: row.o_next });
       return json(200, { ok: true, name: row.o_name, next_change_at: row.o_next ?? null, same: st === "same" });
+    }
+    if (action === "rewards") { // 주간 보상: 미정산 지난 시즌 지연 정산 + 이 기기의 미수령 보상 + 직전 시즌 TOP3 (SQL 012 가 응답을 조립)
+      const r = await rpc("season_rewards_get", { p_device: dev });
+      return json(200, { ok: true, cur: r?.cur ?? seasonInfo?.id ?? null, last: r?.last ?? null, pending: Array.isArray(r?.pending) ? r.pending : [], tbl: r?.tbl ?? null });
+    }
+    if (action === "rewardAck") {
+      const c = await rpc("season_rewards_ack", { p_device: dev, p_seasons: ackSeasons });
+      return json(200, { ok: true, acked: typeof c === "number" ? c : 0 });
     }
     if (action === "import") {
       const row = firstRow(await rpc("player_get", { p_device: importId }));

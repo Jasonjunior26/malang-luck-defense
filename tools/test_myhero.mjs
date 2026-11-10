@@ -46,7 +46,7 @@ const st = (mine, seed = 777, rules = null) => { const e = createEngine(); retur
   const h0 = applyMine(vmine(M({}, {}, "dragon")).mine);
   ok(h0.id === "dragon" && h0.name === "아기 용" && h0.rule === "일반 공격" && Object.keys(h0.fx).length === 0, "기본 영웅: 일반 공격만, fx 없음");
   const h = applyMine(M({ atk: 10, start: 3, upc: 5, kill: 6, trophy: 1, lucky: 3, hpow: 5, sk_lob: 1, ul_chain: 1 }, { basic: "sk_lob", ult: "ul_chain" })); // 능력 개수 검증은 validateMine 몫, applyMine 은 효과 수식만 확인
-  ok(Math.abs(h.fx.atkMul - 1.05) < 1e-9 && h.fx.startMin === 12 && Math.abs(h.fx.upCost - 0.95) < 1e-9 && Math.abs(h.fx.killMul - 1.075) < 1e-9 && h.fx.bossUp === 1 && h.fx.bossUpEvery === 6 && h.fx.freeDraw === 10 && Math.abs(h.fx.heroAtk - 2) < 1e-9, "fx 값 " + JSON.stringify(h.fx));
+  ok(Math.abs(h.fx.atkMul - 1.05) < 1e-9 && h.fx.startMin === 12 && Math.abs(h.fx.upCost - 0.95) < 1e-9 && Math.abs(h.fx.killMul - 1.075) < 1e-9 && h.fx.bossUp === 2 && h.fx.bossUpEvery === 4 && h.fx.freeDraw === 5 && Math.abs(h.fx.heroAtk - 2) < 1e-9, "fx 값 " + JSON.stringify(h.fx));
   ok(h.fx.hsk.fx === "lob" && h.fx.hsk2.fx === "chain" && h.rule === "기본: 대나무 투척 · 필살: 연쇄 번개", "장착 스킬 hsk/hsk2·rule " + h.rule);
   { const u = applyMine(M({ ul_beam: 1 }, { ult: "ul_beam" })), b = applyMine(M({ sk_wave: 1 }, { basic: "sk_wave" })); ok(!u.fx.hsk && u.fx.hsk2.fx === "beam" && u.rule === "필살: 달빛 광선" && b.fx.hsk.fx === "wave" && !b.fx.hsk2 && b.rule === "기본: 물결 파동", "칸이 비면 그 공격은 일반 공격(서로 대신하지 않음)"); }
   ok(applyMine({ design: "bee" }, vmine(M({}, {}, "frog")).mine).id === "frog", "옛 2인자 호출 호환");
@@ -115,19 +115,19 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
   ok(cb({ atk: 1, spd: 1 }, "sk_lob").ok && cb({ hpow: 1, hlv: 1 }, "ul_chain").ok, "스킬은 능력 2종 제한과 무관(2종이 차도 구매 가능)");
   ok(cb({ atk: 10 }, "atk").code === "max" && cb({ sk_lob: 1 }, "sk_lob").reason === "이미 가지고 있어요" && cb({}, "nope").code === "none", "최대·보유·없는 품목");
   ok(cb({}, "sk_chain").code === "req" && cb({}, "sk_chain").reason === "기본공격 1단계를 먼저 사야 해요" && cb({ sk_lob: 1 }, "sk_chain").ok && cb({ sk_chain: 1 }, "ul_nova").reason === "필살 2단계를 먼저 사야 해요" && cb({ ul_beam: 1 }, "ul_nova").ok, "스킬 선행 조건은 칸별(기본공격 2단계 ≠ 필살 2단계)");
-  { const r = cb({}, "atk", 10); ok(!r.ok && r.code === "coin" && r.reason === "코인이 15 부족해요" && cb({}, "atk", 25).ok, "코인 부족 사유"); }
+  { const r = cb({}, "atk", 10); ok(!r.ok && r.code === "coin" && r.reason === "코인이 30 부족해요" && cb({}, "atk", 40).ok, "코인 부족 사유"); }
   ok(myAbilities({ atk: 2, sk_lob: 1, hpow: 1, ul_chain: 1 }).join() === "atk,hpow", "myAbilities = 수치 능력만(영웅 근력·지휘 포함)");
   // 기본공격·필살 분리: 같은 2단계 스킬도 칸마다 따로(둘 다 사야 양쪽 사용)
   ok(vmine(M({ sk_lob: 1, sk_chain: 1 }, { ult: "sk_chain" })).ok === false && vmine(M({ sk_lob: 1, sk_chain: 1, ul_chain: 1 }, { basic: "sk_chain", ult: "ul_chain" })).ok, "같은 스킬을 양 칸에 쓰려면 칸별로 각각 소유");
   // 가격: 공식 50xVxg^(L-1)(5 단위 반올림) 총액이 코인마켓_검토 A-3 표와 일치
-  const NEWTOT = { atk: 1360, spd: 480, range: 365, boss: 300, growth: 540, hpow: 2450, hlv: 600, kill: 830, bounty: 720, coin: 365, start: 460, income: 570, drawc: 900, upc: 365, sell: 150, btime: 365, slow: 600, frost: 150, bhp: 300, reso: 1300, merge: 480, trophy: 1200, lucky: 1000, burn: 110 };
+  const NEWTOT = { atk: 2055, spd: 725, range: 555, boss: 460, growth: 820, hpow: 3680, hlv: 905, kill: 1255, bounty: 1090, coin: 555, start: 700, income: 860, drawc: 1350, upc: 555, sell: 225, btime: 555, slow: 905, frost: 225, bhp: 460, reso: 1300, merge: 725, trophy: 1800, lucky: 1500, burn: 170 }; // GAME_VER 10: 이전 비용(GAME_VER 9 표) 단계별 x1.5 후 5 단위 반올림한 합
   const tot = (id) => myItem2(id).cost.reduce((a, b) => a + b, 0);
   function myItem2(id) { return MY_ITEMS.find((x) => x.id === id); }
   ok(Object.keys(NEWTOT).every((k) => tot(k) === NEWTOT[k]) && Object.keys(NEWTOT).length === 24, "가격 총액 24종이 검토서 표와 일치: " + Object.keys(NEWTOT).filter((k) => tot(k) !== NEWTOT[k]).join());
-  ok(JSON.stringify(myItem2("atk").cost) === "[25,35,45,60,85,110,150,205,275,370]" && JSON.stringify(myItem2("hpow").cost) === "[45,60,80,110,150,200,270,370,495,670]" && JSON.stringify(myItem2("lucky").cost) === "[200,320,480]" && JSON.stringify(myItem2("bounty").cost) === "[60,85,125,185,265]", "단계별 가격(공격 훈련·영웅 근력·행운 뽑기·보스 현상금)");
-  ok(MY_ITEMS.filter((x) => x.slot === "basic").every((x) => x.cost[0] === (x.tier === 1 ? 100 : 200)) && MY_ITEMS.filter((x) => x.slot === "ult").every((x) => x.cost[0] === (x.tier === 2 ? 250 : 400)), "스킬 가격: 기본공격 100/200, 필살 250/400");
+  ok(JSON.stringify(myItem2("atk").cost) === "[40,55,70,90,130,165,225,310,415,555]" && JSON.stringify(myItem2("hpow").cost) === "[70,90,120,165,225,300,405,555,745,1005]" && JSON.stringify(myItem2("lucky").cost) === "[300,480,720]" && JSON.stringify(myItem2("bounty").cost) === "[90,130,190,280,400]", "단계별 가격(공격 훈련·영웅 근력·행운 뽑기·보스 현상금)");
+  ok(MY_ITEMS.filter((x) => x.slot === "basic").every((x) => x.cost[0] === (x.tier === 1 ? 150 : 300)) && MY_ITEMS.filter((x) => x.slot === "ult").every((x) => x.cost[0] === (x.tier === 2 ? 375 : 600)), "스킬 가격: 기본공격 150/300, 필살 375/600 (GAME_VER 10, 기존 x1.5)");
   const sum = (a) => a.reduce((x, y) => x + y, 0), oldAb = sum(Object.values(MY_OLD_COST).map(sum)), newAb = sum(Object.values(NEWTOT));
-  ok(oldAb === 17985 && newAb === 15960 && MY_FULL_COST === 15960 + 4 * 100 + 4 * 200 + 4 * 250 + 3 * 400, "전체: 능력 17,985 -> 15,960, 스킬 3,480 -> 3,400, 전 품목 " + MY_FULL_COST);
+  ok(oldAb === 17985 && newAb === 23430 && MY_FULL_COST === 23430 + 4 * 150 + 4 * 300 + 4 * 375 + 3 * 600, "전체: 옛 v1 능력 17,985, 능력 15,960 -> 23,430(reso 1,300 은 x1.5 제외)(GAME_VER 10), 스킬 3,400 -> 5,100, 전 품목 " + MY_FULL_COST);
   // 마이그레이션(migrateMarketHero)
   { const g = migrateMarketHero({ own: { atk: 2, spd: 1, hpow: 3, sk_lob: 1, sk_chain: 1, sk_nova: 1, sk_beam: 1 }, equip: ["sk_chain", "sk_nova"] });
     ok(g.reset && g.refund === 25 + 35 + 40 + 20 + 25 + 35 && !("atk" in g.own) && !("hpow" in g.own) && g.own.sk_lob === 1 && g.own.sk_chain === 1 && g.own.sk_beam === 1 && !("sk_nova" in g.own) && g.own.ul_nova === 1, "능력 3종 -> 전부 환불(옛 가격 " + g.refund + ")·능력 초기화·스킬 유지(3단계는 필살 칸으로)");
@@ -251,7 +251,7 @@ ok(coinsFor(4, 100, false, 0) === 2 && coinsFor(30, 600, false, 0) === 33 && coi
       const Y = boot(S3); let go = null; Y.MH.pickMine((m) => (go = m));
       ok(!/data-del=/.test(Y.all()) && (Y.all().match(/data-h="/g) || []).length === 2, "영웅 선택 1뎁스: 삭제 단추 없음(카드 + 추가만)");
       Y.tap("h=bee"); ok(/data-del="bee"/.test(Y.all()) && /data-more=/.test(Y.all()), "2뎁스 시트: 삭제는 ⋯ 더보기 안");
-      Y.tap("del=bee"); ok(/벌벌/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("{coin} " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
+      Y.tap("del=bee"); ok(/벌벌/.test(Y.c.__cf.m) && /현재 가격 기준으로 약/.test(Y.c.__cf.m) && Y.c.__cf.m.includes("{coin} " + (itemCost("atk", 1) + itemCost("atk", 2))), "삭제 문구에 쓴 코인(누적 구매액)");
       Y.c.__cf.ok(); ok(Y.MH.list().length === 1 && Y.MH.coins() === 77 && (Y.all().match(/data-h="/g) || []).length === 1, "삭제 후 영웅 선택 목록 갱신");
       Y.tap("h=bear"); Y.tap("go=bear"); ok(go && go.design === "bear", "남은 영웅으로 시작");
       Y.MH.pickMine(() => {}); Y.tap("h=bear"); Y.tap("del=bear"); Y.c.__cf.ok(); ok(Y.MH.list().length === 0 && (Y.box.html.match(/data-p="/g) || []).length === 20, "선택 화면에서 마지막 영웅 삭제 -> 20종");

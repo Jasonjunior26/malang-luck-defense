@@ -4,5 +4,6 @@ window.CONFIG = {
   SUPABASE_URL: "https://oktgigevvwlczqavbyuq.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_2Q2xW8R76GPlIoVmXJUzzA_LvBpEp8B",
   MYHERO_RANKED: true,  // 서버(007 마이그레이션 + 내 영웅 지원 submit-score)를 배포한 뒤 true. false 면 내 영웅 판은 랭킹에 안 올리고 코인만 받는다 (docs/내영웅_진행.md)
+  REWARDS_ENABLED: true, // 주간 랭킹 보상 팝업(서버 rewards 액션이 없거나 실패하면 조용히 무시). false 면 호출·팝업 없음 (docs/주간보상_클라.md)
   KAKAO_ENABLED: false, // 카카오 앱 등록 + Supabase Auth 설정을 마친 뒤 true (docs/카카오_로그인_설정.md)
 };
