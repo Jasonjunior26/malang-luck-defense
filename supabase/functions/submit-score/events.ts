@@ -10,7 +10,7 @@ const cors = { "Access-Control-Allow-Origin": ALLOW_ORIGIN };
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-export const LIMITS = { body: 4096, events: 30, evBytes: 200, rateMin: 12, rateMapMax: 5000 };
+export const LIMITS = { body: 4096, events: 30, evBytes: 200, rateMin: 12, ipMin: 60, rateMapMax: 5000 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SID_RE = /^[A-Za-z0-9]{12}$/, VER_RE = /^\d{1,3}$/, HERO_RE = /^[a-z0-9_]{1,16}$/;
 
@@ -88,7 +88,18 @@ export function rateAllow(dev: string, nowMs: number, max = LIMITS.rateMin): boo
   }
   return ++h.c <= max;
 }
-export const _resetRate = () => hits.clear();
+// IP 당 분당 상한: device_id 는 클라이언트가 마음대로 바꿀 수 있어 기기 제한만으로는 DB 를 채우는 요청을 못 막는다. 공유 망(학교·회사)을 감안해 넉넉하게 둔다.
+const ipHits = new Map<string, { m: number; c: number }>();
+export function ipAllow(ip: string, nowMs: number, max = LIMITS.ipMin): boolean {
+  const m = Math.floor(nowMs / 60_000), h = ipHits.get(ip);
+  if (!h || h.m !== m) {
+    if (ipHits.size >= LIMITS.rateMapMax) for (const [k, v] of ipHits) if (v.m !== m) ipHits.delete(k);
+    if (ipHits.size >= LIMITS.rateMapMax) ipHits.clear();
+    ipHits.set(ip, { m, c: 1 }); return true;
+  }
+  return ++h.c <= max;
+}
+export const _resetRate = () => { hits.clear(); ipHits.clear(); };
 
 export const deps: any = {
   rpc: (fn: string, args: Record<string, unknown>) => pdeps.rpc(fn, args),
@@ -107,9 +118,10 @@ export function samplePct(raw: string | undefined): number {
 }
 
 // 응답: {ok:true, keep:0|1, sample:pct}. keep=0 이면 클라이언트는 한동안 보내지 않는다(샘플링 제외·솔트 없음).
-export async function handleEvents(b: any, textLen: number): Promise<Response> {
+export async function handleEvents(b: any, textLen: number, ip = "?"): Promise<Response> {
   try {
     if (textLen > LIMITS.body) return json(413, { ok: false, error: "too_large" });
+    if (!ipAllow(ip, deps.nowMs())) return json(429, { ok: false, error: "rate_limited" });
     if (typeof b.device_id !== "string" || !UUID_RE.test(b.device_id)) return json(400, { ok: false, error: "bad_device" });
     const c = cleanBatch(b);
     if ("err" in c) return json(400, { ok: false, error: c.err });

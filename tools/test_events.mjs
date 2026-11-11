@@ -69,6 +69,11 @@ eq(ing[0].args.p_events.length, 6, "이벤트 6건 전달");
 const before = rpcs.length; await post({ ...good(), ev: [{ t: 0, e: "bad" }] }); eq(rpcs.length, before, "저장할 이벤트 없으면 RPC 안 부름");
 [st, j] = await post(JSON.stringify({ ...good(), pad: "x".repeat(5000) })); eq([st, j.error], [413, "too_large"], "4KB 초과");
 EV._resetRate(); let last; for (let i = 0; i < 14; i++) last = await post(good()); eq([last[0], last[1].error], [429, "rate_limited"], "13번째부터 429");
+// IP 제한: 기기 ID 를 바꿔 가며 보내도 같은 IP 는 분당 60회까지(위조한 device_id 로 DB 를 채우는 요청 차단)
+EV._resetRate(); let ipOk = 0, ip429 = 0;
+for (let i = 0; i < 65; i++) { const r = await post({ ...good(), device_id: `${String(i).padStart(8, "0")}-aaaa-4bbb-8ccc-dddddddddddd` }); if (r[0] === 429) ip429++; else ipOk++; }
+eq([ipOk, ip429], [60, 5], "같은 IP 분당 60회 초과분은 429");
+ok(EV.ipAllow("1.2.3.4", t0) && EV.ipAllow("5.6.7.8", t0), "다른 IP 는 독립"); EV._resetRate();
 // EV_SALT 없음: 기록 건너뜀 + keep:0, 점수 경로 영향 없음
 EV._resetRate(); delete ENV.EV_SALT; rpcs.length = 0; [st, j] = await post(good()); eq([st, j.ok, j.keep, rpcs.length], [200, true, 0, 0], "솔트 없으면 건너뜀(keep:0, RPC 없음)"); ENV.EV_SALT = "salt-for-test";
 // 샘플링 0 / 50

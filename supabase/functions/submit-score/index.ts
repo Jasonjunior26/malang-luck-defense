@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
   if (!b || typeof b !== "object") return fail(400, "bad_body");
 
   const action = b.action ?? "submit";
-  if (action === "ev") return handleEvents(b, text.length); // 이용 기록: 점수 경로 앞에서 분기(자체 속도 제한, 예외는 내부에서 삼킴)
+  if (action === "ev") return handleEvents(b, text.length, (req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "?").split(",")[0].trim()); // 이용 기록: 점수 경로 앞에서 분기(자체 속도 제한, 예외는 내부에서 삼킴)
   if (typeof action === "string" && action.startsWith("ps")) return handlePrivate(req, b); // 프라이빗 시즌: JWT 인증, device_id 불필요
   if (typeof action === "string" && action.startsWith("fr")) return handleFriends(action, b, req); // 친구: JWT 인증, device_id 불필요
   if (!["submit", "register", "rename", "profile", "rewards", "rewardAck", "import", "me", "link"].includes(action)) return fail(400, "bad_action");
