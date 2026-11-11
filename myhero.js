@@ -169,6 +169,7 @@ ${t > 0 ? `현재 가격 기준으로 약 {coin} ${nf(t)}어치 능력은 돌려
   // 영웅 시트(2뎁스): 요약 + [장착|장착 중] [게임 시작] 한 줄, 삭제는 ⋯ 더보기 안(확인은 Danger·취소 기본 포커스).
   // o = { go(mine)|null, back(id) 장착 화면에서 돌아올 곳, after() 삭제 뒤, mk(id)|null 마켓으로, close() 시트를 닫은 뒤 }
   function heroSheet(id, o) {
+    window.Track && Track.scr("hero_sheet");
     const h = heroOf(load(), id); if (!h) return;
     const eid = esc(id), nA = myAbilities(h.own).length;
     const act = swappable(h) ? `<button class="btn-secondary mhab" data-eq="${eid}">장착</button>` : `<span class="mhst" role="status">${MY_SLOTS.some((k) => h.equip[k]) ? "장착 중" : "스킬 없음"}</span>`;
@@ -186,6 +187,7 @@ ${t > 0 ? `현재 가격 기준으로 약 {coin} ${nf(t)}어치 능력은 돌려
   // ---- 나만의 영웅 리그 시작: 1뎁스 = 내 영웅 목록(카드 탭 = 선택, 관리는 '+ 추가'만) -> 2뎁스 = 하단 시트(heroSheet). 영웅이 없으면 마켓(20종 고르기)으로. ----
   function pickMine(go, selId) { // go(mine)
     if (noteFirst(() => pickMine(go, selId))) return;
+    window.Track && Track.scr("hero_pick");
     const d0 = load();
     if (!d0.heroes.length) { choose(); return; }
     modal(`<div class="mhhd"><h2>영웅 선택</h2><button class="btn-secondary mhadd" id="mhAdd" ${d0.heroes.length >= MY_HERO.MAX ? "disabled" : ""}>+ 추가</button></div><small class="mhsub">카드를 눌러 골라요 · ${d0.heroes.length}/${MY_HERO.MAX}명</small><ul class="mhcl" id="mhList"></ul><div id="mhSheet"></div><button class="wide btn-secondary" id="mhNo">닫기</button>`);
@@ -250,6 +252,7 @@ ${t > 0 ? `현재 가격 기준으로 약 {coin} ${nf(t)}어치 능력은 돌려
   // ---- 코인 마켓 진입: 영웅이 없으면 곧바로 20종 고르기, 있으면 마지막에 본 영웅의 시장 ----
   function open(back) {
     if (noteFirst(() => open(back))) return;
+    window.Track && Track.scr("market");
     const d = load();
     if (!d.heroes.length) { choose(back); return; }
     market(heroOf(d, view) ? view : d.heroes[0].design, back);
@@ -257,6 +260,7 @@ ${t > 0 ? `현재 가격 기준으로 약 {coin} ${nf(t)}어치 능력은 돌려
 
   // ---- 등록 1단계: 디자인 20종 그리드 ----
   function choose(back, msg, ret) { // ret(id) = 영웅 선택 화면에서 '+ 추가'로 왔을 때 돌아갈 곳(없으면 마켓으로)
+    window.Track && Track.scr("hero_new");
     const d = load(), have = new Set(d.heroes.map((h) => h.design)), full = d.heroes.length >= MY_HERO.MAX;
     const cells = MY_DESIGNS.map((x) => `<button class="mhdc${have.has(x.id) ? " got" : ""}" data-p="${x.id}">${pt(x.id, 72)}<span>${esc(x.name)}</span>${have.has(x.id) ? "<em>등록</em>" : ""}</button>`).join("");
     modal(`<h2>영웅 고르기</h2><small class="mhsub">${d.heroes.length}/${MY_HERO.MAX}명 등록 · 능력은 모두 같아요</small><div class="mhmsg" id="mhMsg">${msg ? esc(msg) : ""}</div><div class="mhdg">${cells}</div><button class="wide btn-secondary" id="mhX">${d.heroes.length ? "뒤로" : "닫기"}</button>`);

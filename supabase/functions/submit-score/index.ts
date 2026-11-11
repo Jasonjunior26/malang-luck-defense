@@ -1,11 +1,12 @@
 // 말랑 운빨 디펜스 - 점수 제출 Edge Function (Deno).
 // 배포: supabase functions deploy submit-score --no-verify-jwt
-// action: submit(기본) | register | rename | profile | rewards | rewardAck | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
+// action: submit(기본) | ev(이용 기록) | register | rename | profile | rewards | rewardAck | import | me | link (me/link 는 Authorization: Bearer 사용자 JWT 필요, 나머지는 익명 허용). 모든 쓰기는 이 함수(service_role)만 한다.
 // submit 흐름: 요청 검증 -> 시즌(서버 KST 시간) 확인 -> rate limit -> 입력 로그를 서버 엔진(engine.js)으로 재생 -> 점수 일치 시 submit_score_season() 로 저장.
 // engine.js 는 `node tools/build_engine.js` 로 생성한다(data.js + game.js). 규칙/ver 를 바꾸면 다시 생성 후 재배포.
 import { replay, validateInputs, cleanBuild, validateMine, ENGINE_VER, ROUNDS_DEFAULT } from "./replay.js";
 import { handlePrivate } from "./private.ts"; // 프라이빗 시즌(ps*) 액션
 import { handleFriends } from "./friends.ts"; // 친구(fr*) 액션
+import { handleEvents } from "./events.ts"; // 이용 행동 기록(ev) 액션: 점수 경로와 분리(EV_SALT 시크릿, 선택 EV_SAMPLE_PCT)
 import { seasonPhase, kstDate, checkName } from "./engine.js"; // SEASONS/닉네임 규칙은 data.js 가 단일 출처
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -78,6 +79,7 @@ Deno.serve(async (req: Request) => {
   if (!b || typeof b !== "object") return fail(400, "bad_body");
 
   const action = b.action ?? "submit";
+  if (action === "ev") return handleEvents(b, text.length); // 이용 기록: 점수 경로 앞에서 분기(자체 속도 제한, 예외는 내부에서 삼킴)
   if (typeof action === "string" && action.startsWith("ps")) return handlePrivate(req, b); // 프라이빗 시즌: JWT 인증, device_id 불필요
   if (typeof action === "string" && action.startsWith("fr")) return handleFriends(action, b, req); // 친구: JWT 인증, device_id 불필요
   if (!["submit", "register", "rename", "profile", "rewards", "rewardAck", "import", "me", "link"].includes(action)) return fail(400, "bad_action");

@@ -621,6 +621,7 @@ function paintPortraits(root, px) {
   });
 }
 function showProb() {
+  window.Track && Track.scr("prob");
   const probs = gradeProbs(S && S.hero, S && S.rules), lucky = S && S.hero && S.hero.fx.probMod === "lucky";
   const rows = GRADES.map((g, i) => {
     const mod = lucky && g.luckyProb !== g.prob ? ` <small>(기본 ${pct(g.prob)})</small>` : "";
@@ -919,6 +920,7 @@ async function finishRank(P) {
 
 // ---- 닉네임 정하기 / 바꾸기 / 계정 이전 ----
 function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 등록 실패 시. 닫을 수 없다.
+  window.Track && Track.scr("nick");
   modal(`<h2>👋 닉네임을 정해요</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">랭킹에 보이는 이름이에요. 한 번 정하면 계속 쓰고, 하루에 한 번만 바꿀 수 있어요.</p><input id="nk" maxlength="10" placeholder="2~10자" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg">${msg ? esc(msg) : ""}</div><button class="wide green" id="nkOk">이 닉네임으로 시작</button><button class="wide mini" id="nkImp" ${BTNR}>📥 이미 계정이 있어요 (이전 코드)</button>${kakaoOn() ? `<button class="wide mini" id="nkKk" ${BTNR}>💛 카카오로 불러오기</button>` : ""}`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkImp").onclick = () => showImport(() => showNick(msg, then));
@@ -935,6 +937,7 @@ function showNick(msg, then) { // 처음 실행(닉네임 없음) 또는 서버 
   };
 }
 function showRename(back) {
+  window.Track && Track.scr("rename");
   modal(`<h2>✏️ 닉네임 바꾸기</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">하루에 한 번만 바꿀 수 있어요. 바꾸면 지난 기록도 새 이름으로 보여요.</p><input id="nk" maxlength="10" value="${esc(myName())}" autocomplete="off"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="nkOk">바꾸기</button><button class="wide mini" id="nkNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("nkNo").onclick = () => showProfile(back);
@@ -961,6 +964,7 @@ function showRename(back) {
   };
 }
 function showImport(back) {
+  window.Track && Track.scr("import");
   modal(`<h2>📥 계정 불러오기</h2><p style="font-size:var(--fs-body);margin:var(--s1) 0;line-height:1.4">다른 기기에서 복사한 이전 코드를 붙여넣어요. 이 기기의 닉네임과 기록은 불러온 계정으로 바뀌어요.</p><input id="ic" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" style="font-size:var(--fs-body);width:92%"><div class="nkmsg" id="nkMsg"></div><button class="wide green" id="icOk">불러오기</button><button class="wide mini" id="icNo" ${BTNR}>취소</button>`);
   const say = (t) => { $("nkMsg").textContent = t; };
   $("icNo").onclick = () => back();
@@ -982,6 +986,7 @@ function kakaoBox() { // 프로필의 카카오 계정 영역 (게스트 우선:
   return kakaoOn() ? `<button class="wide mini" id="pfKk" ${BTNR}>💛 카카오로 계정 연결</button>` : `<button class="wide mini" disabled ${BTNR}>💛 카카오 계정 연결 (준비 중)</button>`;
 }
 async function showProfile(back) {
+  window.Track && Track.scr("profile");
   const close = back || closeModal;
   modal(`<h2>👤 내 프로필</h2><p>불러오는 중…</p>`);
   const ph = phaseNow(), nm = myName();
@@ -1154,6 +1159,7 @@ const hhmm = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(11, 16);
 let RK_TOK = 0, RK_REF = 0;
 // 랭킹 모달: 탭(시즌 랭킹 / 누적 승점 / 내 기록) x 리그(운빨/나만의 영웅) x 시즌 선택(지난 시즌은 최종 순위, 영구 캐시)
 async function showRanks(tab = "season", again = false, board = "rand", sid = null, force = false) {
+  if (!again && window.Track) Track.scr("ranks_" + (tab === "points" || tab === "mine" ? tab : "season"), board === "mine" ? "mine" : "rand");
   const tok = ++RK_TOK, ph = phaseNow(), cur = ph.season, nm = myName();
   if (!cur) { modal(`<h2>랭킹</h2><p>시즌 정보가 없어요</p><div class="stk"><button class="wide" id="close">닫기</button></div>`); $("close").onclick = closeModal; return; }
   sid = Number.isInteger(sid) && sid >= 1 && sid <= cur.id ? sid : cur.id;
@@ -1239,10 +1245,12 @@ function restartGame() {
   $("modal").classList.remove("on"); MODAL_ON = false; MODAL_Q = [];
   try { if (window.Rewards) Rewards.reset(); } catch {}
   GAME.start(mode, undefined, undefined, MyHero.again()); uiReset();
+  if (window.Track) Track.rs(S && S.mine ? "mine" : "rand", S && S.hero && S.hero.id);
 }
 
 const HOMEBTN = `<button class="mini" id="goHomeBtn" ${BTNR}>🏠 홈으로</button>`; // 판 종료 화면 공통 홈 버튼
 function uiGameOver(result) {
+  if (window.Track) { Track.scr("over"); Track.re(result); }
   const res = result || {}, P = scoreParts(res), win = P.win, priv = !!(window.SeasonMod && SeasonMod.run());
   S.over = true; sfx(win ? "win" : "over"); vib(win ? [100, 50, 100, 50, 300] : 200);
   const bk = priv ? "malang-best-ps" : "malang-best2", best = Number(lsGet(bk, "0")), isBest = P.score > best;
@@ -1301,6 +1309,7 @@ async function refreshTitle() { // 홈의 1위/내 순위: 랭킹 모달과 같�
   renderSeasonBox();
 }
 function showSeasonClosed() {
+  window.Track && Track.scr("season_closed");
   const ph = phaseNow(), s = ph.season;
   const msg = ph.phase === "before" ? `${esc(s.name)}은 ${md(s.start)}에 시작해요!` : ph.phase === "after" ? `${esc(s.name)}이 끝났어요 🏁 다음 시즌을 기다려 주세요.` : "지금은 열린 시즌이 없어요";
   modal(`<h2>🔒 시즌 준비 중</h2><p>${msg}</p><button class="wide mini" id="clo" ${BTNR}>닫기</button>`);
@@ -1322,7 +1331,8 @@ function goHome() { // 게임 중 홈 버튼: 진행 중인 판 폐기(기록 �
   if (S) { S.paused = true; S.modalQ = []; S.over = false; S.resultSent = true; }
   MODAL_Q = []; MODAL_ON = false; $("modal").classList.remove("on"); $("confirm").classList.remove("on"); CONFIRM_ON = false;
   try { if (window.Rewards) Rewards.reset(); } catch {} // 모달을 강제로 껐으니 보상 팝업 상태(showing·ESC 리스너)도 복구
-  TITLE_ON = true; $("title").classList.add("on");
+  if (window.Track) Track.home(); // 진행 중이던 판은 re(ex=home) 로만 남는다
+  TITLE_ON = true; $("title").classList.add("on"); window.Track && Track.scr("home");
   try { refreshTitle(); renderSeasonBox(); } catch {}
   try { if (window.Rewards) Rewards.boot(); } catch {} // 홈으로 돌아오면 보상 팝업을 다시 확인(시즌당 1회 호출·이미 처리했으면 서버를 부르지 않음)
 }
@@ -1332,6 +1342,7 @@ function startRun(mode, seed, rules, mine) { // seed/rules: 프라이빗 시즌 
   if (!rules && window.SeasonMod) SeasonMod.clear();
   if (rules || !mine) MyHero.clear();
   GAME.start(mode, seed, rules, rules ? null : mine); uiReset(); sfx("wave"); setTimeout(fitCanvas, 60);
+  if (window.Track) Track.rs(rules ? "ps" : mine ? "mine" : "rand", S && S.hero && S.hero.id);
   if (S && S.hero) setTimeout(() => { if (!TITLE_ON && S && S.hero) uiBanner(`👑 ${MyHero.label(S)}\n${S.hero.rule}`, "hero"); }, 400);
   if (!lsGet("malrang_tut1")) { lsSet("malrang_tut1", "1"); setTimeout(() => uiBanner("같은 3기는 [합성]하면 한 등급 위!", "tip"), 3000);
     setTimeout(() => uiBanner("무리 4종이 모이면 공명 보너스!", "tip"), 6200); }
@@ -1420,6 +1431,15 @@ function bindUi() {
   const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.dataset.st = on ? "0" : "2"; const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 · 켜짐" : "절전 · 꺼짐"; };
   $("save").onclick = () => { if (typeof gfxSetSave === "function") gfxSetSave(!(typeof GFX_SAVE !== "undefined" && GFX_SAVE)); saveLabel(); };
   saveLabel();
+  // 이용 기록 보내기 토글(기본 켬). CONFIG.ANALYTICS 가 꺼져 있으면 메뉴에 보이지 않는다.
+  const evBtn = $("evOpt");
+  if (evBtn) {
+    if (!(window.Track && CONFIG.ANALYTICS === true)) evBtn.style.display = "none";
+    const evLabel = () => { const on = !window.Track || Track.optOn(); evBtn.dataset.st = on ? "0" : "2"; const sm = evBtn.querySelector("small"); if (sm) sm.textContent = on ? "이용 기록 · 켜짐" : "이용 기록 · 꺼짐"; };
+    evBtn.onclick = () => { if (window.Track) { Track.tap("ev_opt"); Track.setOpt(!Track.optOn()); } evLabel(); };
+    evLabel();
+  }
+  document.addEventListener("click", (e) => { if (window.Track) Track.click(e); }, { capture: true, passive: true });
   document.addEventListener("click", (e) => {
     if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
     if ($("pop").classList.contains("on") && !e.target.closest("#pop") && !e.target.closest("#clanRows") && !(Date.now() - (+$("pop").dataset.tip || 0) < 700)) hidePop(); // 영웅을 누른 직후의 설명 말풍선은 그 클릭에 닫히지 않게
@@ -1446,6 +1466,8 @@ function bindUi() {
   };
   $("menuTk").onclick = (e) => { const t = e.target.closest(".tk"); if (t && S && !S.over) { menuOff(); uiTicket(+t.dataset.g); } };
   $("seasonBox").onclick = (e) => { if (e.target.closest("#profBtn")) showProfile(); else showRanks("season"); };
+  if (window.Track) Track.init({ deviceId, ver: GAME_VER, playing: () => !TITLE_ON && !!S && !S.over, state: () => S }); // 이용 기록(플래그·옵트아웃이 꺼져 있으면 아무것도 안 함)
+  window.Track && Track.scr("home");
   setupTitle(); renderSeasonBox(); refreshTitle(); syncAccount().catch(() => {}).then(initPlayer).then(() => window.SeasonMod && SeasonMod.boot()).then(() => window.Rewards && Rewards.boot()).catch(() => {}); // 지난 주 랭킹 보상 팝업(실패는 조용히 무시)
 }
 if (document.readyState === "complete") bindUi(); else window.addEventListener("load", bindUi);

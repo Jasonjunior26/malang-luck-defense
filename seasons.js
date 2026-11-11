@@ -147,6 +147,7 @@
   function gate(pendingCode) {
     const { $, modal, close } = ui();
     if (signed()) return false;
+    window.Track && Track.scr("ps_gate");
     const ready = kakaoReady();
     modal(`<div class="ps"><h2>👥 시즌</h2><p class="pstxt">${pendingCode ? "초대 받은 시즌이 있어요. " : ""}${ready ? "카카오로 로그인하면 친구와 시즌을 열 수 있어요" : "카카오 로그인은 준비 중이에요"}</p>${ready ? '<button class="psb" id="psLogin">💛 카카오로 로그인</button>' : ""}<button class="psb g" id="psX">닫기</button></div>`);
     $("psX").onclick = () => { if (pendingCode) ui().ls.set(JOIN_KEY, ""); close(); }; // 닫으면 보관한 초대도 버린다 (로그인으로 가면 유지)
@@ -164,6 +165,7 @@
   async function openList() {
     const { $, esc, modal } = ui();
     if (gate(ui().ls.get(JOIN_KEY))) return;
+    window.Track && Track.scr("ps_list");
     loading();
     const r = await ui().api("psList");
     if (r.st !== 200 || !r.d.ok) { failView(r, openList); return; }
@@ -191,6 +193,7 @@
   async function openDetail(id, note) {
     const { $, esc, nf, modal } = ui();
     if (gate()) return;
+    window.Track && Track.scr("ps_detail");
     loading();
     const [gr, br] = await Promise.all([ui().api("psGet", { id }), ui().api("psBoard", { id })]);
     if (gr.st !== 200 || !gr.d.ok) { failView(gr, () => openDetail(id, note)); return; }
@@ -233,6 +236,7 @@
     return (await copyText(url)) ? "copied" : "fail";
   }
   function showInvite(s, back) {
+    window.Track && Track.scr("ps_invite");
     const { $, esc } = ui(), url = inviteUrl(root.location, s.invite_code);
     shell("🔗 초대", `<p class="pstxt"><b>${esc(s.name)}</b></p><div class="pscode">${s.invite_code}</div><div class="psurl">${esc(url)}</div><p class="pstxt" id="psMsg"></p>
       <button class="psb" id="psCopy">링크 복사</button>${navigator.share ? '<button class="psb" id="psShare">공유</button>' : ""}<button class="psb g" id="psX">${back ? "뒤로" : "닫기"}</button>`);
@@ -243,6 +247,7 @@
 
   // ---------- 초대 수락 ----------
   async function showJoin(code) {
+    window.Track && Track.scr("ps_join");
     const { $, esc } = ui();
     if (gate(code)) return;
     loading();
@@ -279,6 +284,7 @@
 
   // ---------- 만들기 (4단계) ----------
   function startWizard() {
+    window.Track && Track.scr("ps_wizard");
     const t = today();
     W = { step: 1, preset: -1, mods: {}, rounds: 60, name: "", start: t, end: addDays(t, 13), max: LIM.DEF_PLAYERS, daily: null };
     wizard();
