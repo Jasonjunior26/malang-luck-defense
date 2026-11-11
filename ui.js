@@ -1431,14 +1431,6 @@ function bindUi() {
   const saveLabel = () => { const b = $("save"), on = typeof GFX_SAVE !== "undefined" && GFX_SAVE; b.dataset.st = on ? "0" : "2"; const sm = b.querySelector("small"); if (sm) sm.textContent = on ? "절전 · 켜짐" : "절전 · 꺼짐"; };
   $("save").onclick = () => { if (typeof gfxSetSave === "function") gfxSetSave(!(typeof GFX_SAVE !== "undefined" && GFX_SAVE)); saveLabel(); };
   saveLabel();
-  // 이용 기록 보내기 토글(기본 켬). CONFIG.ANALYTICS 가 꺼져 있으면 메뉴에 보이지 않는다.
-  const evBtn = $("evOpt");
-  if (evBtn) {
-    if (!(window.Track && CONFIG.ANALYTICS === true)) evBtn.style.display = "none";
-    const evLabel = () => { const on = !window.Track || Track.optOn(); evBtn.dataset.st = on ? "0" : "2"; const sm = evBtn.querySelector("small"); if (sm) sm.textContent = on ? "이용 기록 · 켜짐" : "이용 기록 · 꺼짐"; };
-    evBtn.onclick = () => { if (window.Track) { Track.tap("ev_opt"); Track.setOpt(!Track.optOn()); } evLabel(); };
-    evLabel();
-  }
   document.addEventListener("click", (e) => { if (window.Track) Track.click(e); }, { capture: true, passive: true });
   document.addEventListener("click", (e) => {
     if (menu.classList.contains("on") && !e.target.closest("#menu") && !e.target.closest("#menuBtn")) menuOff();
